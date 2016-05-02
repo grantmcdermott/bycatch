@@ -34,7 +34,14 @@ df1 %>%
   ggplot(aes(x = reduction, y = culm_weight, col = key)) +
   geom_point() +
   geom_line() +
+  ## GM: We can test the geom_smooth function with bigger data...
   # geom_smooth(span = 0.2, se = F) +
+  ## GM: You have to plug these next values in maually at the moment. 
+  ## Ideally it would call an another dataframe automatically. This is
+  ## easy to do, but I'd need to see the data to set up the function.
+  annotate("rect", xmin = 50, xmax = 60, ymin = -Inf, ymax = Inf,
+           alpha = .2) +
+  geom_vline(xintercept = 55, lty = 2) +
   labs(x = "% Reduction in Effort", y = "Frequency") +
   theme(legend.title = element_blank())
 
