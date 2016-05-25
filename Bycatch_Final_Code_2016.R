@@ -15,8 +15,9 @@ library(cowplot)
 library(grid)
 library(gridExtra)
 library(gtools)
+library(graphics)
 #Shrink full datasets to needed columns/rows
-load("Documents/Active Papers/Bycatch/ProjectionData Data.rdata")
+load("ProjectionData Data.rdata")
 rm(OriginalProjectionData)
 upsmallu <- as_data_frame(UnlumpedProjectionData) %>% 
   select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
@@ -152,8 +153,8 @@ rm(upcomb)
 # Export final results input file
 write.csv(restab,"BycatchResultsInputFile2016.csv",row.names = F)
 write.csv(restabnouncert,"BycatchResultsInputFileNoUncert2016.csv",row.names = F)
-#restab <- as_data_frame(read.csv("BycatchResultsInputFile2016.csv",stringsAsFactors=F))
-#restabnouncert <- as_data_frame(read.csv("BycatchResultsInputFileNoUncert2016.csv",stringsAsFactors=F))
+# restab <- as_data_frame(read.csv("BycatchResultsInputFile2016.csv",stringsAsFactors=F))
+# restabnouncert <- as_data_frame(read.csv("BycatchResultsInputFileNoUncert2016.csv",stringsAsFactors=F))
 
 ##################################
 ############ Results #############
@@ -215,117 +216,18 @@ bycatchbenefit <- function(pctred,weight) {
 }
 
 ##############################################
-########## Grant's results functions #########
+########## Results functions #########
 ##############################################
 
+##### pseudocode
+#1. Subset full table into small table with weights, stock ids and pctred values (stockselect functions below)
+#2. For each table, create a sampled version with n rows--which samples from pctred 
+#     (i.e. a vector of pctred samples of length n)--combine MSY and MEY vectors into data frame
+#3. Take weighted averages of resulting vectors for different species groups
 
-### Function 1: Plot that asks: Will rebuilding be enough? 
-### (i.e. distribution plot/frequency weight one) 
+##### end pseudocode
 
-## Inputs: 
-# 1: List of filtered dataframes, "datafilt", with columns: idorig, pctredfmsy, pctredfmey, weight, fvfmsy, g, beta, phi, price, marginalcost 
-#       (weight pre-normalized to add up to 1)
-# 2: List of weights for the species groups, in the same order as the dataframes, adding up to 1
-
-## Outputs: Vector
-
-# dataframe with 3 columns: species (shrimp or tuna), bycatch species (turtle), mortality dist (0.7,0.3) target species, pct reduction
-
-# 3: 3 estimates of percent change needed for the bycatch species of interest: 
-#       point/median (pctredbpt), lower (pctredbl), upper (pctredbu)
-
-## Outputs: Plot with % Change in F on x-axis, and freq. distributions 
-##  for each of msy and mey (i.e. pctredfmsy and pctredfmey), and vertical gridline at point/median estimate, 
-##  with shaded region between lower and upper values given
-
-## ggplot code
-# ggplot(my-df, aes(x = redn) + geom_density() + geom_vline(xintercept=.5)
-# my-df is placeholder for a dataframe, make output, bindrows(is a list), or plot(density(x))
-# use gtools package to sample with replacement
-## sampling code
-# combinations(n = 30, r = 1, v = letters[1:3], repeats = T)
-sample(letters[1:3], size = 100, replace = T)
-
-rep(dataframe$pctred, times = round(dataframe$wt))
-
-## Function definition ##
-bycatchdistplot <- function(datafilt,pctrdbpt,pctrdbl,pctrdbu) {
-  df1 <- datafilt
-  df1 %>%
-    filter(pctredfmsy > 0) %>%
-    rename(MSY = pctredfmsy,
-           MEY = pctredfmey) %>%
-    gather(key, reduction, MSY:MEY) %>%
-    group_by(key, reduction) %>%
-    summarise(culm_weight = sum(weight, na.rm = T)) %>%
-    ggplot(aes(x = reduction, y = culm_weight, col = key)) +
-    # geom_point() +
-    # geom_line() +
-    ## GM: We can test the geom_smooth function with bigger data...
-    geom_smooth(span = 0.4, se = F) +
-    ## GM: You have to plug these next values in maually at the moment. 
-    ## Ideally it would call an another dataframe automatically. This is
-    ## easy to do, but I'd need to see the data to set up the function.
-    annotate("rect", xmin = pctrdbl, xmax = pctrdbu, ymin = -Inf, ymax = Inf,
-             alpha = .2) +
-    geom_vline(xintercept = pctrdbpt, lty = 2) +
-    labs(x = "% Reduction in Mortality", y = "Frequency") +
-    theme(legend.title = element_blank())
-}
-
-bycatchdistplot(loggerheadnwares,pctredbpt,pctredbl,pctredbu)
-
-### Function 2: How much does it cost to reduce mortality enough? (minimized) 
-
-## Inputs: 
-# 1: Filtered dataframe, "datafilt"
-# 2: "pctredbpt", "pctredbl", "pctredbu"
-# 3: A desired percent chance that the bycatch reduction threshold is met, "pctchance"
-# 4: A function ("eqprofit") describing the relationship for a target stock between the equilibrium profit 
-#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
-#     The function will be the same for all stocks.
-
-# 5: A function ("eqyield") describing the relationship for a target stock between the equilibrium yield (i.e. catch) 
-#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
-#     The function will be the same for all stocks.
-
-# 6: A function ("bycatch benefit") describing the relationship between bycatch benefit (in terms of percent reduction in bycatch mortality)
-#     and the percent reduction in F for a target stock (pctredf; a variable)
-
-
-## Outputs: 
-# 1. 2 values (not a data frame): (i) minimum profit cost of achieving the point/median percent change needed for bycatch species
-#                                 (ii) minimum yield cost of achieving the point/median percent change needed for bycatch species
-# 2,3. Same as 1. but for each of the lower and upper percent change needed.
-
-# mydf %>%
-# ungroup() %>% ## just in case
-#   arrange(margcost)
-
-# mydf %>% mutate(cum_margcost = cumsum(margcost))
-
-#####################################################
-### Inputs, input functions for results functions ###
-#####################################################
-
-## Inputs ##
-
-# Estimates of percent change needed for the bycatch species of interest
-pctredbpt <- 56 # Point estimae
-pctredbl  <- 35 # Lower estimate
-pctredbu  <- 78 # Upper estimate
-
-# Desired percent chance that the bycatch reduction threshold is met
-pctchance <- 95
-
-# Relevant taxonomic groups
-
-stocklist <- c("Lumped-Atlantic mackerel-FaoRegion37","Lumped-Atlantic saury-FaoRegion37") # Relevant lumped stocks, if given
-cntrylist <- c("Greece","Italy","France") # Relevant countries, if given
-faoreglist <- c(21,31,27,37) # Relevant FAO fishing areas, if given
-spcatlist <- c(31,33,34) # Relevant species categories, if given
-
-## Filtering functions ##
+### Function 1: Subset full table into table with weights (4 versions) "stockselect"
 
 # Function needed below to handle stocks with multiple fao regions
 faofun <- function(x) paste("grepl(", toString(x), ",","dt$regionfao)", sep = "")
@@ -359,7 +261,7 @@ stockselect2 <- function(dt,spcat,countries){
     select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost)
   return(dtuse)
 }
-  
+
 # Selecting stocks: option 3: list of lumped stocks, fao regions specified
 stockselect3 <- function(dt,lumpedstocks,faoreg){
   # Construct command to filter FAO regions
@@ -375,7 +277,7 @@ stockselect3 <- function(dt,lumpedstocks,faoreg){
     select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost)
   return(dtuse)
 } 
-  
+
 # Selecting stocks: option 4: list of lumped stocks, countries specified
 stockselect4 <- function(dt,lumpedstocks,countries){
   # Construct command to filter FAO regions
@@ -390,41 +292,128 @@ stockselect4 <- function(dt,lumpedstocks,countries){
   return(dtuse)
 } 
 
+
+### Function 2: Turns subsettted table with pctred and wt into sample of pctred
+
+bycdist <- function(dt,n1,n2) {
+  dt2 <- dt %>%
+    filter(wt > 0)
+  minwt <- min(dt2$wt)
+  dt1 <- dt %>%
+    mutate(wt = wt/minwt)
+  msypop <- rep(dt1$pctredfmsy, times = round(dt$wt))
+  meypop <- rep(dt1$pctredfmey, times = round(dt$wt))
+  sampmsy <- c()
+  sampmey <- c()
+  for (i in 1:n1) {
+    sampmsy <- append(sampmsy, mean(sample(msypop, size = n2, replace = T)))
+    sampmey <- append(sampmey, mean(sample(meypop, size = n2, replace = T)))
+  }
+  samp <- data.frame(pctredmsy=sampmsy,pctredmey=sampmey)
+  return(samp)
+} 
+
+### Function 3: Plot that asks: Will rebuilding be enough to stop decline? 
+
+bycatchdistplot <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=range(sapply(den, "[", "x")), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topleft", legend=names(den), fill=c(4,6))
+}
+bycatchdistplot(t2,pctredbpt,pctredbl,pctredbu)
+
+### Function 4: How much does it cost to reduce mortality enough? (minimized) 
+
+## Inputs: 
+# 1: Filtered dataframe, "datafilt"
+# 2: "pctredbpt", "pctredbl", "pctredbu"
+# 3: A desired percent chance that the bycatch reduction threshold is met, "pctchance"
+# 4: A function ("eqprofit") describing the relationship for a target stock between the equilibrium profit 
+#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
+#     The function will be the same for all stocks.
+
+# 5: A function ("eqyield") describing the relationship for a target stock between the equilibrium yield (i.e. catch) 
+#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
+#     The function will be the same for all stocks.
+
+# 6: A function ("bycatch benefit") describing the relationship between bycatch benefit (in terms of percent reduction in bycatch mortality)
+#     and the percent reduction in F for a target stock (pctredf; a variable)
+
+
+## Outputs: 
+# 1. 2 values (not a data frame): (i) minimum profit cost of achieving the point/median percent change needed for bycatch species
+#                                 (ii) minimum yield cost of achieving the point/median percent change needed for bycatch species
+# 2,3. Same as 1. but for each of the lower and upper percent change needed.
+
+# mydf %>%
+# ungroup() %>% ## just in case
+#   arrange(margcost)
+
+# mydf %>% mutate(cum_margcost = cumsum(margcost))
+
+######################
+### Function tests ###
+######################
+
+## Inputs ##
+
+# Estimates of percent change needed for the bycatch species of interest
+pctredbpt <- 56 # Point estimae
+pctredbl  <- 35 # Lower estimate
+pctredbu  <- 78 # Upper estimate
+
+# Desired percent chance that the bycatch reduction threshold is met
+pctchance <- 95
+
+# Relevant taxonomic groups
+stocklist <- c("Lumped-Atlantic mackerel-FaoRegion37","Lumped-Atlantic saury-FaoRegion37") # Relevant lumped stocks, if given
+cntrylist <- c("Greece","Italy","France") # Relevant countries, if given
+faoreglist <- c(21,31) # Relevant FAO fishing areas, if given
+spcatlist <- c(31,33,34) # Relevant species categories, if given
+
 # Test stockselect functions
 stockselect1(restabnouncert,spcatlist,faoreglist)
 stockselect2(restabnouncert,spcatlist,cntrylist)
 stockselect3(restabnouncert,stocklist,faoreglist)
 stockselect4(restabnouncert,stocklist,cntrylist)
 
-# Combining multiple sub-groups with given weights (e.g. shrimps, tunas, etc. for NW Atl. loggerhead)
+### Tests with sample table 
+t1 <- stockselect1(restabnouncert,spcatlist,faoreglist)
+t2 <- bycdist(t1,100,100)
+bycatchdistplot(t2,pctredbpt,pctredbl,pctredbu)
 
+# Combining multiple sub-groups with given weights (e.g. shrimps, tunas, etc. for NW Atl. loggerhead)
+n1 <- 100
+n2 <- 100
 demfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
 demspcat <- c(31,33,34)
 demwt <- 0.25
-demres <- stockselect1(restabnouncert,demspcat,demfaoreg) %>%
-  mutate(wt = wt*demwt)
+demres <- stockselect1(restabnouncert,demspcat,demfaoreg)
+demdist <- bycdist(demres,n1,n2)
 
 tunafaoreg <- c(21,31,27,37) #Pelagic impacts assumed to also include NE Atlantic and Med. (based on Wallace et al. 2010 RMUs)
 tunaspcat <- c(36,38)
 tunawt <- 0.07
-tunares <- stockselect1(restabnouncert,tunaspcat,tunafaoreg) %>%
-  mutate(wt = wt*tunawt)
+tunares <- stockselect1(restabnouncert,tunaspcat,tunafaoreg)
+tunadist <- bycdist(tunares,n1,n2)
 
 shrimpfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
 shrimpspcat <- c(45)
 shrimpwt <- 0.68
-shrimpres <- stockselect1(restabnouncert,shrimpspcat,shrimpfaoreg) %>%
-  mutate(wt = wt*shrimpwt)
+shrimpres <- stockselect1(restabnouncert,shrimpspcat,shrimpfaoreg) 
+shrimpdist <- bycdist(shrimpres,n1,n2)
 
-loggerheadnwares <- rbind(demres,tunares,shrimpres)
+loggerheadnwadist <- (demwt * demdist) + (shrimpwt * shrimpdist) + (tunawt * tunadist)
 
-loggerheadnwawtsum <- sum(loggerheadnwares$wt,na.rm = TRUE)
-
-loggerheadnwares <- 
-  loggerheadnwares %>%
-  mutate(weight = wt/loggerheadnwawtsum) %>%
-  select(-wt)
-  
+bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)  
   
 ###############################
 ########### Results ###########
