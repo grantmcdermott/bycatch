@@ -241,6 +241,7 @@ stockselect1 <- function(dt,spcat,faoreg){
     dt %>%
     filter((eval(parse(text = b)))) %>% 
     filter(speciescat %in% spcat) %>%
+    filter(fmeyvfmsy > 0) %>%
     mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
     mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
     mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
@@ -255,6 +256,7 @@ stockselect2 <- function(dt,spcat,countries){
     dt %>%
     filter(speciescat %in% spcat) %>%
     filter(country %in% countries) %>%
+    filter(fmeyvfmsy > 0) %>%
     mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
     mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
     mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
@@ -271,6 +273,7 @@ stockselect3 <- function(dt,lumpedstocks,faoreg){
     dt %>%
     filter((eval(parse(text = b)))) %>% 
     filter(idoriglumped %in% lumpedstocks) %>%
+    filter(fmeyvfmsy > 0) %>%
     mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
     mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
     mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
@@ -285,6 +288,7 @@ stockselect4 <- function(dt,lumpedstocks,countries){
     dt %>%
     filter(idoriglumped %in% lumpedstocks) %>%
     filter(country %in% countries) %>%
+    filter(fmeyvfmsy > 0) %>%
     mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
     mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
     mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
@@ -296,18 +300,14 @@ stockselect4 <- function(dt,lumpedstocks,countries){
 ### Function 2: Turns subsettted table with pctred and wt into sample of pctred
 
 bycdist <- function(dt,n1,n2) {
-  dt2 <- dt %>%
-    filter(wt > 0)
-  minwt <- min(dt2$wt)
+  sumwt <- sum(dt$wt)
   dt1 <- dt %>%
-    mutate(wt = wt/minwt)
-  msypop <- rep(dt1$pctredfmsy, times = round(dt$wt))
-  meypop <- rep(dt1$pctredfmey, times = round(dt$wt))
+    mutate(wt = wt/sumwt)
   sampmsy <- c()
   sampmey <- c()
   for (i in 1:n1) {
-    sampmsy <- append(sampmsy, mean(sample(msypop, size = n2, replace = T)))
-    sampmey <- append(sampmey, mean(sample(meypop, size = n2, replace = T)))
+    sampmsy <- append(sampmsy, mean(sample(dt1$pctredfmsy, size = n2, replace = T, prob = dt1$wt)))
+    sampmey <- append(sampmey, mean(sample(dt1$pctredfmey, size = n2, replace = T, prob = dt1$wt)))
   }
   samp <- data.frame(pctredmsy=sampmsy,pctredmey=sampmey)
   return(samp)
@@ -328,7 +328,81 @@ bycatchdistplot <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
   abline(v=pctrdbpt,col = 1, lty = 2)
   legend("topleft", legend=names(den), fill=c(4,6))
 }
-bycatchdistplot(t2,pctredbpt,pctredbl,pctredbu)
+
+#Version 2 fixes the range at zero to 100
+bycatchdistplot2 <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=c(0,100), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topleft", legend=names(den), fill=c(4,6))
+}
+
+#Version 3 fixes the range at -500 to 100 (for NZ sea lion)
+bycatchdistplot3 <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=c(-500,100), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topleft", legend=names(den), fill=c(4,6))
+}
+
+#Version 4 fixes the range at -20 to 100 (for Finless porpoise)
+bycatchdistplot4 <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=c(-50,100), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topleft", legend=names(den), fill=c(4,6))
+}
+
+#Version 5 puts legend on right (for Au sea lion)
+bycatchdistplot5 <- function(bdist,pctrdbpt,pctrdbl,pctrdbu) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=c(0,100), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topright", legend=names(den), fill=c(4,6))
+}
+
+#Version 6 allows range to be specified
+bycatchdistplot6 <- function(bdist,pctrdbpt,pctrdbl,pctrdbu,rl,ru) {
+  bd <- bdist %>%
+    rename(MSY = pctredmsy,
+           MEY = pctredmey)
+  den <- apply(bd, 2, density)
+  plot(NA, xlim=c(rl,ru), 
+       ylim=range(sapply(den, "[", "y")), 
+       xlab = "% Reduction in Mortality", ylab = "Density")
+  rect(pctrdbl,-1,pctrdbu,1,col = 'lightgrey',border = NA)
+  mapply(lines, den, col=c(4,6))
+  abline(v=pctrdbpt,col = 1, lty = 2)
+  legend("topleft", legend=names(den), fill=c(4,6))
+}
 
 ### Function 4: How much does it cost to reduce mortality enough? (minimized) 
 
@@ -421,7 +495,8 @@ bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)
 
 # Desired percent chance that the bycatch reduction threshold is met
 pctchance <- 95
-
+n1 <- 10000
+n2 <- 100
 
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
 #   "Cods, hakes, haddocks" = 32,"Miscellaneous coastal fishes" = 33,
@@ -454,31 +529,28 @@ pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes
 demfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
 demspcat <- c(31,33,34)
 demwt <- 0.25
-demres <- stockselect1(restabnouncert,demspcat,demfaoreg) %>%
-  mutate(wt = wt*demwt)
+demres <- stockselect1(restabnouncert,demspcat,demfaoreg)
+demdist <- bycdist(demres,n1,n2)
 
 tunafaoreg <- c(21,31,27,37) #Pelagic impacts assumed to also include NE Atlantic and Med. (based on Wallace et al. 2010 RMUs)
 tunaspcat <- c(36,38)
 tunawt <- 0.07
-tunares <- stockselect1(restabnouncert,tunaspcat,tunafaoreg) %>%
-  mutate(wt = wt*tunawt)
+tunares <- stockselect1(restabnouncert,tunaspcat,tunafaoreg)
+tunadist <- bycdist(tunares,n1,n2)
 
 shrimpfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
 shrimpspcat <- c(45)
 shrimpwt <- 0.68
-shrimpres <- stockselect1(restabnouncert,shrimpspcat,shrimpfaoreg) %>%
-  mutate(wt = wt*shrimpwt)
+shrimpres <- stockselect1(restabnouncert,shrimpspcat,shrimpfaoreg) 
+shrimpdist <- bycdist(shrimpres,n1,n2)
 
-loggerheadnwares <- rbind(demres,tunares,shrimpres)
+loggerheadnwadist <- (demwt * demdist) + (shrimpwt * shrimpdist) + (tunawt * tunadist)
+rm(demdist,tunadist,shrimpdist)
 
-loggerheadnwawtsum <- sum(loggerheadnwares$wt,na.rm = TRUE)
+#bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot2(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)
 
-loggerheadnwares <- 
-  loggerheadnwares %>%
-  mutate(weight = wt/loggerheadnwawtsum) %>%
-  select(-wt)
-
-loggerheadnwaplot1 <- bycatchdistplot(loggerheadnwares,pctredbpt,pctredbl,pctredbu)
+loggerheadnwaplot1 <- bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)
 
 ################################
 ## Leatherback - East Pacific ##
@@ -488,37 +560,33 @@ loggerheadnwaplot1 <- bycatchdistplot(loggerheadnwares,pctredbpt,pctredbl,pctred
 
 # Estimates of percent change needed for the bycatch species of interest
 lambda <- 0.97
-fe <- 0.067
+fe <- 0.036
 lambda2 <- 0.846
 fe2 <- 0.334
 
-pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
-pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
-pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
-
+pctredbpt <- 100 * ((1 - lambda2)/fe2) # Point estimae
+pctredbl  <- 100 * ((0.75 * (1 - lambda2))/(fe2 * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
+pctredbu  <- 100 * ((1.25 * (1 - lambda2))/(fe2 * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
 faoreg <- c(77,87) 
 spgr <- c(31,33,34)
 demwt <- 0.84
-demresLBT <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*demwt)
+demresLBT <- stockselect1(restabnouncert,spgr,faoreg)
+demdistLBT <- bycdist(demresLBT,n1,n2)
 
 faoreg <- c(77,87)  
 spgr <- c(36,38) #Longline
 tunawt <- 0.16
-tunaresLBT <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*tunawt)
+tunaresLBT <- stockselect1(restabnouncert,spgr,faoreg)
+tunadistLBT <- bycdist(tunaresLBT,n1,n2)
 
-LBTres <- rbind(demresLBT,tunaresLBT)
+LBTdist <- (demwt * demdistLBT) + (tunawt * tunadistLBT)
+rm(demdistLBT,tunadistLBT)
 
-LBTsum <- sum(LBTres$wt,na.rm = TRUE)
+#bycatchdistplot(LBTdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot2(LBTdist,pctredbpt,pctredbl,pctredbu)
 
-LBTres <- 
-  LBTres %>%
-  mutate(weight = wt/LBTsum) %>%
-  select(-wt)
-
-LBTplot1 <- bycatchdistplot(LBTres,pctredbpt,pctredbl,pctredbu)
+LBTplot1 <- bycatchdistplot(LBTdist,pctredbpt,pctredbl,pctredbu)
 
 ####################################
 ## Olive ridley - NE Indian Ocean ##
@@ -534,17 +602,14 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-
 faoreg <- c(57) 
 spgr <- c(31,32,33,34,38,45)
 ORTEIres <- stockselect1(restabnouncert,spgr,faoreg)
 
-ORTEIsum <- sum(ORTEIres$wt,na.rm = TRUE)
+ORTEIdist <- bycdist(ORTEIres,n1,n2)
 
-ORTEIres <- 
-  ORTEIres %>%
-  mutate(weight = wt/ORTEIsum) %>%
-  select(-wt)
+#bycatchdistplot(ORTEIdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot2(ORTEIdist,pctredbpt,pctredbl,pctredbu)
 
 ORTEIplot1 <- bycatchdistplot(ORTEIres,pctredbpt,pctredbl,pctredbu)
 
@@ -562,19 +627,14 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-
 faoreg <- c(51) 
 spgr <- c(31,32,33,34,38,45)
 ORTWIres <- stockselect1(restabnouncert,spgr,faoreg)
 
-ORTWIsum <- sum(ORTWIres$wt,na.rm = TRUE)
+ORTWIdist <- bycdist(ORTWIres,n1,n2)
 
-ORTWIres <- 
-  ORTWIres %>%
-  mutate(weight = wt/ORTWIsum) %>%
-  select(-wt)
-
-ORTWIplot1 <- bycatchdistplot(ORTWIres,pctredbpt,pctredbl,pctredbu)
+#bycatchdistplot(ORTWIdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot2(ORTWIdist,pctredbpt,pctredbl,pctredbu)
 
 ###################
 ##### Mammals #####
@@ -598,24 +658,19 @@ pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes
 cntry <- c("Australia") 
 spgr <- c(31,32,33,34,45) #Trawl - secondary threat (assume 25%)
 demwt <- 0.25
-demresAuslM <- stockselect2(restabnouncert,spgr,cntry) %>%
-  mutate(wt = wt*demwt)
+demresAuslM <- stockselect2(restabnouncert,spgr,cntry)
+demdistAuslM <- bycdist(demresAuslM,n1,n2)
 
 spgr <- c(38) #Shark gillnet - major threat (assume 75%)
 sharkwt <- 0.75
-sharkresAuslM <- stockselect2(restabnouncert,spgr,cntry) %>%
-  mutate(wt = wt*sharkwt)
+sharkresAuslM <- stockselect2(restabnouncert,spgr,cntry)
+sharkdistAuslM <- bycdist(sharkresAuslM,n1,n2)
 
-AuslMres <- rbind(demresAuslM,sharkresAuslM)
+AuslMdist <- (demwt * demdistAuslM) + (sharkwt * sharkdistAuslM)
+rm(demdistAuslM,sharkdistAuslM)
 
-AuslMsum <- sum(AuslMres$wt,na.rm = TRUE)
-
-AuslMres <- 
-  AuslMres %>%
-  mutate(weight = wt/AuslMsum) %>%
-  select(-wt)
-
-AuslMplot1 <- bycatchdistplot(AuslMres,pctredbpt,pctredbl,pctredbu)
+#bycatchdistplot(AuslMdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot5(AuslMdist,pctredbpt,pctredbl,pctredbu)
 
 #################
 ## NZ Sea lion ##
@@ -631,44 +686,12 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-
 faoreg <- c(81,88) 
 spgr <- c(57)
 NZslMres <- stockselect1(restabnouncert,spgr,faoreg)
+NZslMdist <- bycdist(NZslMres,n1,n2)
 
-NZslMsum <- sum(NZslMres$wt,na.rm = TRUE)
-
-NZslMres <- 
-  NZslMres %>%
-  mutate(weight = wt/NZslMsum) %>%
-  select(-wt)
-
-## Modify plot function for NZ sea lion percent change range
-bycatchdistplotnz <- function(datafilt,pctrdbpt,pctrdbl,pctrdbu) {
-  df1 <- datafilt
-  df1 %>%
-    filter(pctredfmsy > -10000) %>%
-    rename(MSY = pctredfmsy,
-           MEY = pctredfmey) %>%
-    gather(key, reduction, MSY:MEY) %>%
-    group_by(key, reduction) %>%
-    summarise(culm_weight = sum(weight, na.rm = T)) %>%
-    ggplot(aes(x = reduction, y = culm_weight, col = key)) +
-    # geom_point() +
-    # geom_line() +
-    ## GM: We can test the geom_smooth function with bigger data...
-    geom_smooth(span = 0.4, se = F) +
-    ## GM: You have to plug these next values in maually at the moment. 
-    ## Ideally it would call an another dataframe automatically. This is
-    ## easy to do, but I'd need to see the data to set up the function.
-    annotate("rect", xmin = pctrdbl, xmax = pctrdbu, ymin = -Inf, ymax = Inf,
-             alpha = .2) +
-    geom_vline(xintercept = pctrdbpt, lty = 2) +
-    labs(x = "% Reduction in Mortality", y = "Frequency") +
-    theme(legend.title = element_blank())
-}
-
-NZslMplot1 <- bycatchdistplotnz(NZslMres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot3(NZslMdist,pctredbpt,pctredbl,pctredbu)
 
 ###################################
 ## Finless porpoise - NW Pacific ##
@@ -684,19 +707,14 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-
-faoreg <- c(61) # Change to China/Taiwan? Need to update
+#faoreg <- c(61) # Change to China/Taiwan? Need to update
+cntry <- c("China","Taiwan Province of China") 
 spgr <- c(31,32,33,34)
-FPMres <- stockselect1(restabnouncert,spgr,faoreg)
+FPMres <- stockselect2(restabnouncert,spgr,cntry)
 
-FPMsum <- sum(FPMres$wt,na.rm = TRUE)
+FPMdist <- bycdist(FPMres,n1,n2)
 
-FPMres <- 
-  FPMres %>%
-  mutate(weight = wt/FPMsum) %>%
-  select(-wt)
-
-FPMplot1 <- bycatchdistplot(FPMres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot4(FPMdist,pctredbpt,pctredbl,pctredbu)
 
 ###################################
 ## Humpback dolphin - SW Pacific ##
@@ -712,19 +730,13 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-
 faoreg <- c(61) 
 spgr <- c(31,32,33,34,11)
 HDMres <- stockselect1(restabnouncert,spgr,faoreg)
 
-HDMsum <- sum(HDMres$wt,na.rm = TRUE)
+HDMdist <- bycdist(HDMres,n1,n2)
 
-HDMres <- 
-  HDMres %>%
-  mutate(weight = wt/HDMsum) %>%
-  select(-wt)
-
-HDMplot1 <- bycatchdistplot(HDMres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot2(HDMdist,pctredbpt,pctredbl,pctredbu)
 
 ###########################################
 ## Vaquita - Gulf of California - Mexico ##
@@ -746,14 +758,10 @@ faoreg <- c(77)
 spgr <- c(31,32,33,34)
 VaMres <- stockselect1(restabnouncert,spgr,faoreg)
 
-VaMsum <- sum(VaMres$wt,na.rm = TRUE)
+VaMdist <- bycdist(VaMres,n1,n2)
 
-VaMres <- 
-  VaMres %>%
-  mutate(weight = wt/VaMsum) %>%
-  select(-wt)
+bycatchdistplot2(VaMdist,pctredbpt,pctredbl,pctredbu)
 
-VaMplot1 <- bycatchdistplot(VaMres,pctredbpt,pctredbl,pctredbu)
 
 #################
 ##### Birds #####
@@ -779,14 +787,9 @@ faoreg <- c(57)
 spgr <- c(36)
 AABres <- stockselect1(restabnouncert,spgr,faoreg)
 
-AABsum <- sum(AABres$wt,na.rm = TRUE)
+AABdist <- bycdist(AABres,n1,n2)
 
-AABres <- 
-  AABres %>%
-  mutate(weight = wt/AABsum) %>%
-  select(-wt)
-
-AABplot1 <- bycatchdistplot(AABres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot6(AABdist,pctredbpt,pctredbl,pctredbu,-100,100)
 
 ##########################################################################
 ## Sooty shearwater - Atlantic, Pacific, S Indian Ocean, Southern Ocean ##
@@ -807,14 +810,9 @@ faoreg <- c(61,71,81,67,77,87,21,27,31,34,41,47,48,58,88)
 spgr <- c(36)
 SSBres <- stockselect1(restabnouncert,spgr,faoreg)
 
-SSBsum <- sum(SSBres$wt,na.rm = TRUE)
+SSBdist <- bycdist(SSBres,n1,n2)
 
-SSBres <- 
-  SSBres %>%
-  mutate(weight = wt/SSBsum) %>%
-  select(-wt)
-
-SSBplot1 <- bycatchdistplot(SSBres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot6(SSBdist,pctredbpt,pctredbl,pctredbu,-100,100)
 
 ####################################
 ## Tristan albatross - S Atlantic ##
@@ -835,14 +833,9 @@ faoreg <- c(41,47)
 spgr <- c(36)
 TABres <- stockselect1(restabnouncert,spgr,faoreg)
 
-TABsum <- sum(TABres$wt,na.rm = TRUE)
+TABdist <- bycdist(TABres,n1,n2)
 
-TABres <- 
-  TABres %>%
-  mutate(weight = wt/TABsum) %>%
-  select(-wt)
-
-TABplot1 <- bycatchdistplot(TABres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot6(TABdist,pctredbpt,pctredbl,pctredbu,-100,100)
 
 ############################################################################
 ## White-chinned petrel - S Pacific, S Atlantic, S Indian, Southern Ocean ##
@@ -862,49 +855,43 @@ pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes
 faoreg <- c(48,58) 
 spgr <- c(32)
 wt1 <- 0.167
-combresWCPB1 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt1)
+combresWCPB1 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist1 <- bycdist(combresWCPB1,n1,n2)
 
 faoreg <- c(47) 
 spgr <- c(32)
 wt2 <- 0.167
-combresWCPB2 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt2)
+combresWCPB2 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist2 <- bycdist(combresWCPB2,n1,n2)
 
 faoreg <- c(41) 
 spgr <- c(32)
 wt3 <- 0.167
-combresWCPB3 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt3)
+combresWCPB3 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist3 <- bycdist(combresWCPB3,n1,n2)
 
 faoreg <- c(47) 
 spgr <- c(36)
 wt4 <- 0.167
-combresWCPB4 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt4)
+combresWCPB4 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist4 <- bycdist(combresWCPB4,n1,n2)
 
 faoreg <- c(41) 
 spgr <- c(36,38)
 wt5 <- 0.167
-combresWCPB5 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt5)
+combresWCPB5 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist5 <- bycdist(combresWCPB5,n1,n2)
 
 faoreg <- c(71,81) 
 spgr <- c(36)
 wt6 <- 0.167
-combresWCPB6 <- stockselect1(restabnouncert,spgr,faoreg) %>%
-  mutate(wt = wt*wt6)
+combresWCPB6 <- stockselect1(restabnouncert,spgr,faoreg)
+WCPBdist6 <- bycdist(combresWCPB6,n1,n2)
 
-WCPBres <- rbind(combresWCPB1,combresWCPB2,combresWCPB3,combresWCPB4,combresWCPB5,combresWCPB6)
+WCPBdist <- (WCPBdist1 * wt1) + (WCPBdist2 * wt2) + (WCPBdist3 * wt3) + (WCPBdist4 * wt4) + (WCPBdist5 * wt5) + (WCPBdist6 * wt6)
+rm(WCPBdist1,WCPBdist2,WCPBdist3,WCPBdist4,WCPBdist5,WCPBdist6)
 
-WCPBsum <- sum(WCPBres$wt,na.rm = TRUE)
-
-WCPBres <- 
-  WCPBres %>%
-  mutate(weight = wt/WCPBsum) %>%
-  select(-wt)
-
-WCPBplot1 <- bycatchdistplot(WCPBres,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot5(WCPBdist,pctredbpt,pctredbl,pctredbu)
 
 #####################
 ##### Figure 1 ######
