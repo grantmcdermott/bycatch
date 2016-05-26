@@ -264,6 +264,23 @@ stockselect2 <- function(dt,spcat,countries){
   return(dtuse)
 }
 
+stockselect5 <- function(dt,spcat,faoreg,countries){
+  # Construct command to filter FAO regions
+  a <- lapply(faoreg,faofun)
+  b <- paste(a, collapse = "|")
+  dtuse <- 
+    dt %>%
+    filter((eval(parse(text = b)))) %>% 
+    filter(speciescat %in% spcat) %>%
+    filter(country %in% countries) %>%
+    filter(fmeyvfmsy > 0) %>%
+    mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
+    mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
+    mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
+    select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost)
+  return(dtuse)
+}
+
 # Selecting stocks: option 3: list of lumped stocks, fao regions specified
 stockselect3 <- function(dt,lumpedstocks,faoreg){
   # Construct command to filter FAO regions
@@ -568,6 +585,8 @@ pctredbpt <- 100 * ((1 - lambda2)/fe2) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda2))/(fe2 * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda2))/(fe2 * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
+pctredbpt2 <- 100 * ((1 - lambda)/fe) # Point estimae
+
 faoreg <- c(77,87) 
 spgr <- c(31,33,34)
 demwt <- 0.84
@@ -585,6 +604,7 @@ rm(demdistLBT,tunadistLBT)
 
 #bycatchdistplot(LBTdist,pctredbpt,pctredbl,pctredbu)
 bycatchdistplot2(LBTdist,pctredbpt,pctredbl,pctredbu)
+abline(v=pctredbpt2,col = 2, lty = 2)
 
 LBTplot1 <- bycatchdistplot(LBTdist,pctredbpt,pctredbl,pctredbu)
 
@@ -707,14 +727,13 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-#faoreg <- c(61) # Change to China/Taiwan? Need to update
-cntry <- c("China","Taiwan Province of China") 
+faoreg <- c(61) 
 spgr <- c(31,32,33,34)
-FPMres <- stockselect2(restabnouncert,spgr,cntry)
+FPMres <- stockselect1(restabnouncert,spgr,faoreg)
 
 FPMdist <- bycdist(FPMres,n1,n2)
 
-bycatchdistplot4(FPMdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot6(FPMdist,pctredbpt,pctredbl,pctredbu,-20,100)
 
 ###################################
 ## Humpback dolphin - SW Pacific ##
@@ -730,13 +749,14 @@ pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
 pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
+cntry <- c("China","Taiwan Province of China") # Change to China/Taiwan? Need to update
 faoreg <- c(61) 
-spgr <- c(31,32,33,34,11)
-HDMres <- stockselect1(restabnouncert,spgr,faoreg)
+spgr <- c(31,32,33,34,38)
+HDMres <- stockselect5(restabnouncert,spgr,faoreg,cntry)
 
 HDMdist <- bycdist(HDMres,n1,n2)
 
-bycatchdistplot2(HDMdist,pctredbpt,pctredbl,pctredbu)
+bycatchdistplot6(HDMdist,pctredbpt,pctredbl,pctredbu,-50,100)
 
 ###########################################
 ## Vaquita - Gulf of California - Mexico ##
