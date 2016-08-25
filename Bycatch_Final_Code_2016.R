@@ -17,7 +17,7 @@ library(gridExtra)
 library(gtools)
 library(graphics)
 #Shrink full datasets to needed columns/rows
-load("ProjectionData Data.rdata")
+load("ProjectionData.rdata")
 rm(OriginalProjectionData)
 upsmallu <- as_data_frame(UnlumpedProjectionData) %>% 
   select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
