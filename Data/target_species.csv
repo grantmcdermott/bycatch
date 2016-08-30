@@ -1,0 +1,92 @@
+species,target,type,wt,faoreg,spcat,countries,lumpedstocks
+Amsterdam albatross,target_species,1.0,1.0,57.0,36.0,NA,NA
+Australian sea lion,Demersals,2.0,0.25,NA,31.0,Australia,NA
+Australian sea lion,Demersals,2.0,0.25,NA,32.0,Australia,NA
+Australian sea lion,Demersals,2.0,0.25,NA,33.0,Australia,NA
+Australian sea lion,Demersals,2.0,0.25,NA,34.0,Australia,NA
+Australian sea lion,Demersals,2.0,0.25,NA,45.0,Australia,NA
+Australian sea lion,Sharks,2.0,0.75,NA,38.0,Australia,NA
+Finless porpoise,target_species,1.0,1.0,61.0,31.0,NA,NA
+Finless porpoise,target_species,1.0,1.0,61.0,32.0,NA,NA
+Finless porpoise,target_species,1.0,1.0,61.0,33.0,NA,NA
+Finless porpoise,target_species,1.0,1.0,61.0,34.0,NA,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,31.0,China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,32.0,China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,33.0,China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,34.0,China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,38.0,China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,31.0,Taiwan Province of China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,32.0,Taiwan Province of China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,33.0,Taiwan Province of China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,34.0,Taiwan Province of China,NA
+Humpback dolphin,target_species,5.0,1.0,61.0,38.0,Taiwan Province of China,NA
+Leatherback turtle,Demersals,1.0,0.84,77.0,31.0,NA,NA
+Leatherback turtle,Demersals,1.0,0.84,87.0,31.0,NA,NA
+Leatherback turtle,Demersals,1.0,0.84,77.0,33.0,NA,NA
+Leatherback turtle,Demersals,1.0,0.84,87.0,33.0,NA,NA
+Leatherback turtle,Demersals,1.0,0.84,77.0,34.0,NA,NA
+Leatherback turtle,Demersals,1.0,0.84,87.0,34.0,NA,NA
+Leatherback turtle,Tuna,1.0,0.16,77.0,36.0,NA,NA
+Leatherback turtle,Tuna,1.0,0.16,87.0,36.0,NA,NA
+Leatherback turtle,Tuna,1.0,0.16,77.0,38.0,NA,NA
+Leatherback turtle,Tuna,1.0,0.16,87.0,38.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,21.0,31.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,31.0,31.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,21.0,33.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,31.0,33.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,21.0,34.0,NA,NA
+Loggerhead turtle,Demersals,1.0,0.25,31.0,34.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,21.0,36.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,27.0,36.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,31.0,36.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,37.0,36.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,21.0,38.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,27.0,38.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,31.0,38.0,NA,NA
+Loggerhead turtle,Tuna,1.0,0.07,37.0,38.0,NA,NA
+Loggerhead turtle,Shrimp,1.0,0.68,21.0,45.0,NA,NA
+Loggerhead turtle,Shrimp,1.0,0.68,31.0,45.0,NA,NA
+NZ sea lion,target_species,1.0,1.0,81.0,57.0,NA,NA
+NZ sea lion,target_species,1.0,1.0,88.0,57.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,31.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,32.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,33.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,34.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,38.0,NA,NA
+Olive ridley turtle (NEI),target_species,1.0,1.0,57.0,45.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,31.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,32.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,33.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,34.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,38.0,NA,NA
+Olive ridley turtle (WI),target_species,1.0,1.0,51.0,45.0,NA,NA
+White-chinned petrel,target_species_1,1.0,0.167,48.0,32.0,NA,NA
+White-chinned petrel,target_species_1,1.0,0.167,58.0,32.0,NA,NA
+White-chinned petrel,target_species_2,1.0,0.167,47.0,32.0,NA,NA
+White-chinned petrel,target_species_3,1.0,0.167,41.0,32.0,NA,NA
+White-chinned petrel,target_species_4,1.0,0.167,47.0,36.0,NA,NA
+White-chinned petrel,target_species_5,1.0,0.167,41.0,36.0,NA,NA
+White-chinned petrel,target_species_5,1.0,0.167,41.0,38.0,NA,NA
+White-chinned petrel,target_species_6,1.0,0.167,71.0,36.0,NA,NA
+White-chinned petrel,target_species_6,1.0,0.167,81.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,61.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,71.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,81.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,67.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,77.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,87.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,21.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,27.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,31.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,34.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,41.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,47.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,48.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,58.0,36.0,NA,NA
+Sooty shearwater,target_species,1.0,1.0,88.0,36.0,NA,NA
+Tristan albatross,target_species,1.0,1.0,41.0,36.0,NA,NA
+Tristan albatross,target_species,1.0,1.0,47.0,36.0,NA,NA
+Vaquita,target_species,1.0,1.0,77.0,31.0,NA,NA
+Vaquita,target_species,1.0,1.0,77.0,32.0,NA,NA
+Vaquita,target_species,1.0,1.0,77.0,33.0,NA,NA
+Vaquita,target_species,1.0,1.0,77.0,34.0,NA,NA

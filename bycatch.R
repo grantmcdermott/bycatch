@@ -1,83 +1,101 @@
 rm(list = ls())
 
-library(readr)
+##################################
+########### Data Setup ###########
+##################################
+require(readr)
+require(dplyr)
+require(tidyr)
+library(tibble)
 library(ggplot2)
 library(cowplot)
-library(tibble)
-library(tidyr)
-library(dplyr)
+library(pbapply)
 
-##### 2 functions #####
+###########################################
+############ Read in the data #############
+###########################################
 
-### Function 1: Plot that asks: Will rebuilding be enough? 
-### (i.e. distribution plot/frequency weight one) 
+# upsides_uncert <- read_csv("Data/upsides_uncert.csv", col_types = cols(regionfao = "c"))
+upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c"))
 
-## Inputs: 
-# 1: A dataframe with 4 columns: idorig, pctredfmsy, pctredfmey, weight (weight pre-normalized to add up to 1)
-#    Sample of this dataframe attached as "sample-table-f1.csv"
-# 2: 3 estimates of percent change needed for the bycatch species of interest: point/median, lower, upper
+bycatch_df <- read_csv("Data/bycatch_species.csv")
 
-## Outputs: Plot with % Change in F on x-axis, and freq. distributions 
-##  for each of msy and mey (i.e. pctredfmsy and pctredfmey), and vertical gridline at point/median estimate, 
-##  with shaded region between lower and upper values given
-
-df1 <- read_csv("sample-table-f1.csv")
-## GM: Matt, when exporting CSV files via write.csv, remember to set row.names = F
-## I've adjusted the sample datasets in this folder already, but just a tip for the future
-
-df1 %>%
-  rename(MSY = pctredfmsy,
-         MEY = pctredfmey) %>%
-  gather(key, reduction, MSY:MEY) %>%
-  group_by(key, reduction) %>%
-  summarise(culm_weight = sum(weight, na.rm = T)) %>%
-  ggplot(aes(x = reduction, y = culm_weight, col = key)) +
-  geom_point() +
-  geom_line() +
-  ## GM: We can test the geom_smooth function with bigger data...
-  # geom_smooth(span = 0.2, se = F) +
-  ## GM: You have to plug these next values in maually at the moment. 
-  ## Ideally it would call an another dataframe automatically. This is
-  ## easy to do, but I'd need to see the data to set up the function.
-  annotate("rect", xmin = 50, xmax = 60, ymin = -Inf, ymax = Inf,
-           alpha = .2) +
-  geom_vline(xintercept = 55, lty = 2) +
-  labs(x = "% Reduction in Effort", y = "Frequency") +
-  theme(legend.title = element_blank())
+target_df <- read_csv("Data/target_species.csv")
 
 
-### Function 2: How much does it cost to reduce mortality enough? (minimized) 
+###################################
+########## Load functions #########
+###################################
 
-## Inputs: 
-# 1: A dataframe with columns: idorig, pctredfmsy, pctredfmey, weight, fvfmsy, g, beta, phi, price, marginalcost
-#    Sample of this dataframe attached as "sample-table-f2.csv"
-# 2: 3 estimates of percent change needed for the bycatch species of interest: point/median, lower, upper
-# 3: A desired percent chance that the bycatch reduction threshold is met
-# 4: A function (below) describing the relationship for a target stock between the equilibrium profit 
-#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
-#     The function will be the same for all stocks.
-eqprofit <- function(pctred,price,marginalcost,fvfmsy,g,k,phi,beta) {
-  eqp <-  (0.01 * price * fvfmsy * g * k * (100 - pctred) * (((1 + phi - (fvfmsy * phi) + (0.01 * fvfmsy * pctred * phi))/(1 + phi))^(1/phi))) - 
-    (marginalcost * ((fvfmsy * g * (1 - (pctred/100)))^beta)) + 
-    return(eqp)
-}
+source("bycatch_funcs.R")
 
-# 5: A function (below) describing the relationship for a target stock between the equilibrium yield (i.e. catch) 
-#     and the percent reduction in F (pctredf; a variable) in terms of columns in the input table.
-#     The function will be the same for all stocks.
-eqyield <- function(pctred,fvfmsy,g,k,phi) {
-  eqy <- 0.01 * fvfmsy * g * k * (100 - pctred) * (((1 + phi - (fvfmsy * phi) + (0.01 * fvfmsy * pctred * phi))/(1 + phi))^(1/phi))
-  return(eqy)
-}
 
-# 6: A function (below) describing the relationship between bycatch benefit (in terms of percent reduction in bycatch mortality)
-#     and the percent reduction in F for a target stock (pctredf; a variable)
-bycatchbenefit <- function(pctred,weight) {
-  benefit <- pctred * weight
-  return(benefit)
-}
+###############################
+########### Results ###########
+###############################
 
-## Outputs: 
-# 1. 2 values (not a data frame): (i) minimum profit cost of achieving the point/median percent change needed for bycatch species
-#                                 (ii) minimum yield cost of achieving the point/median percent change needed for bycatch species
-# 2,3. Same as 1. but for each of the lower and upper percent change needed.
+## Desired chance (%) that the bycatch reduction threshold is met
+pctchance <- 95
+## Sampling parameters
+n1 <- 10000
+n2 <- 100
+
+
+###############
+### Turtles ###
+###############
+
+turtle_species <- (filter(bycatch_df, grp=="turtle"))$species
+
+## Run the bycatch function over all turtle species (takes 55s on my laptop)
+turtles <- bind_rows(pblapply(turtle_species, bycatch_func))
+
+## Plot the data
+bycatchdistggplot(turtles) +
+  ggsave("TablesFigures/turtles1.png", width = 8, height = 6)
+bycatchdistggplot(turtles) +
+  facet_wrap(~species, scales = "free") + 
+  ggsave("TablesFigures/turtles2.png", width = 8, height = 6)
+# ## Note: To add axes to each plot while keeping scales="fixed"
+# bycatchdistggplot(turtles) +
+#   annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
+#   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
+
+
+###############
+### Mammals ###
+###############
+
+mammal_species <- (filter(bycatch_df, grp=="mammal"))$species
+
+## Run the bycatch function over all turtle species (takes 47s on my laptop)
+mammals <- bind_rows(pblapply(mammal_species, bycatch_func))
+
+## Plot the data
+bycatchdistggplot(mammals) 
+## NZ sea lion is a huge outlier
+bycatchdistggplot(filter(mammals, species != "NZ sea lion")) + 
+  ggsave("TablesFigures/mammals1.png", width = 8, height = 6)
+bycatchdistggplot(mammals) + 
+  facet_wrap(~species, scales = "free") + 
+  ggsave("TablesFigures/mammals2.png", width = 8, height = 6)
+
+
+#############
+### Birds ###
+#############
+
+bird_species <- (filter(bycatch_df, grp=="bird"))$species
+
+## Run the bycatch function over all turtle species (takes 01m 14s on my laptop)
+birds <- bind_rows(pblapply(bird_species, bycatch_func))
+
+## Plot the data
+bycatchdistggplot(birds) 
+## Sooty shearwater is a huge outlier
+bycatchdistggplot(filter(birds, species != "Sooty shearwater")) + 
+  facet_wrap(~species, ncol = 2) + 
+  ggsave("TablesFigures/birds1.png", width = 8, height = 6)
+bycatchdistggplot(filter(birds, species != "Sooty shearwater")) + 
+  facet_wrap(~species, scales = "free", ncol = 2) + 
+  ggsave("TablesFigures/birds2.png", width = 8, height = 6)
