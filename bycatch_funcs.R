@@ -1,18 +1,17 @@
 eqprofit <- 
   function(pctred,price,marginalcost,fvfmsy,g,k,phi,beta) {
-    eqp <- 
-      (0.01*price*fvfmsy*g*k*(100-pctred) *
-         (((1+phi-(fvfmsy*phi)+(0.01*fvfmsy*pctred*phi))/(1+phi))^(1/phi))
-      ) - 
-      (marginalcost*((fvfmsy*g*(1-(pctred/100)))^beta)) + ## plus what?
+    eqp <-
+      (price*(1-(0.01*pctred))*fvfmsy*g*k*
+         ((1 - (((1-(0.01*pctred))*fvfmsy)/(phi + 1)))^(1/phi))) - 
+      (marginalcost*((fvfmsy*g*(1-(0.01*pctred)))^beta))
       return(eqp)
   }
 
 eqyield <- 
   function(pctred,fvfmsy,g,k,phi) {
     eqy <- 
-      0.01*fvfmsy*g*k*(100-pctred) * 
-      (((1+phi-(fvfmsy*phi)+(0.01*fvfmsy*pctred*phi))/(1+phi))^(1/phi))
+      (1-(0.01*pctred))*fvfmsy*g*k*
+      ((1 - (((1-(0.01*pctred))*fvfmsy)/(phi + 1)))^(1/phi))
     return(eqy)
   }
 
