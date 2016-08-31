@@ -1,3 +1,9 @@
+##################################################################
+##################################################################
+### Equilibrium profit and yield functions (for cost analysis) ###
+##################################################################
+##################################################################
+
 eqprofit <- 
   function(pctred,price,marginalcost,fvfmsy,g,k,phi,beta) {
     eqp <-
@@ -15,11 +21,30 @@ eqyield <-
     return(eqy)
   }
 
-bycatchbenefit <- 
-  function(pctred,weight) {
-    benefit <- pctred*weight
-    return(benefit)
-  }
+###################################
+###################################
+### Test code for cost analysis ###
+###################################
+###################################
+
+# Pseudocode:
+# Summary: For each bycatch draw (each of n1 draws of n2 stocks from each target sp. category),
+#    input is list of drawn stocks, n2, weights for different target species, and pctredpt-
+#    -the percent reduction in bycatch mortality estimated to be needed for the bycatch species of interest.
+#    The objective is to calculate the minimum (yield or profit) cost needed to get bycatch to this level,
+#    if MSY or MEY management does not provide enough of a reduction. This is repeated for each of the n1 draws,
+#    which yields the presented distribution. The pseudocode describes the cost-minimization procedure for each draw (of size n2).
+# 1. For each selected stock, calculate cost (in terms of yield or profit) of equal-sized increments of 
+#    bycatch mortality reduction, from fmey (for profit) or fmsy (yield) to pctred = 100 
+#    (i.e. no more fishing on that target stock). Make data frame of these increments by cost.
+#    Columns of new dataframe: idorig, byc_incr (i.e. additional pctred implied for bycatch),
+#    tar_incr (i.e. additional pctred implied for target), cost (yield_cost for yield, profit_cost for profit)
+# 2. Combine these tables for all stocks into single dataframe. (Potential issue: data table size)
+# 3. Sort by cost (from smallest to largest).
+# 4. Add down the rows until the necessary reduction for the bycatch species is achieved.
+# 5. Add down rows to calculate cost.
+# 6. Compare cost to total profit/yield at MEY/MSY.
+
 
 
 ##### Pseudocode
