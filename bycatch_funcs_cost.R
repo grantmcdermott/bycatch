@@ -7,19 +7,20 @@
 eqprofit <- 
   function(pctred,price,marginalcost,fvfmsy,g,k,phi,beta) {
     eqp <-
-      (price*(1-(0.01*pctred))*fvfmsy*g*k*
-         ((1 - (((1-(0.01*pctred))*fvfmsy)/(phi + 1)))^(1/phi))) - 
-      (marginalcost*((fvfmsy*g*(1-(0.01*pctred)))^beta))
+      (price * ((1 - (0.01 * pctred)) * fvfmsy * g) *
+         (k * ((1 - ((((1 - (0.01 * pctred)) * fvfmsy * g) * phi)/(g * (phi + 1))))^(1/phi)))) - 
+      (marginalcost * ((((1 - (0.01 * pctred)) * fvfmsy * g))^beta))
     return(eqp)
   }
 
 eqyield <- 
   function(pctred,fvfmsy,g,k,phi) {
     eqy <- 
-      (1-(0.01*pctred))*fvfmsy*g*k*
-      ((1 - (((1-(0.01*pctred))*fvfmsy)/(phi + 1)))^(1/phi))
+      ((1 - (0.01 * pctred)) * fvfmsy * g) *
+      (k * ((1 - ((((1 - (0.01 * pctred)) * fvfmsy * g) * phi)/(g * (phi + 1))))^(1/phi)))
     return(eqy)
   }
+
 
 ##### Pseudocode
 #1. Subset full table into small table with weights, stock ids and pctred values (stockselect functions below)
@@ -86,12 +87,11 @@ disb_func <-
           filter(country %in% dt$countries)  
       }
     
+    # MB: I removed definition of pctred columns in here since I now define them in the upsides table in the code above.
     stocks_df <-
       stocks_df %>%
       filter(fmeyvfmsy > 0) %>%
       mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
-      mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
-      mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
       select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,k,price,marginalcost) %>% ## added k
       mutate(wt = wt/sum(wt, na.rm = T))
     
