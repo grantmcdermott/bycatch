@@ -324,7 +324,7 @@ costggplot <-
       # xlim(0, 100) +
       scale_color_brewer(name = "", palette = "Set1") +
       scale_fill_brewer(name = "", palette = "Set1") +
-      facet_wrap(~key, scales= "free") +
+      facet_wrap(~species + key, scales= "free", ncol = 2) +
       theme(
         #text = element_text(family = font_type),
         legend.position = "none",
