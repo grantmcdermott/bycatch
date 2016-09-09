@@ -100,7 +100,7 @@ disb_func <-
       stocks_df %>%
       mutate(eqm_yield = eqyield(pctredfmsy, fvfmsy, g, k, phi),
              eqm_profit = eqprofit(pctredfmey, price, marginalcost, fvfmsy, g, k, phi, beta)
-             ) %>%
+             ) %>% 
       ## NEW
       mutate(
         pctredfmsy_incrmt = pctredfmsy+i*incrmt/dt$wt, ## Assume we reduce FMSY by an additional (scaled) amount c.f. upsides optimum
