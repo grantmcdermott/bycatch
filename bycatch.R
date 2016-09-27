@@ -10,6 +10,13 @@ library(tibble)
 library(ggplot2)
 library(cowplot)
 library(pbapply)
+library(pbmcapply)
+
+## Choose the number of process to run in parallel. Will choose the smaller of
+## 4 or the number of CPUs your computer has. Edit this as needed. Also be advised
+## that it is better to turn off all other applications while this code is
+## runnning, to avoid overloading your computer.
+num_cores <- min(4, detectCores())
 
 ###########################################
 ############ Read in the data #############
@@ -28,26 +35,37 @@ target_df <- read_csv("Data/target_species.csv")
 ##################################################
 ##################################################
 
-ids <- c()
-eqfvfmeys <- c()
-
-# calculate equilibrium MEYs
-for (i in 1:length(upsides$idorig)) {
-  ids <- append(ids, upsides$idorig[i])
-  eqfvfmeys <- append(eqfvfmeys, 
-                      (1/(optim(par = 0.005, fn = function (x) {
-                        - ((upsides$price[i] * upsides$g[i] * x * upsides$k[i] * ((1 - ((upsides$g[i] * x * upsides$phi[i])/(upsides$g[i] * (upsides$phi[i] + 1))))^(1/upsides$phi[i]))) - 
-                             (upsides$marginalcost[i] * ((upsides$g[i] * x)^upsides$beta[i])))
-                      }, method = "Brent", lower = 0, upper = 1.5)$par * (1/upsides$fvfmsy[i])))
-  )
-}
+test <- 
+  pbmclapply(
+    1:length(upsides$idorig),
+    mc.cores = num_cores,
+    function(i){
+      
+      ids <- upsides$idorig[i]
+      
+      eqfvfmeys <- 
+        1/(optim(par = 0.005,  
+                 fn = function(x){
+                   - ((upsides$price[i] * upsides$g[i] * x * upsides$k[i] * 
+                         ((1 - ((upsides$g[i] * x * upsides$phi[i])/(upsides$g[i] * (upsides$phi[i] + 1))))^(1/upsides$phi[i]))) - 
+                        (upsides$marginalcost[i] * ((upsides$g[i] * x)^upsides$beta[i])))
+                   }, 
+                 method = "Brent", 
+                 lower = 0, 
+                 upper = 1.5)$par * 
+             (1/upsides$fvfmsy[i]))
+      
+      df = data_frame(idorig = ids, eqfvfmey = eqfvfmeys)
+      return(df)
+         }) %>%
+  bind_rows
 
 # add equilibrium MEY cols to upsides
-test <- data_frame(idorig = ids, eqfvfmey = eqfvfmeys)
 upsides <- left_join(upsides, test, by = "idorig")
 
 # make pctred columns
-upsides <- upsides %>%
+upsides <- 
+  upsides %>%
   mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
   mutate(pctredfmey = 100 * (1 - (1/eqfvfmey))) # defines pctredmey in terms of eqfmey, but we can change this if we want.
 # mutate(pctredfmey = 100 * (1 - (1/(fvfmsy/fmeyvfmsy)))) # defines pctredmey in terms of NPV fmey
@@ -70,6 +88,9 @@ pctchance <- 95
 n1 <- 1000
 n2 <- 100
 
+## Choose the percent increment for calculating (marginal) yield and profit
+## losses when there is a shortfall.
+incrmt <- 1 ## i.e. one tenth of a percent increment in bycatch reduction
 
 ###############
 ### Turtles ###
@@ -77,10 +98,14 @@ n2 <- 100
 
 turtle_species <- (filter(bycatch_df, grp=="turtle"))$species
 
-## Run the bycatch function over all turtle species (takes 55s on my laptop)
+## Run the bycatch function over all turtle species 
+## Each progress bar represents the time needed for a particular turtle stock. 
+## There are four turtle stocks, so there will be four progress bars in succession.
+## This next line takes 4 and a bit minutes to run on my laptop (with a 1 percent 
+## increment).
 turtles <- bind_rows(pblapply(turtle_species, bycatch_func))
 
-## Plot the data
+## % reduction plot
 bycatchdistggplot(turtles) +
   ggsave("TablesFigures/turtles1.png", width = 8, height = 6)
 bycatchdistggplot(turtles) +
@@ -90,6 +115,9 @@ bycatchdistggplot(turtles) +
 # bycatchdistggplot(turtles) +
 #   annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
 #   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
+
+## Yield loss and cost plot
+costggplot(turtles)
 
 
 ###############
