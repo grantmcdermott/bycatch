@@ -1,4 +1,4 @@
-rm(list = ls())
+rm(list = ls()) #Clear environment
 
 ##################################
 ########### Data Setup ###########
@@ -50,8 +50,8 @@ upsides <- left_join(upsides, test, by = "idorig")
 # make pctred columns
 upsides <- upsides %>%
   mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
-  mutate(pctredfmey = 100 * (1 - (1/eqfvfmey))) # defines pctredmey in terms of eqfmey, but we can change this if we want.
-# mutate(pctredfmey = 100 * (1 - (1/(fvfmsy/fmeyvfmsy)))) # defines pctredmey in terms of NPV fmey
+#  mutate(pctredfmey = 100 * (1 - (1/eqfvfmey))) # defines pctredmey in terms of eqfmey, but we can change this if we want.
+  mutate(pctredfmey = 100 * (1 - (1/(fvfmsy/fmeyvfmsy)))) # defines pctredmey in terms of NPV fmey
 
 
 
@@ -72,17 +72,47 @@ pctchance <- 95
 n1 <- 100#1000
 n2 <- 100
 
-
-turtle_species_samp <- c("Loggerhead turtle", "Olive ridley turtle (NEI)")#(filter(bycatch_df, grp=="turtle"))$species
-## Run the bycatch function over all turtle species (takes 55s on my laptop)
+## Turtle results
+turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")
+## Run the bycatch function over all turtle species
 turtles_samp <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
-bycatchdistggplot(turtles_samp) +
+turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
-costggplot(turtles_samp)
+turtlecostplots <- costggplot(turtles_samp)
+#write_csv(turtles_samp, "turtles_test.csv")
+turtledistplots
+turtlecostplots
+
+## Mammal results
+mammal_species_samp <- (filter(bycatch_df, grp=="mammal"))$species 
+## Run the bycatch function over all mammal species
+mammals_samp <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammaldistplots <- bycatchdistggplot(mammals_samp) +
+  facet_wrap(~species, scales = "free")
+mammalcostplots <- costggplot(mammals_samp)
+#write_csv(mammals_samp, "mammals_test.csv")
+mammaldistplots
+mammalcostplots
+
+## Bird results
+bird_species_samp <- (filter(bycatch_df, grp=="bird"))$species 
+## Run the bycatch function over all bird species
+bird_samp <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+birddistplots <- bycatchdistggplot(bird_samp) +
+  facet_wrap(~species, scales = "free")
+birdcostplots <- costggplot(bird_samp)
+#write_csv(bird_samp, "bird_test.csv")
+birddistplots
+birdcostplots
 
 # humpback <- bind_rows(pblapply("Humpback dolphin", bycatch_func))
 humpback <- bycatch_func("Humpback dolphin")
 humpback
 bycatchdistggplot(humpback) 
 costggplot(humpback) 
+
+###################################################
+########### Fig. 2 - Loggerhead Example ###########
+###################################################
+
 

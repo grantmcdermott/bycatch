@@ -92,8 +92,13 @@ disb_func <-
       stocks_df %>%
       filter(fmeyvfmsy > 0) %>%
       mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
-      select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,k,price,marginalcost) %>% ## added k
+      mutate(mey = eqprofit(pctredfmey,price,marginalcost,fvfmsy,g,k,phi,beta)) %>% ## added mey
+      mutate(msy = eqyield(pctredfmsy,fvfmsy,g,k,phi)) %>% ## added msy
+      select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,k,price,marginalcost,msy,mey) %>% ## added k
       mutate(wt = wt/sum(wt, na.rm = T))
+    
+    msytotals <- sum(stocks_df$msy) # calculate total msy and mey for the set of target stocks for reference below
+    meytotals <- sum(stocks_df$mey)
     
     ## Profit and yield
     stocks_df <-
@@ -150,7 +155,9 @@ disb_func <-
     ## Step 2.3: Multiply sampled data frame by target stock weight ##
     ##################################################################
     
-    samp_wt <- dt$wt * samp
+    samp_wt <- dt$wt * (samp %>% 
+      mutate(totmsy = msytotals) %>%
+      mutate(totmey = meytotals))      # add total msy and mey for the set of target stocks for reference below
     
     return(samp_wt)
   }
@@ -160,7 +167,7 @@ disb_func <-
 ## a single bycatch species. This is what we'll call in the actual analysis. ##
 ###############################################################################
 ## NEW
-incrmt <- 1 ## one percent increment in bycatch reduction  #0.1 ## i.e. one tenth of a percent
+incrmt <- 0.1 ## one percent increment in bycatch reduction  #0.1 ## i.e. one tenth of a percent
 
 bycatch_func <- 
   function(z){
@@ -217,21 +224,21 @@ bycatch_func <-
           select(req_red, everything()) 
         
         yield_temp <-
-          (weighted_df %>%
+          ((weighted_df %>%
             arrange(marg_yield) %>%
             mutate(total_pctred = cumsum(marg_pctred),
                    total_yield = cumsum(marg_yield)
                    ) %>%
              mutate(total_yield = ifelse(total_pctred<=req_red, total_yield, NA)) %>%
-             summarise(yield = max(total_yield, na.rm = T)))$yield
+             summarise(yield = max(total_yield, na.rm = T)))$yield / weighted_df$totmsy) * 100 ## Rescaled to be fraction of maximum
         
         profit_temp <-
-          (weighted_df %>%
+          ((weighted_df %>%
              arrange(marg_profit) %>%
              mutate(total_pctred = cumsum(marg_pctred),
                     total_profit = cumsum(marg_profit)) %>%
              mutate(total_profit = ifelse(total_pctred<=req_red, total_profit, NA)) %>%
-             summarise(profit = max(total_profit, na.rm = T)))$profit
+             summarise(profit = max(total_profit, na.rm = T)))$profit / weighted_df$totmey) * 100 ## Rescaled to be fraction of maximum
         
 
         ## Finally, collapse into a one-row data frame with the following columns:
