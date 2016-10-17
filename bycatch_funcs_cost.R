@@ -97,9 +97,6 @@ disb_func <-
       select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,k,price,marginalcost,msy,mey) %>% ## added k
       mutate(wt = wt/sum(wt, na.rm = T))
     
-    msytotals <- sum(stocks_df$msy) # calculate total msy and mey for the set of target stocks for reference below
-    meytotals <- sum(stocks_df$mey)
-    
     ## Profit and yield
     stocks_df <-
       stocks_df %>%
@@ -118,8 +115,7 @@ disb_func <-
       mutate(
         marg_yield = eqm_yield_incrmt - eqm_yield_prev_incrmt,
         marg_profit = eqm_profit_incrmt - eqm_profit_prev_incrmt
-      ) 
-
+      )
     
     
     ###############################################################################
@@ -145,19 +141,27 @@ disb_func <-
                     marg_yield = mean(marg_yield, na.rm = T),
                     marg_profit = mean(marg_profit, na.rm = T),
                     pctred = i,
-                    marg_pctred = incrmt/dt$wt
-                    ) 
+                    marg_pctred = incrmt/dt$wt,
+                    totmsy = sum(msy, na.rm = T),
+                    totmey = sum(mey, na.rm = T)
+                    ) %>%
+      mutate(
+        marg_yield_perc = marg_yield/totmsy*100,
+        marg_profit_perc = marg_profit/totmey*100
+      )
       # }) %>%
       # bind_rows()
+    
+    # ## Calculate total msy and mey for the set of target stocks for reference below
+    # msytotals <- samp$msy_sum
+    # meytotals <- samp$mey_sum
   
     
     ##################################################################
     ## Step 2.3: Multiply sampled data frame by target stock weight ##
     ##################################################################
     
-    samp_wt <- dt$wt * (samp %>% 
-      mutate(totmsy = msytotals) %>%
-      mutate(totmey = meytotals))      # add total msy and mey for the set of target stocks for reference below
+    samp_wt <- dt$wt * samp 
     
     return(samp_wt)
   }
@@ -166,99 +170,119 @@ disb_func <-
 ## Final step: Convenience wrapper to apply over all target stocks affecting ##
 ## a single bycatch species. This is what we'll call in the actual analysis. ##
 ###############################################################################
-## NEW
-incrmt <- 0.1 ## one percent increment in bycatch reduction  #0.1 ## i.e. one tenth of a percent
 
 bycatch_func <- 
   function(z){
     
     final_df <- 
-      pblapply(1:n1, function(j) { ## big loop to sample over distributions
-        
-        ## NEW
-        j <<- j
-        i <<- 0
-        shortfall_msy <<- 1 
-        shortfall_mey <<- 1
-        pctredmsy_incrmt <<- 1
-        pctredmey_incrmt <<- 1
-        
-        ## NEW
-        weighted_df <- list()
-        while((shortfall_msy > 0 | shortfall_mey > 0) & (pctredmsy_incrmt < 100 & pctredmey_incrmt < 100)){
-        # while(i < 25){ ## test
-          weighted_df[[i+1]] <-
-            
-            ## Produce a data frame with one row
-            lapply(
-              extract_func(z), ## get lists of relevant target stocks based on bycatch species
-              function(x) disb_func(x, n2)#n1, n2) 
-              ) %>%
-              Reduce("+", .) %>% ## collapse into single weighted row(s)
-              as_data_frame() %>%
-              mutate(species = z)
-          
-          ## shortfall = required mean reduction - estimated reduction from sampling function
-          shortfall_msy <<- filter(bycatch_df, species == z)$pctredbpt - weighted_df[[i+1]]$pctredmsy_incrmt
-          shortfall_mey <<- filter(bycatch_df, species == z)$pctredbpt - weighted_df[[i+1]]$pctredmey_incrmt
-          ## Should not be able to reduce beyond 100%
-          pctredmsy_incrmt <<- weighted_df[[i+1]]$pctredmsy_incrmt
-          pctredmey_incrmt <<- weighted_df[[i+1]]$pctredmey_incrmt
-          
-          weighted_df[[i+1]]$req_red <- filter(bycatch_df, species == z)$pctredbpt
-          weighted_df[[i+1]]$shortfall_msy <- shortfall_msy #ifelse(shortfall_msy>=0, shortfall_msy, NA)
-          weighted_df[[i+1]]$shortfall_mey <- shortfall_mey #ifelse(shortfall_mey>=0, shortfall_mey, NA)
+      pbmclapply( ## NB Parallel (multicore) loop only works on *nix machines (Linux, Mac, etc.) Not Windows!
+        1:n1,
+        mc.cores = num_cores,
+        function(j) { ## big loop to sample over distributions
           
           ## NEW
-          i <<- i + 1
+          j <<- j
+          i <<- 0
+          shortfall_msy <<- 1 
+          shortfall_mey <<- 1
+          pctredmsy_incrmt <<- 1
+          pctredmey_incrmt <<- 1
           
-        } ## end of while loop NEW
-        
-        # Cleanup
-        rm(i, shortfall_msy, shortfall_mey, pctredmsy_incrmt, pctredmey_incrmt,
-           envir = .GlobalEnv)
-        
-        weighted_df <- 
-          weighted_df %>% 
-          bind_rows() %>% ## combine list of increments into single data frame
-          select(req_red, everything()) 
-        
-        yield_temp <-
-          ((weighted_df %>%
+          ## NEW
+          weighted_df <- list()
+          
+          while((shortfall_msy > 0 | shortfall_mey > 0) & (pctredmsy_incrmt < 100 & pctredmey_incrmt < 100)){
+          # while(i < 25){ ## test
+            weighted_df[[i+1]] <-
+              ## Produce a data frame with one row
+              lapply(
+                extract_func(z), ## get lists of relevant target stocks based on bycatch species
+                function(x) disb_func(x, n2)#n1, n2) 
+                ) %>%
+                Reduce("+", .) %>% ## collapse into single weighted row(s)
+                as_data_frame() %>%
+                mutate(species = z)
+            
+            ## shortfall = required mean reduction - estimated reduction from sampling function
+            shortfall_msy <<- filter(bycatch_df, species == z)$pctredbpt - weighted_df[[i+1]]$pctredmsy_incrmt
+            shortfall_mey <<- filter(bycatch_df, species == z)$pctredbpt - weighted_df[[i+1]]$pctredmey_incrmt
+            ## Should not be able to reduce beyond 100%
+            pctredmsy_incrmt <<- weighted_df[[i+1]]$pctredmsy_incrmt
+            pctredmey_incrmt <<- weighted_df[[i+1]]$pctredmey_incrmt
+            
+            weighted_df[[i+1]]$req_red <- filter(bycatch_df, species == z)$pctredbpt
+            weighted_df[[i+1]]$shortfall_msy <- shortfall_msy #ifelse(shortfall_msy>=0, shortfall_msy, NA) ## do this further below now
+            weighted_df[[i+1]]$shortfall_mey <- shortfall_mey #ifelse(shortfall_mey>=0, shortfall_mey, NA) ## ditto
+            
+            ## NEW
+            i <<- i + 1
+            
+          } ## end of while loop NEW
+          
+          # Cleanup
+          rm(i, shortfall_msy, shortfall_mey, pctredmsy_incrmt, pctredmey_incrmt,
+             envir = .GlobalEnv)
+          
+          weighted_df <- 
+            weighted_df %>% 
+            bind_rows() %>% ## combine list of increments into single data frame
+            select(req_red, everything()) 
+          
+          yield_temp <-
+            weighted_df %>%
             arrange(marg_yield) %>%
-            mutate(total_pctred = cumsum(marg_pctred),
-                   total_yield = cumsum(marg_yield)
-                   ) %>%
-             mutate(total_yield = ifelse(total_pctred<=req_red, total_yield, NA)) %>%
-             summarise(yield = max(total_yield, na.rm = T)))$yield / weighted_df$totmsy) * 100 ## Rescaled to be fraction of maximum
+              mutate(
+                total_pctred = cumsum(marg_pctred),
+                total_yield = cumsum(marg_yield),
+                total_yield_perc = cumsum(marg_yield_perc)
+                ) %>%
+               mutate(
+                 total_yield = ifelse(total_pctred<=req_red, total_yield, NA),
+                 total_yield_perc = ifelse(total_pctred<=req_red, total_yield_perc, NA)
+                 ) %>%
+               summarise(
+                 yield = max(total_yield, na.rm = T),
+                 yield_perc = max(total_yield_perc, na.rm = T)
+                 )
+          
+          profit_temp <-
+            weighted_df %>%
+               arrange(marg_profit) %>%
+               mutate(
+                 total_pctred = cumsum(marg_pctred),
+                 total_profit = cumsum(marg_profit),
+                 total_profit_perc = cumsum(marg_profit_perc)
+                 ) %>%
+               mutate(
+                 total_profit = ifelse(total_pctred<=req_red, total_profit, NA),
+                 total_profit_perc = ifelse(total_pctred<=req_red, total_profit_perc, NA)
+                 ) %>%
+               summarise(
+                 profit = max(total_profit, na.rm = T),
+                 profit_perc = max(total_profit_perc, na.rm = T)
+                 )
+          
+  
+          ## Finally, collapse into a one-row data frame with the following columns:
+          ## species, req_red, pctredmsy, pctredmey, yield, profit
+          weighted_df <-
+            weighted_df %>%
+            group_by(species) %>% ## just to keep species column when summarising next
+            summarise(
+              req_red = mean(req_red, na.rm = T),
+              pctredmsy = mean(pctredmsy, na.rm = T),
+              pctredmey = mean(pctredmey, na.rm = T)
+              ) %>%
+              mutate(
+                yield = ifelse(req_red <= pctredmsy, 0, yield_temp$yield),
+                yield_perc = ifelse(req_red <= pctredmsy, 0, yield_temp$yield_perc),
+                profit = ifelse(req_red <= pctredmey, 0, profit_temp$profit),
+                profit_perc = ifelse(req_red <= pctredmey, 0, profit_temp$profit_perc)
+              )
+          
+          return(weighted_df)
         
-        profit_temp <-
-          ((weighted_df %>%
-             arrange(marg_profit) %>%
-             mutate(total_pctred = cumsum(marg_pctred),
-                    total_profit = cumsum(marg_profit)) %>%
-             mutate(total_profit = ifelse(total_pctred<=req_red, total_profit, NA)) %>%
-             summarise(profit = max(total_profit, na.rm = T)))$profit / weighted_df$totmey) * 100 ## Rescaled to be fraction of maximum
-        
-
-        ## Finally, collapse into a one-row data frame with the following columns:
-        ## species, req_red, pctredmsy, pctredmey, yield, profit
-        weighted_df <-
-          weighted_df %>%
-          group_by(species) %>% ## just to keep species column when summarising next
-          summarise(
-            req_red = mean(req_red, na.rm = T),
-            pctredmsy = mean(pctredmsy, na.rm = T),
-            pctredmey = mean(pctredmey, na.rm = T)
-            ) %>%
-            mutate(
-              yield = ifelse(req_red <= pctredmsy, 0, yield_temp),
-              profit = ifelse(req_red <= pctredmey, 0, profit_temp)
-            )
-        
-        return(weighted_df)
-        
-      }) %>% ## end of big loop over sample distribution
+      }) %>% ## end of big parallel loop over sample distribution (n1)
       bind_rows() 
     
     ## Clean up
@@ -289,6 +313,7 @@ bycatchdistggplot <-
              MEY = pctredmey) %>%
       select(MSY:species) %>%
       gather(key, pctred, -species) %>%
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) %>%
       ggplot() +
       geom_rect(data = filter(df, row_number() == 1),
                 aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
@@ -320,21 +345,25 @@ costggplot <-
   function(df){
     
     df %>%
-      select(species, yield, profit) %>%
-      rename(Yield = yield, Profit = profit) %>%
-      gather(key, cost, -species) %>%
+      select(species, yield_perc, profit_perc) %>%
+      # rename(Yield = yield, Profit = profit) %>%
+      mutate(Yield = -yield_perc, Profit = -profit_perc) %>%
+      select(-c(yield_perc, profit_perc)) %>%
+      gather(key, loss, -species) %>%
+      mutate(key = factor(key, levels = c("Yield", "Profit"))) %>%
       ggplot() +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = cost, col = key, fill = key), alpha = .5) +
+      geom_density(aes(x = loss, col = key, fill = key), alpha = .5) +
       geom_vline(aes(xintercept = 0), lty = 2) +
-      labs(x = "", y = "Density") +
+      labs(x = "Loss (%)", y = "Density") +
       # xlim(0, 100) +
       scale_color_brewer(name = "", palette = "Set1") +
       scale_fill_brewer(name = "", palette = "Set1") +
-      facet_wrap(~species + key, scales= "free", ncol = 2) +
+      facet_wrap(~species,# + key, ## uncomment "+ key" if want yield and profit in different facets
+                 scales= "free", ncol = 2) +
       theme(
         #text = element_text(family = font_type),
-        legend.position = "none",
+        legend.position = "bottom",
         legend.title = element_blank(),
         # strip.text = element_text(size = 18, colour = "black"),
         strip.background = element_rect(fill = "white"), ## Facet strip
