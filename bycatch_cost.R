@@ -16,43 +16,22 @@ library(pbapply)
 ###########################################
 
 # upsides_uncert <- read_csv("Data/upsides_uncert.csv", col_types = cols(regionfao = "c"))
+upsides_kobe <- read_csv("Kobe MEY data for chris.csv") %>%
+  rename(idoriglumped = IdOrig,
+         eqfvfmey = current_f_mey,
+         eqfmeyvfmsy = f_mey) %>%
+  select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
+
 upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c"))
+upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
+  mutate(curr_f = g * fvfmsy,
+         f_mey = g * eqfmeyvfmsy,
+         pctredfmsy = 100 * (1 - (1/fvfmsy)),
+         pctredfmey = 100 * (1 - (1/eqfvfmey)))
 
 bycatch_df <- read_csv("Data/bycatch_species.csv")
 
 target_df <- read_csv("Data/target_species.csv")
-
-
-##################################################
-##################################################
-### Add pctred fvfmey columns to upsides table ###
-##################################################
-##################################################
-
-ids <- c()
-eqfvfmeys <- c()
-
-# calculate equilibrium MEYs
-for (i in 1:length(upsides$idorig)) {
-  ids <- append(ids, upsides$idorig[i])
-  eqfvfmeys <- append(eqfvfmeys, 
-                      (1/(optim(par = 0.005, fn = function (x) {
-                        - ((upsides$price[i] * upsides$g[i] * x * upsides$k[i] * ((1 - ((upsides$g[i] * x * upsides$phi[i])/(upsides$g[i] * (upsides$phi[i] + 1))))^(1/upsides$phi[i]))) - 
-                             (upsides$marginalcost[i] * ((upsides$g[i] * x)^upsides$beta[i])))
-                      }, method = "Brent", lower = 0, upper = 1.5)$par * (1/upsides$fvfmsy[i])))
-  )
-}
-
-# add equilibrium MEY cols to upsides
-test <- data_frame(idorig = ids, eqfvfmey = eqfvfmeys)
-upsides <- left_join(upsides, test, by = "idorig")
-
-# make pctred columns
-upsides <- upsides %>%
-  mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
-#  mutate(pctredfmey = 100 * (1 - (1/eqfvfmey))) # defines pctredmey in terms of eqfmey, but we can change this if we want.
-  mutate(pctredfmey = 100 * (1 - (1/(fvfmsy/fmeyvfmsy)))) # defines pctredmey in terms of NPV fmey
-
 
 
 ###################################
@@ -66,10 +45,8 @@ source("bycatch_funcs_cost.R")
 ########### Results ###########
 ###############################
 
-## Desired chance (%) that the bycatch reduction threshold is met
-pctchance <- 95
 ## Sampling parameters
-n1 <- 100#1000
+n1 <- 100
 n2 <- 100
 
 ## Turtle results
@@ -111,8 +88,69 @@ humpback
 bycatchdistggplot(humpback) 
 costggplot(humpback) 
 
+# humpback <- bind_rows(pblapply("Humpback dolphin", bycatch_func))
+loghead <- bycatch_func("Loggerhead")
+loghead
+bycatchdistggplot(loghead) 
+costggplot(loghead) 
+
 ###################################################
 ########### Fig. 2 - Loggerhead Example ###########
 ###################################################
 
+### Extract distribution plots for specific sub-groups of target species
 
+## Setup
+# Function needed below to handle stocks with multiple fao regions
+faofun <- function(x) paste("grepl(", toString(x), ",","dt$regionfao)", sep = "")
+
+# Selecting stocks: option 1: list of species categories, fao regions specified
+stockselectfig2 <- function(dt,spcat,faoreg){
+  # Construct command to filter FAO regions
+  a <- lapply(faoreg,faofun)
+  b <- paste(a, collapse = "|")
+  dtuse <- 
+    dt %>%
+    filter((eval(parse(text = b)))) %>% 
+    filter(speciescat %in% spcat) %>%
+    filter(fmeyvfmsy > 0) %>%
+    mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
+    select(idorig,pctredfmsy,pctredfmey,wt)
+    #select(pctredfmsy,pctredfmey)
+  return(dtuse)
+}
+
+# Plotting distribution
+fig2distplot <- function(bdist) {
+  bd <- bdist %>%
+    rename(MSY = pctredfmsy,
+           MEY = pctredfmey)
+  # den <- apply(bd, 2, density)
+  plot(bd$MSY, bd$wt, xlim=c(-50,100), col=4, pch = 19,
+       xlab = "% Reduction in Mortality", ylab = "2012 Effort ($)")
+  par(new = TRUE)
+  plot(bd$MEY, bd$wt, xlim=c(0,100), col=2, pch = 19,
+       xlab = "% Reduction in Mortality", ylab = "2012 Effort ($)")
+  #legend("topleft", legend=names(den), fill=c(4,6))
+}
+
+## shrimp
+shrimpfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
+shrimpspcat <- c(45)
+dtshrimp <- stockselectfig2(upsides, shrimpspcat, shrimpfaoreg)
+f2shrimp <- fig2distplot(dtshrimp)
+f2shrimp
+
+## other demersal
+demfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
+demspcat <- c(31,33,34) # Manual match, i.e. parameters from literature. Same for all.
+dtdem <- stockselectfig2(upsides, demspcat, demfaoreg)
+f2dem <- fig2distplot(dtdem)
+f2dem
+
+## tuna, billfish, shark
+tunafaoreg <- c(21,31,27,37) #Pelagic impacts assumed to also include NE Atlantic and Med. (based on Wallace et al. 2010 RMUs)
+tunaspcat <- c(36,38)
+dttuna <- stockselectfig2(upsides, tunaspcat, tunafaoreg)
+f2tuna <- fig2distplot(dttuna)
+f2tuna
