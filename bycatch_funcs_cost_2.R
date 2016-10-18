@@ -68,7 +68,7 @@ mprofitf <-
 
 #1.1 Define numerical inverse function
 inverse = function (f, lower = -100, upper = 100) {
-  function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]
+  function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]$root
 }
 
 #1.2 Inverse marginal cost (in eq. yield or profit) of reducing f for one target stock:
@@ -101,39 +101,53 @@ inv_marg_yield <-
   }
 
 #1.3 Function that takes the sample dataframe of target stocks, and a marginal yield or profit, 
-#      and computes the pct reduction for the bycatch species, given that marginal cost.
+#      and computes the pct reduction for the bycatch species, and the total cost 
+#      (as a percentage of total MSY or MEY), given that marginal cost.
 
-pctred_giv_mp <- function(df, mp) {
-  dt <- df %>%
-    mutate(f_mp = inv_marg_profit(mp,f_mey,price,marginalcost,g,k,phi,beta)) %>%
-    mutate(pctred_b = wt * 100 * (1 - (f_mp/curr_f)))
-  return(sum(dt$pctred_b))
-}
-
-pctred_giv_my <- function(df, my) {
-  dt <- df %>%
-    mutate(f_my = inv_marg_yield(my,g,k,phi)) %>%
-    mutate(pctred_b = wt * 100 * (1 - (f_my/curr_f)))
-  return(sum(dt$pctred_b))
-}
-
-#1.4 Function that takes the sample dataframe of target stocks, and a marginal yield or profit, 
-#      and computes total cost (as a percentage of total MSY or MEY), given that marginal cost.
-
-pcost_giv_mp <- function(df, mp) {
-  dt <- df %>%
-    mutate(f_mp = inv_marg_profit(mp,f_mey,price,marginalcost,g,k,phi,beta)) %>%
+redncost_giv_mp <- function(df, mp) {
+  df$gen_id <- 1:nrow(df)
+  ids <- c()
+  fmp <- c()
+  for (i in 1:length(df$idorig)) {
+    ids <- append(ids, df$gen_id[i])
+    fmp <- append(fmp, inv_marg_profit(mp,df$f_mey[i],df$price[i],
+                                df$marginalcost[i],df$g[i],
+                                df$k[i],df$phi[i],df$beta[i]))
+  }
+  dt <- data_frame(gen_id = ids, f_mp = fmp)
+  dt <- left_join(df, dt, by = 'gen_id')
+  
+  dt <- dt %>%
+    mutate(pctred_b = wgt * 100 * (1 - (f_mp/curr_f))) %>%
     mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
     mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
-  return(100 * (sum(dt$pcost)/sum(dt$mey)))
+  
+  output <- data_frame(pctred = 0, cost = 0)
+  output$pctred <- sum(dt$pctred_b)
+  output$cost <- 100 * (sum(dt$pcost)/sum(dt$mey))
+  return(output)
 }
 
-ycost_giv_my <- function(df, my) {
-  dt <- df %>%
-    mutate(f_my = inv_marg_yield(my,g,k,phi)) %>%
+redncost_giv_my <- function(df, my) {
+  df$gen_id <- 1:nrow(df)
+  ids <- c()
+  fmy <- c()
+  for (i in 1:length(df$idorig)) {
+    ids <- append(ids, df$gen_id[i])
+    fmy <- append(fmy, inv_marg_yield(my,df$g[i],df$k[i],df$phi[i]))
+  }
+  dt <- data_frame(gen_id = ids, f_my = fmy)
+  dt <- left_join(df, dt, by = 'gen_id')
+  
+  dt <- dt %>%
+    mutate(pctred_b = wgt * 100 * (1 - (f_my/curr_f))) %>%
     mutate(msy = eqyieldf(g,g,k,phi)) %>%
     mutate(ycost = yieldcostf(f_my,g,k,phi))
-  return(100 * (sum(dt$ycost)/sum(dt$msy)))
+  
+  output <- data_frame(pctred = 0, cost = 0)
+  output$pctred <- sum(dt$pctred_b)
+  output$cost <- 100 * (sum(dt$ycost)/sum(dt$msy))
+  return(output)
 }
 
 ##2. Given dataframe and pctredpt (the bycatch reduction target, called 'pctredb' in the function), 
@@ -143,9 +157,9 @@ my_calc <- function(df, pctredb) {
   dt <- df %>%
     mutate(maxmy = myieldf(0,g,k,phi))
   mxmy <- max(dt$maxmy)
-  imy <- inverse(function (my) pctred_giv_my(dt, my), 0, mxmy)
+  imy <- inverse(function (my) redncost_giv_my(dt, my)$pctred, 0, mxmy)
   ifelse(
-    pctred_giv_my(dt, mxmy) < pctredb,
+    redncost_giv_my(dt, mxmy)$pctred < pctredb,
     output <- mxmy,
     output <- imy(pctredb)
   ) 
@@ -156,9 +170,9 @@ mp_calc <- function(df, pctredb) {
   dt <- df %>%
     mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
   mxmp <- max(dt$maxmp)
-  imp <- inverse(function (mp) pctred_giv_my(dt, mp), 0, mxmp)
+  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 0, mxmp)
   ifelse(
-    pctred_giv_my(dt, mxmp) < pctredb,
+    redncost_giv_mp(dt, mxmp)$pctred < pctredb,
     output <- mxmp,
     output <- imp(pctredb)
   ) 
@@ -190,7 +204,7 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
       
       #1. Calculate marginal yield cost, given pct reduction needed for bycatch species (my_calc function)
       #2. Calculate total yield cost, given marginal cost calculated in 1. 
-      ycost <- ycost_giv_my(df, my_calc(df, pctredb))
+      ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
     )
   )
   return(ycost)
@@ -213,11 +227,12 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
       
       #1. Calculate marginal profit cost, given pct reduction needed for bycatch species (mp_calc function)
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
-      pcost <- pcost_giv_mp(df, mp_calc(df, pctredb))
+      pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
     )
   )
   return(pcost)
 }
+
 
 ############################################################################
 ############################################################################
@@ -278,9 +293,9 @@ disb_func <-
     stocks_df <-
       stocks_df %>%
       filter(fmeyvfmsy > 0) %>%
-      mutate(wt = marginalcost * ((curr_f)^beta)) %>%
-      select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
-      mutate(wt = wt/sum(wt, na.rm = T))
+      mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
+      select(idorig,pctredfmsy,pctredfmey,wgt,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
+      mutate(wgt = wgt/sum(wgt, na.rm = T))
     
     #########################################################################################################
     ## Step 2.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
@@ -289,7 +304,7 @@ disb_func <-
     samp <-
       pblapply(1:n1, function(i) {
         stocks_df %>%
-          sample_n(n2, replace = T, weight = wt) %>%
+          sample_n(n2, replace = T, weight = wgt) %>%
           summarise(pctredmsy = mean(pctredfmsy),
                     pctredmey = mean(pctredfmey))
       }) %>%
