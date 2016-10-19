@@ -245,7 +245,7 @@ meanpctp <- sum(testsamp$pctredwtp)
 
 cost_yield(testsamp, 80, meanpct)
 
-cost_profit(testsamp, 99.99999, meanpctp)
+cost_profit(testsamp, 99, meanpctp)
 
 utest <- upsides %>%
   mutate(maxmc = mprofitf(f_mey,price,0,g,k,phi,beta)) %>%
@@ -267,4 +267,4 @@ redncost_giv_my(testsamp, 20)
 
 my_calc(testsamp, 60)
 
-mp_calc(testsamp, 70)
+mp_calc(testsamp, 80)

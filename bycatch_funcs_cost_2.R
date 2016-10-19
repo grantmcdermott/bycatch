@@ -194,7 +194,7 @@ mp_calc <- function(df, pctredb) {
   dt <- df %>%
     mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
   mxmp <- max(dt$maxmp)
-  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 0, mxmp)
+  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 0.0001, mxmp)
   ifelse(
     redncost_giv_mp(dt, mxmp)$pctred < pctredb,
     output <- mxmp,
