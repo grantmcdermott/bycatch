@@ -4,16 +4,18 @@
 ##################################################################
 ##################################################################
 
-# In terms of f:
+# Using literal interpretations of eqn 8 in Costello et al. SI
 eqprofitf <- 
   function(f,price,marginalcost,g,k,phi,beta) {
-    eqp <-
-      (price * f *
-         (k * ((1 - ((f * phi)/(g * (phi + 1))))^(1/phi)))) - 
+    ymsy <- ((g * k)/((phi + 1)^(1/phi)))
+    bvbm <- ((1 + phi - ((f/g) * phi))^(1/phi))
+    eqp <- 
+      (price * ymsy * (f/g) * bvbm) -
       (marginalcost * ((f)^beta))
     return(eqp)
   }
 
+# In terms of f:
 eqyieldf <- 
   function(f,g,k,phi) {
     eqy <- 
@@ -21,6 +23,17 @@ eqyieldf <-
       (k * ((1 - ((f * phi)/(g * (phi + 1))))^(1/phi)))
     return(eqy)
   }
+
+# Old version
+# eqprofitf <- 
+#   function(f,price,marginalcost,g,k,phi,beta) {
+#     eqp <-
+#       (price * f *
+#          eqyieldf(f,g,k,phi)) - 
+#       (marginalcost * ((f)^beta))
+#     return(eqp)
+#   }
+
 
 # Cost of f, relative to fmey (profit) or msy (yield):
 profitcostf <- 
@@ -49,13 +62,24 @@ myieldf <-
     return(my)
   }
 
+# Using literal interpretations of eqn 8 in Costello et al. SI
 mprofitf <- 
   function(f,price,marginalcost,g,k,phi,beta) {
     mp <-
-      (-beta * (f^(beta - 1)) * marginalcost) +
-      (price * myieldf(f,g,k,phi))
+      ((price * ((1 + phi - ((f * phi)/g))^(1/phi)) * (f - g) * k * ((1 + phi)^((phi - 1)/phi)))/
+         ((f * phi) - (g * (1 + phi)))) -
+      (beta * marginalcost * (f^(beta - 1)))
     return(mp)
   }
+
+# Old version
+# mprofitf <- 
+#   function(f,price,marginalcost,g,k,phi,beta) {
+#     mp <-
+#       (-beta * (f^(beta - 1)) * marginalcost) +
+#       (price * myieldf(f,g,k,phi))
+#     return(mp)
+#   }
 
 
 #######################################
