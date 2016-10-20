@@ -83,7 +83,8 @@ turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhea
 turtles_samp <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
 turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
-turtlecostplots <- costggplot(turtles_samp)
+turtlecostplots <- costggplot(turtles_samp) +
+  facet_wrap(~species, scales = "free")
 #write_csv(turtles_samp, "turtles_test.csv")
 turtledistplots
 turtlecostplots
@@ -94,7 +95,8 @@ mammal_species_samp <- (filter(bycatch_df, grp=="mammal"))$species
 mammals_samp <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
 mammaldistplots <- bycatchdistggplot(mammals_samp) +
   facet_wrap(~species, scales = "free")
-mammalcostplots <- costggplot(mammals_samp)
+mammalcostplots <- costggplot(mammals_samp) +
+  facet_wrap(~species, scales = "free")
 #write_csv(mammals_samp, "mammals_test.csv")
 mammaldistplots
 mammalcostplots
@@ -105,7 +107,8 @@ bird_species_samp <- (filter(bycatch_df, grp=="bird"))$species
 bird_samp <- bind_rows(pblapply(bird_species_samp, bycatch_func))
 birddistplots <- bycatchdistggplot(bird_samp) +
   facet_wrap(~species, scales = "free")
-birdcostplots <- costggplot(bird_samp)
+birdcostplots <- costggplot(bird_samp) +
+  facet_wrap(~species, scales = "free")
 #write_csv(bird_samp, "bird_test.csv")
 birddistplots
 birdcostplots
