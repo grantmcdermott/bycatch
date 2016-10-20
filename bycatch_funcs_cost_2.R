@@ -279,17 +279,12 @@ extract_func <-
     ) 
   }
 
-#######################################################################
-## Step 2: Produce a weighted data frame of the sample distributions ##
-#######################################################################
+###########################################################
+## Step 2: Subset upsides data to relevant target stocks ##
+###########################################################
 
-disb_func <-
-  function(dt, n1 = 10000, n2 = 100){
-    
-    ##############################################################
-    ## Step 2.1: Select the target stocks per relevant criteria ##
-    ##############################################################
-    
+upsides_subset_func <- 
+  function(dt) {
     stocks_df <- 
       if(dt$type == 1){
         upsides %>%
@@ -316,31 +311,75 @@ disb_func <-
     
     stocks_df <-
       stocks_df %>%
-      filter(fmeyvfmsy > 0) %>%
+      filter(fmeyvfmsy > 0,
+             marginalcost > 0) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
-      select(idorig,pctredfmsy,pctredfmey,wgt,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
+      select(idorig,pctredfmsy,pctredfmey,wgt,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
+      mutate(trgcat = dt$target) %>%
+      mutate(wt = dt$wt) %>%
+      mutate(bycsp = dt$species) %>%
       mutate(wgt = wgt/sum(wgt, na.rm = T))
     
-    #########################################################################################################
-    ## Step 2.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
-    #########################################################################################################
+    return(stocks_df)
+  }
+
+########################################################################
+## Step 3: Produce a data frame of the sample distributions and costs ##
+########################################################################
+
+samp_func <- 
+  function(dt, n2, reltdf) {
+    smple <- reltdf %>%
+      filter(trgcat == dt$target) %>%
+      sample_n(n2, replace = T, weight = wgt)
+    return(smple)
+  }
+
+# input is list of 'dt's' -> output from 'extract_func'
+single_worldstate_outputs <- 
+  function(dt2, n2, pctredb, reltdf) {
+    samp <- lapply(dt2,
+                   function (x) samp_func(x, n2, reltdf)) %>%
+      bind_rows() %>%
+      mutate(wgt = wt * (1/n2),
+             pctrmsywt = wgt * pctredfmsy,
+             pctrmeywt = wgt * pctredfmey)
     
-    samp <-
+    mpctmsy <- sum(samp$pctrmsywt)
+    mpctmey <- sum(samp$pctrmeywt)
+    
+    stwld <- data_frame(pctredmsy = mpctmsy, 
+                        pctredmey = mpctmey,
+                        ycostmsy = cost_yield(samp, pctredb, mpctmsy),
+                        pcostmey = cost_profit(samp, pctredb, mpctmey)) # need pctredpt from somewhere
+    return(stwld)
+  }
+
+# input is list of 'dt's'
+disb_func <-
+  function(dt2, n1 = 10000, n2 = 100){
+    
+    ##########################################################
+    ## Step 3.1: Create dataframe of relevant target stocks ##
+    ##########################################################
+    rel_targets <- lapply(dt2,
+                          upsides_subset_func) %>%
+      bind_rows()
+    
+    pctredbt <- (bycatch_df %>% 
+                   filter(species == rel_targets$bycsp[1]))$pctredbpt[1]
+
+    #########################################################################################################
+    ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
+    #########################################################################################################
+
+    dists <-
       pblapply(1:n1, function(i) {
-        stocks_df %>%
-          sample_n(n2, replace = T, weight = wgt) %>%
-          summarise(pctredmsy = mean(pctredfmsy),
-                    pctredmey = mean(pctredfmey))
+        single_worldstate_outputs(dt2, n2, pctredbt, rel_targets)
       }) %>%
       bind_rows()
     
-    ##################################################################
-    ## Step 2.3: Multiply sampled data frame by target stock weight ##
-    ##################################################################
-    
-    samp_wt <- dt$wt * samp
-    
-    return(samp_wt)
+    return(dists)
   }
 
 ###############################################################################
@@ -350,22 +389,54 @@ disb_func <-
 
 bycatch_func <- 
   function(z){
-    lapply(
-      extract_func(z),
-      function(x) disb_func(x, n1, n2)
-    ) %>%
-      Reduce("+", .) %>%
+    disb_func(extract_func(z), n1, n2) %>%
       as_data_frame() %>%
       mutate(species = z)
   }
 
 ## E.g. bycatch_func("Loggerhead_turtle")
 
-##############################################################################
-### Function 2: Plot that asks: Will rebuilding be enough to stop decline? ###
-##############################################################################
+##################################################################
+### Plot that asks: Will rebuilding be enough to stop decline? ###
+##################################################################
 
 bycatchdistggplot <-
+  function(bdist){
+    
+    df <- left_join(bdist, bycatch_df) %>% group_by(species)
+    
+    df %>%
+      rename(MSY = pctredmsy,
+             MEY = pctredmey) %>%
+      select(MSY:species) %>%
+      gather(key, pctred, -species) %>%
+      ggplot() +
+      geom_rect(data = filter(df, row_number() == 1),
+                aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
+                alpha = .25) +
+      # geom_line(stat = "density") + ## lines only
+      geom_density(aes(x = pctred, col = key, fill = key), alpha = .5) +
+      geom_vline(data = filter(df, row_number() == 1),
+                 aes(xintercept = pctredbpt), lty = 2) +
+      labs(x = "Reduction in mortality (%)", y = "Density") +
+      # xlim(0, 100) +
+      scale_color_brewer(name = "", palette = "Set1") +
+      scale_fill_brewer(name = "", palette = "Set1") +
+      facet_wrap(~species) +
+      theme(
+        #text = element_text(family = font_type),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        # strip.text = element_text(size = 18, colour = "black"),
+        strip.background = element_rect(fill = "white"), ## Facet strip
+        panel.margin = unit(2, "lines") ## Increase gap between facet panels
+      ) 
+  } 
+
+##############################################################
+### Plot that asks: How much will it cost to stop decline? ###
+##############################################################
+bycatchcostggplot <-
   function(bdist){
     
     df <- left_join(bdist, bycatch_df) %>% group_by(species)

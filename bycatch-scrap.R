@@ -1,3 +1,34 @@
+###################
+### Final tests ###
+###################
+
+source("bycatch_funcs_cost_2.R")
+
+# Test extract function 
+lhtest <- extract_func(c('Leatherback turtle'))
+
+# Test upsides_subset_func  
+testdt <- lapply(lhtest,
+                 upsides_subset_func) %>%
+  bind_rows()
+
+# Test pctredbpt extraction
+pctredbtest <- (bycatch_df %>% 
+               filter(species == testdt$bycsp[1]))$pctredbpt[1]
+
+# Test single state of the world
+swtest <- single_worldstate_outputs(lhtest, 100, pctredbtest, testdt)
+
+# Test whole function
+testdt2 <- disb_func(lhtest, n1 = 500, n2 = 100)
+
+
+
+##################
+### Scrap code ###
+##################
+
+
 #1.4 Function that takes the sample dataframe of target stocks, and a marginal yield or profit, 
 #      and computes total cost (as a percentage of total MSY or MEY), given that marginal cost.
 
@@ -44,8 +75,7 @@ stockselect1 <- function(dt,spcat,faoreg){
     dt %>%
     filter((eval(parse(text = b)))) %>% 
     filter(speciescat %in% spcat) %>%
-    filter(fmeyvfmsy > 0,
-           marginalcost > 0) %>%
+    filter(fmeyvfmsy > 0) %>%
     mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
     select(idorig,pctredfmsy,pctredfmey,wgt,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey,k) %>%
     mutate(wgt = wgt/sum(wgt, na.rm = T))
@@ -91,7 +121,7 @@ meanpctp <- sum(testsamp$pctredwtp)
 
 cost_yield(testsamp, 80, meanpct)
 
-cost_profit(testsamp, 99, meanpctp)
+cost_profit(testsamp, 70, meanpctp)
 
 utest <- upsides %>%
   mutate(maxmc = mprofitf(f_mey,price,0,g,k,phi,beta)) %>%
@@ -115,3 +145,27 @@ my_calc(testsamp, 60)
 
 mp_calc(testsamp, 80)
 
+# Looking at pieces of Grant's code.
+source("bycatch_funcs_cost_2.R")
+
+test <- target_df %>% 
+         filter(species == 'Loggerhead turtle') %>%
+         split(.$target)
+       
+test2 <- bind_rows(pblapply(turtle_species_samp, extract_func))
+
+lhtest <- bycatch_func(c('Loggerhead turtle')) 
+
+
+testlist <- c()
+testlist <- append(testlist,head(upsides))
+
+rm(testlist)
+testlist[1] <- head(upsides)
+
+test <- 3
+c(1:test)
+
+testdt <- disb_func(lhtest, n1 = 1, n2 = 100)
+
+testsw <- single_worldstate_outputs(lhtest, 100, pctredb, reltdf)
