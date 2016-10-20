@@ -74,7 +74,7 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 100
+n1 <- 500
 n2 <- 100
 
 ## Turtle results
@@ -160,7 +160,7 @@ fig2distplot <- function(bdist) {
   plot(bd$MSY, bd$wt, xlim=c(-50,100), col=4, pch = 19,
        xlab = "% Reduction in Mortality", ylab = "2012 Effort ($)")
   par(new = TRUE)
-  plot(bd$MEY, bd$wt, xlim=c(0,100), col=2, pch = 19,
+  plot(bd$MEY, bd$wt, xlim=c(-50,100), col=2, pch = 19,
        xlab = "% Reduction in Mortality", ylab = "2012 Effort ($)")
   #legend("topleft", legend=names(den), fill=c(4,6))
 }

@@ -421,8 +421,10 @@ bycatchdistggplot <-
                  aes(xintercept = pctredbpt), lty = 2) +
       labs(x = "Reduction in mortality (%)", y = "Density") +
       # xlim(0, 100) +
-      scale_color_brewer(name = "", palette = "Set1") +
-      scale_fill_brewer(name = "", palette = "Set1") +
+      #scale_color_brewer(name = "", palette = "Set1") +
+      #scale_fill_brewer(name = "", palette = "Set1") +
+      scale_color_manual(values=c("red", "blue")) +
+      scale_fill_manual(values=c("red", "blue")) +
       facet_wrap(~species) +
       theme(
         #text = element_text(family = font_type),
@@ -453,8 +455,10 @@ costggplot <-
       geom_density(aes(x = pctred, col = key, fill = key), alpha = .5) +
       labs(x = "Cost (% of MSY or MEY)", y = "Density") +
       # xlim(0, 100) +
-      scale_color_brewer(name = "", palette = "Set1") +
-      scale_fill_brewer(name = "", palette = "Set1") +
+      #scale_color_brewer(name = "", palette = "Set1") +
+      #scale_fill_brewer(name = "", palette = "Set1") +
+      scale_color_manual(values=c("red", "blue")) +
+      scale_fill_manual(values=c("red", "blue")) +
       facet_wrap(~species) +
       theme(
         #text = element_text(family = font_type),
