@@ -276,7 +276,7 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       
       #1. Calculate marginal yield cost (with function 'my_calc'), 
-      #     given pct reduction needed for bycatch species (my_calc function)
+      #     given pct reduction needed for bycatch species.
       #2. Calculate total yield cost, given marginal cost calculated in 1. 
       ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
     )
@@ -300,7 +300,7 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
-      #     given pct reduction needed for bycatch species (mp_calc function)
+      #     given pct reduction needed for bycatch species.
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
       pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
     )
