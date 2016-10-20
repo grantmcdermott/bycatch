@@ -105,8 +105,13 @@ inv_marg_profit <-
     imp <-
       inverse(function (f) mprofitf(f,price,marginalcost,g,k,phi,beta), 0, fmey)
     ifelse(
+      # check for corner
       mprofitf(0,price,marginalcost,g,k,phi,beta) < mp,
+      
+      # corner
       output <- 0,
+      
+      # interior
       output <- imp(mp)
     ) 
     return(output)
@@ -117,8 +122,13 @@ inv_marg_yield <-
     imy <- 
       inverse(function (f) myieldf(f,g,k,phi), 0, g)
     ifelse(
+      # check for corner
       myieldf(0,g,k,phi) < my,
+      
+      # corner
       output <- 0,
+      
+      # interior
       output <- imy(my)
     ) 
     return(output)
@@ -129,30 +139,58 @@ inv_marg_yield <-
 #      (as a percentage of total MSY or MEY), given that marginal cost.
 
 redncost_giv_mp <- function(df, mp) {
+  # Add row ids to the input dataframe ('df')
   df$gen_id <- 1:nrow(df)
+  
+  # Create empty lists
   ids <- c()
   fmp <- c()
   for (i in 1:length(df$idorig)) {
+    # Generate ids matching df row ids created above. 
+    # These will be used to  merge the new column 'fmp' created below into df.
     ids <- append(ids, df$gen_id[i])
+    
+    # Calculate fishing mortality, fmp, for each stock (i) in the sample, df, 
+    # given the marginal profit, mp, given as input.
     fmp <- append(fmp, inv_marg_profit(mp,df$f_mey[i],df$price[i],
                                 df$marginalcost[i],df$g[i],
                                 df$k[i],df$phi[i],df$beta[i]))
   }
+  
+  # Merge the fmp's calculated above into the dataframe df, 
+  # in new column called 'f_mp'.
   dt <- data_frame(gen_id = ids, f_mp = fmp)
   dt <- left_join(df, dt, by = 'gen_id')
   
   dt <- dt %>%
+    # Create new column 'pctred_b' which specifies the % reduction in fishing
+    # mortality for the bycatch stock resulting from the % reduction
+    # for each target stock (relative to 2012) at f_mp.
     mutate(pctred_b = wgt * 100 * (1 - (f_mp/curr_f))) %>%
+    
+    # Create new column 'mey' which specifies the mey for
+    # each target stock.
     mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
+    
+    # Create new column 'pcost' which specifies the mey for
+    # each target stock.
     mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
   
+  # Create empty data frame to contain the results.
   output <- data_frame(pctred = 0, cost = 0)
+  
+  # % reduction in mortality for bycatch species (pctred), given marginal profit (mp),
+  # is the sum of pctred_b across all target stocks in df.
   output$pctred <- sum(dt$pctred_b)
+  
+  # 'cost' is the difference between the total profit at the f's having marginal cost, mp,
+  # (and therefore required for % bycatch reduction 'pctred') and mey, as a fraction of mey,
+  # cumulatively across all target stocks in df.
   output$cost <- 100 * (sum(dt$pcost)/sum(dt$mey))
   return(output)
 }
 
-redncost_giv_my <- function(df, my) {
+redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_mp' above
   df$gen_id <- 1:nrow(df)
   ids <- c()
   fmy <- c()
@@ -174,23 +212,34 @@ redncost_giv_my <- function(df, my) {
   return(output)
 }
 
-##2. Given dataframe and pctredpt (the bycatch reduction target, called 'pctredb' in the function), 
+##2. Given dataframe ('df') and pctredpt (the bycatch reduction target, called 'pctredb' in the function), 
 #     calculate marginal costs (y and p).
 
 my_calc <- function(df, pctredb) {
   dt <- df %>%
+    # Generate new column in df of maximum marginal yield (i.e. my at 0 fishing)
     mutate(maxmy = myieldf(0,g,k,phi))
+  
+  # store largest 'maxmy' among stocks in df as 'mxmy'
   mxmy <- max(dt$maxmy)
+  
+  # Create 'imy' function which calculates the marginal yield, given pctredb
   imy <- inverse(function (my) redncost_giv_my(dt, my)$pctred, 0, mxmy)
   ifelse(
+    # Check if the maximum marginal yield ('mxmy') corresponds 
+    # to a still-insufficient reduction in bycatch.
     redncost_giv_my(dt, mxmy)$pctred < pctredb,
+    
+    # If yes, then require the max marginal yield.
     output <- mxmy,
+    
+    # If no, use 'imy' function to calculate required marginal yield
     output <- imy(pctredb)
   ) 
   return(output)
 }
 
-mp_calc <- function(df, pctredb) {
+mp_calc <- function(df, pctredb) { # function is analogous to 'my_calc' above
   dt <- df %>%
     mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
   mxmp <- max(dt$maxmp)
@@ -226,7 +275,8 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       
-      #1. Calculate marginal yield cost, given pct reduction needed for bycatch species (my_calc function)
+      #1. Calculate marginal yield cost (with function 'my_calc'), 
+      #     given pct reduction needed for bycatch species (my_calc function)
       #2. Calculate total yield cost, given marginal cost calculated in 1. 
       ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
     )
@@ -249,7 +299,8 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       
-      #1. Calculate marginal profit cost, given pct reduction needed for bycatch species (mp_calc function)
+      #1. Calculate marginal profit cost (with function 'mp_calc'), 
+      #     given pct reduction needed for bycatch species (mp_calc function)
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
       pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
     )
