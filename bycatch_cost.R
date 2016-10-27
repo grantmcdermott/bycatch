@@ -74,7 +74,7 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 500
+n1 <- 10000
 n2 <- 100
 
 ## Turtle results
@@ -186,3 +186,30 @@ dttuna <- stockselectfig2(upsides, tunaspcat, tunafaoreg)
 f2tuna <- fig2distplot(dttuna)
 f2tuna
 
+########################################################
+########### Overall Reductions (MEY and MSY) ###########
+########################################################
+
+ovrred <- upsides %>%
+  group_by(idoriglumped) %>%
+  summarise(margc = mean(marginalcost),
+            bet = mean(beta),
+            g = mean(g),
+            fvfmey = mean(eqfvfmey),
+            fvfmsy = mean(fvfmsy),
+            pctmey = mean(pctredfmey),
+            pctmsy = mean(pctredfmsy)) %>%
+  mutate(wt = margc * ((g * fvfmsy)^bet),
+         cstcurr = wt,
+         cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
+         cstmsy = margc * ((g)^bet)) %>%
+  ungroup() %>%
+  mutate(wt = wt/sum(wt, na.rm = T)) %>%
+  mutate(wtpctmey = wt * pctmey,
+         wtpctmsy = wt * pctmsy) 
+
+avpctmey <- sum(ovrred$wtpctmey, na.rm = T)
+avpctmsy <- sum(ovrred$wtpctmsy, na.rm = T)
+
+avpctmey <- 100 * (1 - (sum(ovrred$cstmey, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
+avpctmsy <- 100 * (1 - (sum(ovrred$cstmsy, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
