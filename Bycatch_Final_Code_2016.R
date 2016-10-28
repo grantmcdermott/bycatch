@@ -150,7 +150,11 @@ head(restab)
 # Remove unnecessary files
 rm(upcomb)
 
-# Export final results input file
+#####################################
+############ Load Files #############
+#####################################
+
+# Export final results input file, commented lines load those files in if they're no longer in environment
 write.csv(restab,"BycatchResultsInputFile2016.csv",row.names = F)
 write.csv(restabnouncert,"BycatchResultsInputFileNoUncert2016.csv",row.names = F)
 # restab <- as_data_frame(read.csv("BycatchResultsInputFile2016.csv",stringsAsFactors=F))
@@ -161,9 +165,9 @@ write.csv(restabnouncert,"BycatchResultsInputFileNoUncert2016.csv",row.names = F
 ##################################
 
 
-###################################################################
-########## Make table samples, functions that Grant needs #########
-###################################################################
+###################################################################################################################
+########## Make table samples, functions that Grant needs. For prototype analyses. Skip for full analysis #########
+###################################################################################################################
 
 tabsampf1 <- 
   restabnouncert %>%
@@ -216,12 +220,14 @@ bycatchbenefit <- function(pctred,weight) {
 }
 
 ##############################################
-########## Results functions #########
+########## Results functions #################
 ##############################################
 
-##### pseudocode
-#1. Subset full table into small table with weights, stock ids and pctred values (stockselect functions below)
-#2. For each table, create a sampled version with n rows--which samples from pctred 
+##### pseudocode - out of date
+#1. 'stockselect' Define the set of target stocks that are relevant for bycatch species in question:
+#   Subset full table into small table with weights, stock ids and pctred values (stockselect functions below)
+#2. Sampling bycatch from the set of relevant target stocks specified in function 1:
+#     For each table, create a sampled version with n rows--which samples from pctred 
 #     (i.e. a vector of pctred samples of length n)--combine MSY and MEY vectors into data frame
 #3. Take weighted averages of resulting vectors for different species groups
 
@@ -264,23 +270,6 @@ stockselect2 <- function(dt,spcat,countries){
   return(dtuse)
 }
 
-stockselect5 <- function(dt,spcat,faoreg,countries){
-  # Construct command to filter FAO regions
-  a <- lapply(faoreg,faofun)
-  b <- paste(a, collapse = "|")
-  dtuse <- 
-    dt %>%
-    filter((eval(parse(text = b)))) %>% 
-    filter(speciescat %in% spcat) %>%
-    filter(country %in% countries) %>%
-    filter(fmeyvfmsy > 0) %>%
-    mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
-    mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
-    mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
-    select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost)
-  return(dtuse)
-}
-
 # Selecting stocks: option 3: list of lumped stocks, fao regions specified
 stockselect3 <- function(dt,lumpedstocks,faoreg){
   # Construct command to filter FAO regions
@@ -313,6 +302,22 @@ stockselect4 <- function(dt,lumpedstocks,countries){
   return(dtuse)
 } 
 
+stockselect5 <- function(dt,spcat,faoreg,countries){
+  # Construct command to filter FAO regions
+  a <- lapply(faoreg,faofun)
+  b <- paste(a, collapse = "|")
+  dtuse <- 
+    dt %>%
+    filter((eval(parse(text = b)))) %>% 
+    filter(speciescat %in% spcat) %>%
+    filter(country %in% countries) %>%
+    filter(fmeyvfmsy > 0) %>%
+    mutate(wt = marginalcost * ((g * fvfmsy)^beta)) %>%
+    mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
+    mutate(pctredfmey = 100 * (1 - (fmeyvfmsy/fvfmsy))) %>%
+    select(idorig,pctredfmsy,pctredfmey,wt,fvfmsy,g,beta,phi,price,marginalcost)
+  return(dtuse)
+}
 
 ### Function 2: Turns subsettted table with pctred and wt into sample of pctred
 
@@ -510,11 +515,12 @@ bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctredbu)
 ########### Results ###########
 ###############################
 
-# Desired percent chance that the bycatch reduction threshold is met
-pctchance <- 95
-n1 <- 10000
-n2 <- 100
+# General parameters (apply to all bycatch species)
+pctchance <- 95 # Desired percent chance that the bycatch reduction threshold is met
+n1 <- 10000 #number of samples
+n2 <- 100 #number of draws in each sample
 
+## List of species categories
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
 #   "Cods, hakes, haddocks" = 32,"Miscellaneous coastal fishes" = 33,
 #  "Miscellaneous demersal fishes" = 34,"Herrings, sardines,anchovies" = 35,
@@ -536,16 +542,16 @@ n2 <- 100
 ##########################################
 
 # Estimates of percent change needed for the bycatch species of interest
-lambda <- 0.98
-fe <- 0.067
+lambda <- 0.98 # current population change factor (e.g., 0.98 = -2%/year)
+fe <- 0.067 # current effective bycatch mortality rate (e.g., 0.067 = 6.7% of reproductive value bycaught per yer)
   
-pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
-pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
+pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimate of the percent reduction in Fe that you need to stop decline, i.e. so that lambda >= 1
+pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline (|lambda - 1|) is 25% smaller, fe 25% larger
 pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
 demfaoreg <- c(21,31) # Demersal impacts assumed to be restricted to US and Caribbean (NMFS 2008)
-demspcat <- c(31,33,34)
-demwt <- 0.25
+demspcat <- c(31,33,34) # Manual match, i.e. parameters from literature. Same for all.
+demwt <- 0.25 # Fraction of Fe from 'dem' target category.
 demres <- stockselect1(restabnouncert,demspcat,demfaoreg)
 demdist <- bycdist(demres,n1,n2)
 
@@ -576,16 +582,16 @@ loggerheadnwaplot1 <- bycatchdistplot(loggerheadnwadist,pctredbpt,pctredbl,pctre
 # 83% reduction needed - Pelagic longlines (16%), Coastal driftnets (84%) (Kaplan et al. 2005 for breakdown)
 
 # Estimates of percent change needed for the bycatch species of interest
-lambda <- 0.97
-fe <- 0.036
-lambda2 <- 0.846
-fe2 <- 0.334
+lambda <- 0.846
+fe <- 0.334
+lambda2 <- 0.97
+fe2 <- 0.036
 
-pctredbpt <- 100 * ((1 - lambda2)/fe2) # Point estimae
-pctredbl  <- 100 * ((0.75 * (1 - lambda2))/(fe2 * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
-pctredbu  <- 100 * ((1.25 * (1 - lambda2))/(fe2 * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
+pctredbpt <- 100 * ((1 - lambda)/fe) # Point estimae
+pctredbl  <- 100 * ((0.75 * (1 - lambda))/(fe * 1.25)) # Lower estimate, assumes decline is 25% smaller, fe 25% larger
+pctredbu  <- 100 * ((1.25 * (1 - lambda))/(fe * 0.75)) # Upper estimate, assumes decline is 25% larger, fe 25% smaller
 
-pctredbpt2 <- 100 * ((1 - lambda)/fe) # Point estimae
+pctredbpt2 <- 100 * ((1 - lambda2)/fe2) # Point estimae
 
 faoreg <- c(77,87) 
 spgr <- c(31,33,34)
