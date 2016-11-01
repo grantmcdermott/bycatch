@@ -284,6 +284,25 @@ lbext <- extract_func("Leatherback turtle")
 
 lbdem <- upsides %>%
   filter(regionfao %in% lbext$Demersals$faoreg) %>% 
+  filter(speciescat %in% lbext$Demersals$spcat) %>%
+  filter(country != "USA")
+lbdemstocks <- lbdem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+lbtuna <- upsides %>%
+  filter(regionfao %in% lbext$Tuna$faoreg) %>% 
+  filter(speciescat %in% lbext$Tuna$spcat) %>%
+  filter(country != "USA")
+lbtunastocks <- lbtuna %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# Leatherback
+lbext <- extract_func("Leatherback turtle")
+
+lbdem <- upsides %>%
+  filter(regionfao %in% lbext$Demersals$faoreg) %>% 
   filter(speciescat %in% lbext$Demersals$spcat)
 lbdemstocks <- lbdem %>%
   group_by(idoriglumped) %>%

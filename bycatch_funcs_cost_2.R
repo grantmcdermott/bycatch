@@ -358,6 +358,11 @@ upsides_subset_func <-
           filter(regionfao %in% dt$faoreg) %>% 
           filter(speciescat %in% dt$spcat) %>%
           filter(country %in% dt$countries)  
+      } else if (dt$type == 6) { # Leatherback demersal - remove U.S. stocks
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter(speciescat %in% dt$spcat) %>%
+          filter(country != "USA")
       }
     
     stocks_df <-
