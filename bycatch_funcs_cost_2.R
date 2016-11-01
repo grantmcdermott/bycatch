@@ -343,7 +343,6 @@ upsides_subset_func <-
           filter(speciescat %in% dt$spcat) 
       } else if (dt$type == 2) {
         upsides %>%
-          filter(regionfao %in% dt$faoreg) %>%
           filter(speciescat %in% dt$spcat) %>%
           filter(country %in% dt$countries)  
       } else if (dt$type == 3) {

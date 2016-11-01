@@ -47,12 +47,12 @@ totoab <- data_frame(idorig = "toto",
                      speciescat = 0, # N/A
                      speciescatname = "N/A",
                      regionfao = "77",
-                     k = 15824,
+                     k = 15825,
                      fvfmsy = 0.52631579,
                      g = 0.057,
                      beta = 1.3,
                      phi = 0.188,
-                     price = 15625,
+                     price = 50000,
                      eqfvfmey = 0.52631579,
                      fmeyvfmsy = 0.966133,
                      curr_f = 0.03,
@@ -100,7 +100,7 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 100
+n1 <- 50
 n2 <- 100
 
 ## Turtle results
@@ -251,3 +251,58 @@ avpctmsy <- 100 * (1 - (sum(ovrred$cstmsy, na.rm = T)/sum(ovrred$cstcurr, na.rm 
 #"Scallops, pectens" = 55,"Clams, cockles, arkshells" = 56,
 #"Squids, cuttlefishes, octopuses" = 57,"Horseshoe crabs and other arachnoids" = 75,
 #"Sea-urchins and other echinoderms" = 76,"Miscellaneous aquatic invertebrates" = 56)
+
+##########################################################
+########### Checking species-level assumptions ###########
+##########################################################
+
+# Loggerhead
+lhext <- extract_func("Loggerhead turtle")
+lhshrimp <- upsides %>%
+  filter(regionfao %in% lhext$Shrimp$faoreg) %>% 
+  filter(speciescat %in% lhext$Shrimp$spcat)
+lhshrimpstocks <- lhshrimp %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+lhdem <- upsides %>%
+  filter(regionfao %in% lhext$Demersals$faoreg) %>% 
+  filter(speciescat %in% lhext$Demersals$spcat)
+lhdemstocks <- lhdem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+lhtuna <- upsides %>%
+  filter(regionfao %in% lhext$Tuna$faoreg) %>% 
+  filter(speciescat %in% lhext$Tuna$spcat)
+lhtunastocks <- lhtuna %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# Leatherback
+lbext <- extract_func("Leatherback turtle")
+
+lbdem <- upsides %>%
+  filter(regionfao %in% lbext$Demersals$faoreg) %>% 
+  filter(speciescat %in% lbext$Demersals$spcat)
+lbdemstocks <- lbdem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+lbtuna <- upsides %>%
+  filter(regionfao %in% lbext$Tuna$faoreg) %>% 
+  filter(speciescat %in% lbext$Tuna$spcat)
+lbtunastocks <- lbtuna %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# vaquita
+vext <- extract_func("Vaquita")
+upsamp <- upsides_subset_func(vext$Totoaba)
+upsampd <- upsides_subset_func(vext$Demersals)
+upsampd <- upsides %>%
+  filter(regionfao %in% vext$Demersals$faoreg) %>% 
+  filter(speciescat %in% vext$Demersals$spcat) %>%
+  filter(country %in% vext$Demersals$countries)
+
+  
