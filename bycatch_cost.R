@@ -56,12 +56,37 @@ for (i in 1:length(upsides2$idorig)) {
 }
 dtup <- data_frame(idorig = idsup, marginalcost = mcup) %>%
   filter(marginalcost > 0)
-upsides <- left_join(upsides, dtup, by = 'idorig')
+upsides <- left_join(upsides, dtup, by = 'idorig') %>%
+  select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
+         k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey)
 ## end marginal cost calculation 
 
 ## clean up
 rm(upsides2,dtup,mcup,idsup,upsides_kobe)
 ## end clean up
+
+# Add Totoaba row to upsides
+totoab <- data_frame(idorig = 'toto',
+                     idoriglumped = 'totoaba',
+                     commname = 'Totoaba',
+                     sciname = 'Totoaba macdonaldi',
+                     country = 'Mexico',
+                     speciescat = 00, # N/A
+                     speciescatname = 'N/A',
+                     regionfao = '77',
+                     k = 15824,
+                     fvfmsy = 0.52631579,
+                     g = 0.057,
+                     beta = 1.3,
+                     phi = 0.188,
+                     price = 15625,
+                     marginalcost = 13051200.2,
+                     eqfvfmey = NA, # update
+                     curr_f = 0.03,
+                     f_mey = NA
+)
+
+upsides <- bind_rows(upsides,totoab)
 
 ## Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
