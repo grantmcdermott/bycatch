@@ -315,6 +315,26 @@ lbtunastocks <- lbtuna %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
 
+# Olive ridley - NE Indian Ocean
+orext <- extract_func("Olive ridley turtle (NEI)")
+
+ordem <- upsides %>%
+  filter(regionfao %in% orext$target_species$faoreg) %>% 
+  filter(speciescat %in% orext$target_species$spcat)
+ordemstocks <- ordem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# Olive ridley - W Indian Ocean
+orext <- extract_func("Olive ridley turtle (WI)")
+
+ordem <- upsides %>%
+  filter(regionfao %in% orext$target_species$faoreg) %>% 
+  filter(speciescat %in% orext$target_species$spcat)
+ordemstocks <- ordem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
 # vaquita
 vext <- extract_func("Vaquita")
 upsamp <- upsides_subset_func(vext$Totoaba)
