@@ -100,42 +100,81 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 50
+n1 <- 1000 # Run n = 10000 in 10 chunks of 1000
 n2 <- 100
 
 ## Turtle results
 turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")
 ## Run the bycatch function over all turtle species
-turtles_samp <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp1 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp2 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp3 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp4 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp5 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp6 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp7 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp8 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp9 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp10 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
+turtles_samp <- bind_rows(turtles_samp1, turtles_samp2, turtles_samp3, 
+                          turtles_samp4, turtles_samp5, turtles_samp6, 
+                          turtles_samp7, turtles_samp8, turtles_samp9, 
+                          turtles_samp10)
+#write_csv(turtles_samp, "turtles_results.csv") 
 turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
 turtlecostplots <- costggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
-#write_csv(turtles_samp, "turtles_test.csv")
 turtledistplots
 turtlecostplots
 
 ## Mammal results
 mammal_species_samp <- (filter(bycatch_df, grp=="mammal"))$species 
 ## Run the bycatch function over all mammal species
-mammals_samp <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp1 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp2 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp3 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp4 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp5 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp6 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp7 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp8 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp9 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp10 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
+mammals_samp <- bind_rows(mammals_samp1, mammals_samp2, mammals_samp3, 
+                          mammals_samp4, mammals_samp5, mammals_samp6, 
+                          mammals_samp7, mammals_samp8, mammals_samp9, 
+                          mammals_samp10)
+#write_csv(mammals_samp, "mammals_results.csv")
 mammaldistplots <- bycatchdistggplot(mammals_samp) +
   facet_wrap(~species, scales = "free")
 mammalcostplots <- costggplot(mammals_samp) +
   facet_wrap(~species, scales = "free")
-#write_csv(mammals_samp, "mammals_test.csv")
 mammaldistplots
 mammalcostplots
 
 ## Bird results
 bird_species_samp <- (filter(bycatch_df, grp=="bird"))$species 
 ## Run the bycatch function over all bird species
-bird_samp <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp1 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp2 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp3 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp4 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp5 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp6 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp7 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp8 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp9 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp10 <- bind_rows(pblapply(bird_species_samp, bycatch_func))
+bird_samp <- bind_rows(bird_samp1, bird_samp2, bird_samp3, 
+                       bird_samp4, bird_samp5, bird_samp6, 
+                       bird_samp7, bird_samp8, bird_samp9, 
+                       bird_samp10)
+#write_csv(bird_samp, "bird_results.csv")
 birddistplots <- bycatchdistggplot(bird_samp) +
   facet_wrap(~species, scales = "free")
 birdcostplots <- costggplot(bird_samp) +
   facet_wrap(~species, scales = "free")
-#write_csv(bird_samp, "bird_test.csv")
 birddistplots
 birdcostplots
 
@@ -320,7 +359,8 @@ orext <- extract_func("Olive ridley turtle (NEI)")
 
 ordem <- upsides %>%
   filter(regionfao %in% orext$target_species$faoreg) %>% 
-  filter(speciescat %in% orext$target_species$spcat)
+  filter(speciescat %in% orext$target_species$spcat) %>%
+  filter(country %in% orext$target_species$countries)
 ordemstocks <- ordem %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))

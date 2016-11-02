@@ -472,7 +472,7 @@ bycatchdistggplot <-
                 aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
                 alpha = .25) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctred, col = key, fill = key), alpha = .5) +
+      geom_density(aes(x = pctred, y = ..scaled.., col = key, fill = key), alpha = .5) +
       geom_vline(data = filter(df, row_number() == 1),
                  aes(xintercept = pctredbpt), lty = 2) +
       labs(x = "Reduction in mortality (%)", y = "Density") +
@@ -505,10 +505,10 @@ costggplot <-
       rename(MSY = ycostmsy,
              MEY = pcostmey) %>%
       select(MSY:species) %>%
-      gather(key, pctred, -species) %>%
+      gather(key, pctcost, -species) %>%
       ggplot() +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctred, col = key, fill = key), alpha = .5) +
+      geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5) +
       labs(x = "Cost (% of MSY or MEY)", y = "Density") +
       # xlim(0, 100) +
       #scale_color_brewer(name = "", palette = "Set1") +
