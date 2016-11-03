@@ -121,7 +121,7 @@ turtles_samp <- bind_rows(turtles_samp1, turtles_samp2, turtles_samp3,
                           #turtles_samp7, turtles_samp8, turtles_samp9, 
                           #turtles_samp10
                           )
-write_csv(turtles_samp, "turtles_results.csv") 
+#write_csv(turtles_samp, "turtles_results.csv") 
 turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
 turtlecostplots <- costggplot(turtles_samp) +
@@ -207,6 +207,11 @@ costggplot(lb)
 as <- bycatch_func("Australian sea lion")
 bycatchdistggplot(as) 
 costggplot(as) 
+
+# NZ sea lion test
+ns <- bycatch_func("NZ sea lion")
+bycatchdistggplot(ns) 
+costggplot(ns) 
 
 
 ###################################################
@@ -409,6 +414,17 @@ assh <- upsides %>%
   filter(speciescat %in% asext$Sharks$spcat) %>%
   filter(country %in% asext$Sharks$countries)
 ordemstocks <- ordem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# New Zealand sea lion
+nsext <- extract_func("NZ sea lion")
+
+nsoth <- upsides %>%
+  filter(regionfao %in% nsext$Other$faoreg) %>% 
+  filter(speciescat %in% nsext$Other$spcat) %>%
+  filter(country %in% nsext$Other$countries)
+nsssqstocks <- nsoth %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
 

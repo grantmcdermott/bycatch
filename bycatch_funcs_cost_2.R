@@ -293,7 +293,7 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
     ifelse(
       # Check if there is a shortfall.
       # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
-      pctredb < meanpctredmey + 0.5,
+      pctredb < meanpctredmey + 1,
       pcost <- 0,
       
       # There is a shortfall, and it is attainable through additional target species F reductions.
@@ -393,7 +393,7 @@ samp_func <-
 
 # input is list of 'dt's' -> output from 'extract_func'
 single_worldstate_outputs <- 
-  function(dt2, n2, pctredb, reltdf) {
+  function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf) {
     samp <- lapply(dt2,
                    function (x) samp_func(x, n2, reltdf)) %>%
       bind_rows() %>%
@@ -404,10 +404,12 @@ single_worldstate_outputs <-
     mpctmsy <- sum(samp$pctrmsywt)
     mpctmey <- sum(samp$pctrmeywt)
     
+    pctb <- runif(1, min = pctredbl, max = pctredbu)
+    
     stwld <- data_frame(pctredmsy = mpctmsy, 
                         pctredmey = mpctmey,
-                        ycostmsy = cost_yield(samp, pctredb, mpctmsy),
-                        pcostmey = cost_profit(samp, pctredb, mpctmey)) # need pctredpt from somewhere
+                        ycostmsy = cost_yield(samp, pctb, mpctmsy),
+                        pcostmey = cost_profit(samp, pctb, mpctmey)) # need pctredpt from somewhere
     return(stwld)
   }
 
@@ -424,6 +426,10 @@ disb_func <-
     
     pctredbt <- (bycatch_df %>% 
                    filter(species == rel_targets$bycsp[1]))$pctredbpt[1]
+    pctredbtl <- (bycatch_df %>% 
+                   filter(species == rel_targets$bycsp[1]))$pctredbl[1]
+    pctredbtu <- (bycatch_df %>% 
+                   filter(species == rel_targets$bycsp[1]))$pctredbu[1]
 
     #########################################################################################################
     ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
@@ -431,7 +437,7 @@ disb_func <-
 
     dists <-
       pblapply(1:n1, function(i) {
-        single_worldstate_outputs(dt2, n2, pctredbt, rel_targets)
+        single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets)
       }) %>%
       bind_rows()
     
