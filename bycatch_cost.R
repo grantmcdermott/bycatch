@@ -100,7 +100,7 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 1000 # Run n = 10000 in 10 chunks of 1000
+n1 <- 100 # Run n = 10000 in 10 chunks of 1000
 n2 <- 100
 
 ## Turtle results
@@ -117,9 +117,10 @@ turtles_samp8 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
 turtles_samp9 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
 turtles_samp10 <- bind_rows(pblapply(turtle_species_samp, bycatch_func))
 turtles_samp <- bind_rows(turtles_samp1, turtles_samp2, turtles_samp3, 
-                          turtles_samp4, turtles_samp5, turtles_samp6, 
-                          turtles_samp7, turtles_samp8, turtles_samp9, 
-                          turtles_samp10)
+                          turtles_samp4, turtles_samp5#, turtles_samp6, 
+                          #turtles_samp7, turtles_samp8, turtles_samp9, 
+                          #turtles_samp10
+                          )
 write_csv(turtles_samp, "turtles_results.csv") 
 turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
@@ -142,9 +143,10 @@ mammals_samp8 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
 mammals_samp9 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
 mammals_samp10 <- bind_rows(pblapply(mammal_species_samp, bycatch_func))
 mammals_samp <- bind_rows(mammals_samp1, mammals_samp2, mammals_samp3, 
-                          mammals_samp4, mammals_samp5, mammals_samp6, 
-                          mammals_samp7, mammals_samp8, mammals_samp9, 
-                          mammals_samp10)
+                          mammals_samp4, mammals_samp5#, mammals_samp6, 
+                          #mammals_samp7, mammals_samp8, mammals_samp9, 
+                          #mammals_samp10
+                          )
 #write_csv(mammals_samp, "mammals_results.csv")
 mammaldistplots <- bycatchdistggplot(mammals_samp) +
   facet_wrap(~species, scales = "free")
