@@ -243,7 +243,7 @@ mp_calc <- function(df, pctredb) { # function is analogous to 'my_calc' above
   dt <- df %>%
     mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
   mxmp <- max(dt$maxmp)
-  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 0.0001, mxmp)
+  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 0.1, mxmp)
   ifelse(
     redncost_giv_mp(dt, mxmp)$pctred < pctredb,
     output <- mxmp,
@@ -293,7 +293,7 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
     ifelse(
       # Check if there is a shortfall.
       # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
-      pctredb < meanpctredmey,
+      pctredb < meanpctredmey + 0.5,
       pcost <- 0,
       
       # There is a shortfall, and it is attainable through additional target species F reductions.

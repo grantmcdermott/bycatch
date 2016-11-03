@@ -5,7 +5,7 @@
 source("bycatch_funcs_cost_2.R")
 
 # Test extract function 
-lhtest <- extract_func(c('Leatherback turtle'))
+lhtest <- extract_func(c('Loggerhead turtle'))
 
 # Test upsides_subset_func  
 testdt <- lapply(lhtest,
@@ -15,6 +15,7 @@ testdt <- lapply(lhtest,
 # Test pctredbpt extraction
 pctredbtest <- (bycatch_df %>% 
                filter(species == testdt$bycsp[1]))$pctredbpt[1]
+pctredbtest <- 70
 
 # Test single state of the world
 swtest <- single_worldstate_outputs(lhtest, 100, pctredbtest, testdt)
@@ -22,7 +23,11 @@ swtest <- single_worldstate_outputs(lhtest, 100, pctredbtest, testdt)
 # Test whole function
 testdt2 <- disb_func(lhtest, n1 = 500, n2 = 100)
 
-
+# Test mp_calc
+stest <- samp_func(lhtest$Demersals, n2, testdt)
+meanpct <- mean(stest$pctredfmsy)
+meanpctp <- mean(stest$pctredfmey)
+mp_calc(stest, 70)
 
 ##################
 ### Scrap code ###
@@ -119,9 +124,9 @@ source("bycatch_funcs_cost_2.R")
 meanpct <- sum(testsamp$pctredwt)
 meanpctp <- sum(testsamp$pctredwtp)
 
-cost_yield(testsamp, 80, meanpct)
+cost_yield(testsamp, 97, meanpct)
 
-cost_profit(testsamp, 70, meanpctp)
+cost_profit(testsamp, 60.6, meanpctp)
 
 utest <- upsides %>%
   mutate(maxmc = mprofitf(f_mey,price,0,g,k,phi,beta)) %>%
@@ -141,9 +146,9 @@ redncost_giv_mp(testsamp, 100000)
 
 redncost_giv_my(testsamp, 20)
 
-my_calc(testsamp, 60)
+my_calc(testsamp, 46.50297754)
 
-mp_calc(testsamp, 80)
+mp_calc(testsamp, 60.6)
 
 # Looking at pieces of Grant's code.
 source("bycatch_funcs_cost_2.R")

@@ -120,7 +120,7 @@ turtles_samp <- bind_rows(turtles_samp1, turtles_samp2, turtles_samp3,
                           turtles_samp4, turtles_samp5, turtles_samp6, 
                           turtles_samp7, turtles_samp8, turtles_samp9, 
                           turtles_samp10)
-#write_csv(turtles_samp, "turtles_results.csv") 
+write_csv(turtles_samp, "turtles_results.csv") 
 turtledistplots <- bycatchdistggplot(turtles_samp) +
   facet_wrap(~species, scales = "free")
 turtlecostplots <- costggplot(turtles_samp) +
@@ -185,6 +185,26 @@ upsamp <- upsides_subset_func(vext$Totoaba)
 
 bycatchdistggplot(vaquit) 
 costggplot(vaquit) 
+
+# Loggerhead test
+lh <- bycatch_func("Loggerhead turtle")
+lhext <- extract_func("Loggerhead turtle")
+lhssamp <- upsides_subset_func(lhext$Shrimp)
+lhdsamp <- upsides_subset_func(lhext$Demersals)
+lhtsamp <- upsides_subset_func(lhext$Tuna)
+
+bycatchdistggplot(lh) 
+costggplot(lh) 
+
+# Leatherback test
+lb <- bycatch_func("Leatherback turtle")
+bycatchdistggplot(lb) 
+costggplot(lb) 
+
+# Australian sea lion test
+as <- bycatch_func("Australian sea lion")
+bycatchdistggplot(as) 
+costggplot(as) 
 
 
 ###################################################
@@ -299,21 +319,25 @@ avpctmsy <- 100 * (1 - (sum(ovrred$cstmsy, na.rm = T)/sum(ovrred$cstcurr, na.rm 
 lhext <- extract_func("Loggerhead turtle")
 lhshrimp <- upsides %>%
   filter(regionfao %in% lhext$Shrimp$faoreg) %>% 
-  filter(speciescat %in% lhext$Shrimp$spcat)
+  filter(speciescat %in% lhext$Shrimp$spcat) %>%
+  mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
 lhshrimpstocks <- lhshrimp %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
 
 lhdem <- upsides %>%
   filter(regionfao %in% lhext$Demersals$faoreg) %>% 
-  filter(speciescat %in% lhext$Demersals$spcat)
+  filter(speciescat %in% lhext$Demersals$spcat) %>%
+  mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
 lhdemstocks <- lhdem %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
 
 lhtuna <- upsides %>%
   filter(regionfao %in% lhext$Tuna$faoreg) %>% 
-  filter(speciescat %in% lhext$Tuna$spcat)
+  filter(speciescat %in% lhext$Tuna$spcat) %>%
+  mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta)) %>%
+  filter(marginalcost > 0)
 lhtunastocks <- lhtuna %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
@@ -371,6 +395,17 @@ orext <- extract_func("Olive ridley turtle (WI)")
 ordem <- upsides %>%
   filter(regionfao %in% orext$target_species$faoreg) %>% 
   filter(speciescat %in% orext$target_species$spcat)
+ordemstocks <- ordem %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
+
+# Australian sea lion
+asext <- extract_func("Australian sea lion")
+
+assh <- upsides %>%
+  filter(regionfao %in% asext$Sharks$faoreg) %>% 
+  filter(speciescat %in% asext$Sharks$spcat) %>%
+  filter(country %in% asext$Sharks$countries)
 ordemstocks <- ordem %>%
   group_by(idoriglumped) %>%
   summarize(meanfvfmsy = mean(fvfmsy))
