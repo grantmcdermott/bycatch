@@ -363,6 +363,74 @@ upsides_subset_func <-
           filter(regionfao %in% dt$faoreg) %>%
           filter(speciescat %in% dt$spcat) %>%
           filter(country != "USA")
+      } else if (dt$type == 7) { # Indo-Pacific finless porpoise - add countries
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter(speciescat %in% dt$spcat) %>%
+          filter(country %in% c("China",
+                                "Taiwan Province of China",
+                                "China Hong Kong SAR",
+                                "China Macao SAR",
+                                "Viet Nam",
+                                "Cambodia",
+                                "Thailand",
+                                "Malaysia",
+                                "Indonesia",
+                                "Singapore",
+                                "Brunei",
+                                "Philippines",
+                                "Myanmar",
+                                "Bangladesh",
+                                "India",
+                                "Sri Lanka",
+                                "Pakistan",
+                                "Saudi Arabia",
+                                "Oman",
+                                "Iran"))
+      } else if (dt$type == 8) { # Indo-Pacific humpack dolphin - remove stocks from Russia, Japan, Koreas
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter(speciescat %in% dt$spcat) %>%
+          filter(country != "Russian Federation") %>%
+          filter(country != "Japan") %>%
+          filter(country != "Republic of Korea") %>%
+          filter(country != "Democratic People's Republic of Korea")
+      } else if (dt$type == 9) { # W Pacific leatherback - add countries
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter(speciescat %in% dt$spcat) %>%
+          filter(country %in% c("Malaysia",
+                                "Indonesia",
+                                "Papua New Guinea",
+                                "Solomon Islands"))
+      } else if (dt$type == 10) { # NW Indian Ocean loggerhead turtle - add countries
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter(speciescat %in% dt$spcat) %>%
+          filter(country %in% c("India",
+                                "Sri Lanka",
+                                "Pakistan",
+                                "Saudi Arabia",
+                                "Oman",
+                                "Iran",
+                                "Iraq",
+                                "Kuwait",
+                                "Bahrain",
+                                "Qatar",
+                                "United Arab Emirates",
+                                "Yemen",
+                                "Egypt",
+                                "Sudan",
+                                "Eritrea",
+                                "Djibouti",
+                                "Somalia"))
+      } else if (dt$type == 11) { # Stocks for white-chinned petrel
+        upsides %>%
+          filter(regionfao %in% dt$faoreg) %>%
+          filter((speciescat == '36')|
+                   (sciname == "Dissostichus eleginoides")|
+                   (grepl("Merluccius", sciname) == TRUE)
+                 )    # Dissostichus eleginoides, Merluccius
       }
     
     stocks_df <-
@@ -370,7 +438,7 @@ upsides_subset_func <-
       filter(fmeyvfmsy > 0,
              marginalcost > 0) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
-      select(idorig,pctredfmsy,pctredfmey,wgt,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
+      select(idorig,idoriglumped,pctredfmsy,pctredfmey,wgt,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
       mutate(trgcat = dt$target) %>%
       mutate(wt = dt$wt) %>%
       mutate(bycsp = dt$species) %>%

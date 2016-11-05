@@ -437,4 +437,10 @@ upsampd <- upsides %>%
   filter(speciescat %in% vext$Demersals$spcat) %>%
   filter(country %in% vext$Demersals$countries)
 
-  
+#### Testing subset function for bycatch species
+ 
+test <- extract_func(c('Tristan albatross'))
+testdt <- upsides_subset_func(test$All)
+teststocks <- testdt %>%
+  group_by(idoriglumped) %>%
+  summarize(meanfvfmsy = mean(fvfmsy))
