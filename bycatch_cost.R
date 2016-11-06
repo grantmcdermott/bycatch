@@ -100,7 +100,7 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 1000 # Run n = 10000 in 10 chunks of 1000
+n1 <- 100 # Run n = 1000 in 10 chunks of 100
 n2 <- 100
 
 # All species results
@@ -120,7 +120,10 @@ all_samp <- bind_rows(all_samp1, all_samp2, all_samp3,
                       all_samp7, all_samp8, all_samp9, 
                       all_samp10
 )
-write_csv(all_samp, "bycatch_results102016.csv")
+#write_csv(all_samp, "bycatch_results102016.csv")
+rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
+
+all_dt <- read_csv("bycatch_results102016.csv")
 alldistplots <- bycatchdistggplot(all_samp) +
   facet_wrap(~species, ncol = 3, scales = "free")
 allcostplots <- costggplot(all_samp) +
@@ -209,6 +212,12 @@ birdcostplots
 vaquit <- bycatch_func("Vaquita porpoise")
 vext <- extract_func("Vaquita porpoise")
 upsamp <- upsides_subset_func(vext$Totoaba)
+
+bycatchdistggplot(vaquit) 
+costggplot(vaquit) 
+
+# Tristan albatross
+talb <- bycatch_func("Tristan albatross")
 
 bycatchdistggplot(vaquit) 
 costggplot(vaquit) 
