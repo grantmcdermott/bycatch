@@ -124,12 +124,38 @@ all_samp <- bind_rows(all_samp1, all_samp2, all_samp3,
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
 
 all_dt <- read_csv("bycatch_results102016.csv")
-alldistplots <- bycatchdistggplot(all_samp) +
+alldistplots <- bycatchdistggplot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free")
-allcostplots <- costggplot(all_samp) +
+allcostplots <- costggplot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free")
 alldistplots
 allcostplots
+
+### Get median, 2.5th, 25th, 75th, 97.5th percentiles from runs for Figs. 3a,b
+results_summary <- all_dt %>%
+  group_by(species) %>%
+  summarise(pctredmsy025 = quantile(pctredmsy, probs = 0.025),
+            pctredmsy25 = quantile(pctredmsy, probs = 0.25),
+            pctredmsy50 = median(pctredmsy),
+            pctredmsy75 = quantile(pctredmsy, probs = 0.75),
+            pctredmsy975 = quantile(pctredmsy, probs = 0.975),
+            pctredmey025 = quantile(pctredmey, probs = 0.025),
+            pctredmey25 = quantile(pctredmey, probs = 0.25),
+            pctredmey50 = median(pctredmey),
+            pctredmey75 = quantile(pctredmey, probs = 0.75),
+            pctredmey975 = quantile(pctredmey, probs = 0.975),
+            ycostmsy025 = quantile(ycostmsy, probs = 0.025),
+            ycostmsy25 = quantile(ycostmsy, probs = 0.25),
+            ycostmsy50 = median(ycostmsy),
+            ycostmsy75 = quantile(ycostmsy, probs = 0.75),
+            ycostmsy975 = quantile(ycostmsy, probs = 0.975),
+            pcostmey025 = quantile(pcostmey, probs = 0.025),
+            pcostmey25 = quantile(pcostmey, probs = 0.25),
+            pcostmey50 = median(pcostmey),
+            pcostmey75 = quantile(pcostmey, probs = 0.75),
+            pcostmey975 = quantile(pcostmey, probs = 0.975))
+results_summary <- left_join(results_summary, bycatch_df, by = 'species')
+write_csv(results_summary, "bycatch_results_summary102016.csv")
 
 ## Turtle results
 turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")
