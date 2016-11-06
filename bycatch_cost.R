@@ -124,7 +124,7 @@ write_csv(all_samp, "bycatch_results102016.csv")
 alldistplots <- bycatchdistggplot(all_samp) +
   facet_wrap(~species, ncol = 3, scales = "free")
 allcostplots <- costggplot(all_samp) +
-  facet_wrap(~species, scales = "free")
+  facet_wrap(~species, ncol = 3, scales = "free")
 alldistplots
 allcostplots
 
