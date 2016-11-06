@@ -100,8 +100,33 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 100 # Run n = 10000 in 10 chunks of 1000
+n1 <- 1000 # Run n = 10000 in 10 chunks of 1000
 n2 <- 100
+
+# All species results
+all_species_samp <- bycatch_df$species 
+all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp2 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp3 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp4 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp5 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp6 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp7 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp8 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp9 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp10 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
+                      all_samp4, all_samp5, all_samp6, 
+                      all_samp7, all_samp8, all_samp9, 
+                      all_samp10
+)
+write_csv(all_samp, "bycatch_results102016.csv")
+alldistplots <- bycatchdistggplot(all_samp) +
+  facet_wrap(~species, ncol = 3, scales = "free")
+allcostplots <- costggplot(all_samp) +
+  facet_wrap(~species, scales = "free")
+alldistplots
+allcostplots
 
 ## Turtle results
 turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")
@@ -122,9 +147,9 @@ turtles_samp <- bind_rows(turtles_samp1, turtles_samp2, turtles_samp3,
                           #turtles_samp10
                           )
 #write_csv(turtles_samp, "turtles_results.csv") 
-turtledistplots <- bycatchdistggplot(turtles_samp) +
+turtledistplots <- bycatchdistggplot(turtles_samp1) +
   facet_wrap(~species, scales = "free")
-turtlecostplots <- costggplot(turtles_samp) +
+turtlecostplots <- costggplot(turtles_samp1) +
   facet_wrap(~species, scales = "free")
 turtledistplots
 turtlecostplots
@@ -148,9 +173,9 @@ mammals_samp <- bind_rows(mammals_samp1, mammals_samp2, mammals_samp3,
                           #mammals_samp10
                           )
 #write_csv(mammals_samp, "mammals_results.csv")
-mammaldistplots <- bycatchdistggplot(mammals_samp) +
+mammaldistplots <- bycatchdistggplot(mammals_samp1) +
   facet_wrap(~species, scales = "free")
-mammalcostplots <- costggplot(mammals_samp) +
+mammalcostplots <- costggplot(mammals_samp1) +
   facet_wrap(~species, scales = "free")
 mammaldistplots
 mammalcostplots
@@ -173,16 +198,16 @@ bird_samp <- bind_rows(bird_samp1, bird_samp2, bird_samp3,
                        bird_samp7, bird_samp8, bird_samp9, 
                        bird_samp10)
 #write_csv(bird_samp, "bird_results.csv")
-birddistplots <- bycatchdistggplot(bird_samp) +
+birddistplots <- bycatchdistggplot(bird_samp1) +
   facet_wrap(~species, scales = "free")
-birdcostplots <- costggplot(bird_samp) +
+birdcostplots <- costggplot(bird_samp1) +
   facet_wrap(~species, scales = "free")
 birddistplots
 birdcostplots
 
 # vaquita test
-vaquit <- bycatch_func("Vaquita")
-vext <- extract_func("Vaquita")
+vaquit <- bycatch_func("Vaquita porpoise")
+vext <- extract_func("Vaquita porpoise")
 upsamp <- upsides_subset_func(vext$Totoaba)
 
 bycatchdistggplot(vaquit) 
