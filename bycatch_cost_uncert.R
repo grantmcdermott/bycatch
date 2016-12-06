@@ -123,7 +123,7 @@ all_samp <- bind_rows(all_samp1, all_samp2, all_samp3,
 #write_csv(all_samp, "bycatch_results102016.csv")
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
 
-all_dt <- read_csv("bycatch_results102016.csv")
+all_dt <- read_csv("bycatch_results122016.csv")
 alldistplots <- bycatchdistggplot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free")
 allcostplots <- costggplot(all_dt) +
