@@ -484,7 +484,6 @@ single_worldstate_outputs <-
 # input is list of 'dt's'
 disb_func <-
   function(dt2, n1 = 10000, n2 = 100){
-    
     ##########################################################
     ## Step 3.1: Create dataframe of relevant target stocks ##
     ##########################################################
@@ -517,12 +516,16 @@ disb_func <-
 ## a single bycatch species. This is what we'll call in the actual analysis. ##
 ###############################################################################
 
+############## TIME CONSUMING FUNCTION #########################
+
 bycatch_func <- 
   function(z){
     disb_func(extract_func(z), n1, n2) %>%
       as_data_frame() %>%
       mutate(species = z)
   }
+
+###############################################################
 
 ## E.g. bycatch_func("Loggerhead_turtle")
 

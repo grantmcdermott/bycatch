@@ -13,18 +13,21 @@ library(pbapply)
 library(snow)
 library(snowfall)
 
+# Start time
+start.time <- Sys.time()
+
 ###################################
 ########## Load functions #########
 ###################################
 
-source("bycatch_funcs_cost_2 - Copy.R")
+source("bycatch_funcs_cost_uncert - Copy.R")
 
 
 ###########################
 ########## Inputs #########
 ###########################
 # Number of CPUs available for parallel processing
-NumCPUS <- 4
+NumCPUs <- 4
 
 # Turn on parallel processing if CPUs > 1
 do.parallel <- ifelse(NumCPUS > 1, TRUE, FALSE)
@@ -112,26 +115,92 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-n1 <- 100 # Run n = 1000 in 10 chunks of 100
-n2 <- 100
+n1 <- 10 # Run n = 1000 in 10 chunks of 100
+n2 <- 10
 
-# All species results
+######## TIME CONSUMING PART ######################
 all_species_samp <- bycatch_df$species 
-all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp2 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp3 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp4 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp5 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp6 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp7 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp8 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp9 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp10 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+
+# Track errors
+options(error = traceback)
+
+# Gather all functions and parameters in global environment
+func <- Filter(function(x) is.function(get(x, .GlobalEnv)), ls(.GlobalEnv))
+obj <- Filter(function(x) is.object(get(x, .GlobalEnv)), ls(.GlobalEnv))
+
+# Initialize cluster
+sfInit(parallel = do.parallel, cpus = NumCPUs)
+
+# Functions and parameters needed
+sfExportAll()
+#sfExport(list = c(func, obj))
+# sfExport(list = c("bycatch_func", "all_species_samp", "extract_func", "n1", "n2", "disb_func", "upsides_subset_func",
+#                   "target_df", "bycatch_df", "dtup"))
+
+# Source functions
+sfSource("bycatch_funcs_cost_uncert - Copy.R")
+
+# Load packages on all cores
+sfLibrary(tidyr)
+sfLibrary(dplyr)
+
+# All species results (run 10 times)
+all_samp1 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp2 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp3 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp4 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp5 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp6 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp7 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp8 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp9 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp10 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
 all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
                       all_samp4, all_samp5, all_samp6, 
                       all_samp7, all_samp8, all_samp9, 
-                      all_samp10
-)
+                      all_samp10)
+
+# all_samp1 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp2 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp3 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp4 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp5 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp6 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp7 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp8 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp9 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp10 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
+# all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
+#                       all_samp4, all_samp5, all_samp6, 
+#                       all_samp7, all_samp8, all_samp9, 
+#                       all_samp10)
+                       
+# Stop parallel processing
+sfStop()
+
+# # All species results
+# all_species_samp <- bycatch_df$species 
+# all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp2 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp3 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp4 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp5 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp6 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp7 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp8 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp9 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp10 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
+#                       all_samp4, all_samp5, all_samp6, 
+#                       all_samp7, all_samp8, all_samp9, 
+#                       all_samp10
+# )
+
+# End time
+print(Sys.time() - start.time)
+
+##############################################################
+
 #write_csv(all_samp, "bycatch_results102016.csv")
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
 
