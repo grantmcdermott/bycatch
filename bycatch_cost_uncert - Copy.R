@@ -1,4 +1,5 @@
-rm(list = ls()) #Clear environment
+# Clear environment
+rm(list = ls())
 
 ##################################
 ########### Data Setup ###########
@@ -12,6 +13,9 @@ library(cowplot)
 library(pbapply)
 library(snow)
 library(snowfall)
+
+# Date
+run_date <- "20161208"
 
 # Start time
 start.time <- Sys.time()
@@ -115,6 +119,8 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
+#n1 <- 100
+#n2 <- 100
 n1 <- 10 # Run n = 1000 in 10 chunks of 100
 n2 <- 10
 
@@ -123,10 +129,6 @@ all_species_samp <- bycatch_df$species
 
 # Track errors
 options(error = traceback)
-
-# Gather all functions and parameters in global environment
-func <- Filter(function(x) is.function(get(x, .GlobalEnv)), ls(.GlobalEnv))
-obj <- Filter(function(x) is.object(get(x, .GlobalEnv)), ls(.GlobalEnv))
 
 # Initialize cluster
 sfInit(parallel = do.parallel, cpus = NumCPUs)
@@ -159,25 +161,11 @@ all_samp <- bind_rows(all_samp1, all_samp2, all_samp3,
                       all_samp4, all_samp5, all_samp6, 
                       all_samp7, all_samp8, all_samp9, 
                       all_samp10)
-
-# all_samp1 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp2 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp3 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp4 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp5 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp6 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp7 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp8 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp9 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp10 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
-#                       all_samp4, all_samp5, all_samp6, 
-#                       all_samp7, all_samp8, all_samp9, 
-#                       all_samp10)
                        
 # Stop parallel processing
 sfStop()
 
+### ORIGINAL CODE #####
 # # All species results
 # all_species_samp <- bycatch_df$species 
 # all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
@@ -199,10 +187,14 @@ sfStop()
 # End time
 print(Sys.time() - start.time)
 
-##############################################################
+# Save bycatch results
+write_csv(all_samp, paste("bycatch_results", run_date, ".csv"))
 
-#write_csv(all_samp, "bycatch_results102016.csv")
+############################################################################################################################
+
+# Remove samples that are no longer needed
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
+
 
 all_dt <- read_csv("bycatch_results122016.csv")
 alldistplots <- bycatchdistggplot(all_dt) +
@@ -239,7 +231,13 @@ results_summary <- all_dt %>%
             pcostmey75 = quantile(pcostmey, probs = 0.75),
             pcostmey975 = quantile(pcostmey, probs = 0.975))
 results_summary <- left_join(results_summary, bycatch_df, by = 'species')
-write_csv(results_summary, "bycatch_results_summary102016.csv")
+write_csv(results_summary, paste("bycatch_results_summary", run_date, ".csv"))
+
+print(Sys.time() - start.time)
+
+
+################################################################################################################
+
 
 ## Turtle results
 turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")
