@@ -1,3 +1,5 @@
+
+
 # Clear environment
 rm(list = ls())
 
@@ -16,6 +18,13 @@ library(snowfall)
 
 # Date
 run_date <- "20161208"
+
+# Make directory to store the results
+run_dir = paste('results/', run_date, sep = "")
+
+if(dir.exists(run_dir) == F) {
+  dir.create(run_dir, recursive = T)
+}
 
 # Start time
 start.time <- Sys.time()
@@ -119,10 +128,10 @@ target_df <- read_csv("Data/target_species.csv")
 ###############################
 
 ## Sampling parameters
-#n1 <- 100
-#n2 <- 100
-n1 <- 10 # Run n = 1000 in 10 chunks of 100
-n2 <- 10
+n1 <- 100 # Run n = 1000 in 10 chunks of 100
+n2 <- 100
+# n1 <- 10 
+# n2 <- 10
 
 ######## TIME CONSUMING PART ######################
 all_species_samp <- bycatch_df$species 
@@ -188,15 +197,16 @@ sfStop()
 print(Sys.time() - start.time)
 
 # Save bycatch results
-write_csv(all_samp, paste("bycatch_results", run_date, ".csv"))
+write_csv(all_samp, path = paste(run_dir, "/bycatch_results_", run_date, ".csv", sep = ""))
 
 ############################################################################################################################
 
 # Remove samples that are no longer needed
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
 
+# Read in bycatch results file from above
+all_dt <- read_csv(paste(run_dir, "/bycatch_results_", run_date, ".csv", sep = ""))
 
-all_dt <- read_csv("bycatch_results122016.csv")
 alldistplots <- bycatchdistggplot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free")
 allcostplots <- costggplot(all_dt) +
@@ -231,7 +241,9 @@ results_summary <- all_dt %>%
             pcostmey75 = quantile(pcostmey, probs = 0.75),
             pcostmey975 = quantile(pcostmey, probs = 0.975))
 results_summary <- left_join(results_summary, bycatch_df, by = 'species')
-write_csv(results_summary, paste("bycatch_results_summary", run_date, ".csv"))
+
+# Save results
+write_csv(results_summary, paste("bycatch_results_summary_", run_date, ".csv", sep = ""))
 
 print(Sys.time() - start.time)
 
