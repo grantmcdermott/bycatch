@@ -144,9 +144,6 @@ sfInit(parallel = do.parallel, cpus = NumCPUs)
 
 # Functions and parameters needed
 sfExportAll()
-#sfExport(list = c(func, obj))
-# sfExport(list = c("bycatch_func", "all_species_samp", "extract_func", "n1", "n2", "disb_func", "upsides_subset_func",
-#                   "target_df", "bycatch_df", "dtup"))
 
 # Source functions
 sfSource("bycatch_funcs_cost_uncert - Copy.R")
