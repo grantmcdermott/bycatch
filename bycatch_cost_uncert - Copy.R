@@ -1,21 +1,49 @@
-rm(list = ls()) #Clear environment
+
+
+# Clear environment
+rm(list = ls())
 
 ##################################
 ########### Data Setup ###########
 ##################################
-require(readr)
-require(dplyr)
-require(tidyr)
+library(readr)
+library(dplyr)
+library(tidyr)
 library(tibble)
 library(ggplot2)
 library(cowplot)
 library(pbapply)
+library(snow)
+library(snowfall)
+
+# Date
+run_date <- "20161208"
+
+# Make directory to store the results
+run_dir = paste('results/', run_date, sep = "")
+
+if(dir.exists(run_dir) == F) {
+  dir.create(run_dir, recursive = T)
+}
+
+# Start time
+start.time <- Sys.time()
 
 ###################################
 ########## Load functions #########
 ###################################
 
-source("bycatch_funcs_cost_2.R")
+source("bycatch_funcs_cost_uncert - Copy.R")
+
+
+###########################
+########## Inputs #########
+###########################
+# Number of CPUs available for parallel processing
+NumCPUs <- 4
+
+# Turn on parallel processing if CPUs > 1
+do.parallel <- ifelse(NumCPUS > 1, TRUE, FALSE)
 
 #################################################
 ############ Read in/clean the data #############
@@ -102,28 +130,80 @@ target_df <- read_csv("Data/target_species.csv")
 ## Sampling parameters
 n1 <- 100 # Run n = 1000 in 10 chunks of 100
 n2 <- 100
+# n1 <- 10 
+# n2 <- 10
 
-# All species results
+######## TIME CONSUMING PART ######################
 all_species_samp <- bycatch_df$species 
-all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp2 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp3 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp4 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp5 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp6 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp7 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp8 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp9 <- bind_rows(pblapply(all_species_samp, bycatch_func))
-all_samp10 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+
+# Track errors
+options(error = traceback)
+
+# Initialize cluster
+sfInit(parallel = do.parallel, cpus = NumCPUs)
+
+# Functions and parameters needed
+sfExportAll()
+
+# Source functions
+sfSource("bycatch_funcs_cost_uncert - Copy.R")
+
+# Load packages on all cores
+sfLibrary(tidyr)
+sfLibrary(dplyr)
+
+# All species results (run 10 times)
+all_samp1 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp2 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp3 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp4 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp5 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp6 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp7 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp8 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp9 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+all_samp10 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
 all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
                       all_samp4, all_samp5, all_samp6, 
                       all_samp7, all_samp8, all_samp9, 
-                      all_samp10
-)
-#write_csv(all_samp, "bycatch_results102016.csv")
+                      all_samp10)
+                       
+# Stop parallel processing
+sfStop()
+
+### ORIGINAL CODE #####
+# # All species results
+# all_species_samp <- bycatch_df$species 
+# all_samp1 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp2 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp3 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp4 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp5 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp6 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp7 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp8 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp9 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp10 <- bind_rows(pblapply(all_species_samp, bycatch_func))
+# all_samp <- bind_rows(all_samp1, all_samp2, all_samp3, 
+#                       all_samp4, all_samp5, all_samp6, 
+#                       all_samp7, all_samp8, all_samp9, 
+#                       all_samp10
+# )
+
+# End time
+print(Sys.time() - start.time)
+
+# Save bycatch results
+write_csv(all_samp, path = paste(run_dir, "/bycatch_results_", run_date, ".csv", sep = ""))
+
+############################################################################################################################
+
+# Remove samples that are no longer needed
 rm(all_samp1,all_samp2,all_samp3,all_samp4,all_samp5,all_samp6,all_samp7,all_samp8,all_samp9,all_samp10)
 
-all_dt <- read_csv("bycatch_results102016.csv")
+# Read in bycatch results file from above
+all_dt <- read_csv(paste(run_dir, "/bycatch_results_", run_date, ".csv", sep = ""))
+
 alldistplots <- bycatchdistggplot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free")
 allcostplots <- costggplot(all_dt) +
@@ -158,7 +238,15 @@ results_summary <- all_dt %>%
             pcostmey75 = quantile(pcostmey, probs = 0.75),
             pcostmey975 = quantile(pcostmey, probs = 0.975))
 results_summary <- left_join(results_summary, bycatch_df, by = 'species')
-write_csv(results_summary, "bycatch_results_summary102016.csv")
+
+# Save results
+write_csv(results_summary, paste("bycatch_results_summary_", run_date, ".csv", sep = ""))
+
+print(Sys.time() - start.time)
+
+
+################################################################################################################
+
 
 ## Turtle results
 turtle_species_samp <- (filter(bycatch_df, grp=="turtle"))$species #c("Loggerhead turtle", "Olive ridley turtle (NEI)")

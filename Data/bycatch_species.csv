@@ -1,14 +1,1 @@
-species,region,grp,req_red,lambda,fe,lambda2,fe2,ref,pctredbpt,pctredbl,pctredbu
-Loggerhead turtle,NW Atlantic,turtle,NA,0.98,0.067,NA,NA,NA,29.850746268656742,17.910447761194046,49.751243781094566
-Leatherback turtle,East Pacific,turtle,0.83,0.846,0.334,0.97,0.036,Kaplan et al. (2005),46.10778443113773,27.66467065868264,76.84630738522955
-Olive ridley turtle (NEI),NE Indian Ocean,turtle,0.23,0.97,0.0871,NA,NA,NA,34.44316877152701,20.665901262916204,57.40528128587836
-Olive ridley turtle (WI),W Indian Ocean,turtle,1.29,0.82,0.14,NA,NA,NA,128.57142857142858,77.14285714285715,214.28571428571433
-Australian sea lion,Australia,mammal,0.065,0.9923,0.1177,NA,NA,NA,6.542056074766389,3.925233644859833,10.903426791277317
-NZ sea lion,New Zealand,mammal,0.59,0.96,0.06734,NA,NA,NA,59.400059400059455,35.64003564003567,99.0000990000991
-Finless porpoise,NW Pacific,mammal,0.57,0.947,0.093,NA,NA,NA,56.989247311828,34.193548387096804,94.98207885304667
-Humpback dolphin,SW Pacific,mammal,0.38,0.9754,0.0646,NA,NA,NA,38.080495356037076,22.84829721362225,63.467492260061796
-Vaquita,Gulf of California - Mexico,mammal,0.76,0.87,0.17,NA,NA,NA,76.47058823529412,45.88235294117647,127.45098039215685
-Amsterdam albatross,S Indian Ocean,bird,0.53,0.953,0.088,NA,NA,NA,53.40909090909096,32.045454545454575,89.01515151515159
-Sooty shearwater,"Atlantic, Pacific, S Indian Ocean, S Ocean",bird,6.0,0.982,0.003,NA,NA,NA,600.0000000000006,360.00000000000034,1000.0000000000007
-Tristan albatross,S Atlantic,bird,0.91,0.971,0.032,NA,NA,NA,90.62500000000009,54.37500000000005,151.0416666666668
-White-chinned petrel,"S Pacific, S Atlantic, S Indian, S Ocean",bird,0.28,0.964,0.13,NA,NA,NA,27.692307692307715,16.615384615384627,46.153846153846196
+species,region,grp,pctredbpt,pctredbl,pctredbuLoggerhead turtle (NW Atlantic),NW Atlantic,turtle,29.9,17.9,49.8Loggerhead turtle (NW Indian Ocean),NW Indian Ocean,turtle,47.2,28.3,78.7Loggerhead turtle (S Pacific),S Pacific,turtle,43.4,26,72.3Leatherback turtle (E Pacific),E Pacific,turtle,46.1,27.7,76.8Leatherback turtle (W Pacific),W Pacific,turtle,28.9,17.3,48.1Leatherback turtle (SW Indian Ocean),SW Indian Ocean,turtle,9.1,5.5,15.2Olive ridley turtle (NE Indian Ocean),NE Indian Ocean,turtle,38.5,23.1,64.1Olive ridley turtle (W Indian Ocean),W Indian Ocean,turtle,128.6,77.1,214.3Australian sea lion,Australia,mammal,20.8,12.5,34.6NZ sea lion,New Zealand,mammal,59.7,35.8,99.5Indo-Pacific finless porpoise,Indo-Pacific,mammal,20,12,33.3Narrow-ridged finless porpoise,NW Pacific,mammal,58.7,35.2,97.9Indo-Pacific humpback dolphin,Indo-Pacific,mammal,13,7.8,21.7ETS humpback dolphin,NW Pacific,mammal,38.5,23.1,64.1Vaquita porpoise,Gulf of California - Mexico,mammal,89.5,53.7,149.1Sooty shearwater,"Atlantic, Pacific, S Indian Ocean, S Ocean",bird,600,360,1000Tristan albatross,S Atlantic,bird,90.6,54.4,151White-chinned petrel,"S Pacific, S Atlantic, S Indian, S Ocean",bird,27.7,16.6,46.1
