@@ -57,7 +57,7 @@ target_df <- read_csv("target_species.csv")
 # uncertainty, no nei stocks version
 upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
 
-upsides <- upsides[,-c(19, 22)]
+# upsides <- upsides[,-c(19, 22)]
 
 # no uncertainty, nei stocks version
 #upsides <- read_csv("bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
