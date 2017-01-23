@@ -13,11 +13,21 @@ library(tibble)
 library(ggplot2)
 library(cowplot)
 library(pbapply)
+library(magrittr)
+library(stringr)
+#library(pbmcapply)
 library(snow)
 library(snowfall)
 
 # Date
-run_date <- "20161208"
+run_date <- "20170123"
+
+# number of CPUs available for optional parallel processing
+NumCPUs <- 4
+
+# turn on parallel processing if #CPUs > 1
+do.parallel <- ifelse(NumCPUs > 1, TRUE, FALSE)
+
 
 # Make directory to store the results
 run_dir = paste('results/', run_date, sep = "")
@@ -33,105 +43,33 @@ start.time <- Sys.time()
 ########## Load functions #########
 ###################################
 
-source("bycatch_funcs_cost_uncert - Copy.R")
+source("bycatch_funcs_cost_uncert.R")
 
 
-###########################
-########## Inputs #########
-###########################
-# Number of CPUs available for parallel processing
-NumCPUs <- 4
-
-# Turn on parallel processing if CPUs > 1
-do.parallel <- ifelse(NumCPUS > 1, TRUE, FALSE)
-
-#################################################
-############ Read in/clean the data #############
-#################################################
-
-## Load upsides (i.e. target species projection) data from Costello et al. 2016
-# upsides_uncert <- read_csv("Data/upsides_uncert.csv", col_types = cols(regionfao = "c"))
-upsides_kobe <- read_csv("Kobe MEY data for chris.csv") %>%
-  rename(idoriglumped = IdOrig,
-         eqfvfmey = current_f_mey,
-         eqfmeyvfmsy = f_mey) %>%
-  select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
-
-upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c"))
-upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
-  mutate(curr_f = g * fvfmsy,
-         f_mey = g * eqfmeyvfmsy,
-         pctredfmsy = 100 * (1 - (1/fvfmsy)),
-         pctredfmey = 100 * (1 - (1/eqfvfmey))) %>%
-  select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
-         k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
-
-# Add Totoaba row to upsides (for vaquita)
-totoab <- data_frame(idorig = "toto",
-                     idoriglumped = "totoaba",
-                     commname = "Totoaba",
-                     sciname = "Totoaba macdonaldi",
-                     country = "Mexico",
-                     speciescat = 0, # N/A
-                     speciescatname = "N/A",
-                     regionfao = "77",
-                     k = 15825,
-                     fvfmsy = 0.52631579,
-                     g = 0.057,
-                     beta = 1.3,
-                     phi = 0.188,
-                     price = 50000,
-                     eqfvfmey = 0.52631579,
-                     fmeyvfmsy = 0.966133,
-                     curr_f = 0.03,
-                     f_mey = 0.055069581
-) %>%
-  mutate(pctredfmsy = 100 * (1-(g/curr_f)),
-         pctredfmey = 100 * (1-(f_mey/curr_f)))
-
-upsides <- bind_rows(upsides,totoab)
-## recalculate unlumped marginalcosts based on f_mey estimates from Kobe file
-
-# calculation function
-margcost <- function(fmey,price,g,k,phi,beta) {
-  mc <- uniroot((function (x) mprofitf(fmey,price,x,g,k,phi,beta)), 
-                lower = -1000000000, upper = 100000000000)[1]$root
-}
-
-# calculation
-upsides2 <- upsides %>%
-  filter(f_mey > 0)
-mcup <- c()
-idsup <- c()
-for (i in 1:length(upsides2$idorig)) {
-  idsup <- append(idsup, upsides2$idorig[i])
-  mcup <- append(mcup, margcost(upsides2$f_mey[i],upsides2$price[i],upsides2$g[i],upsides2$k[i],upsides2$phi[i],upsides2$beta[i]))
-}
-dtup <- data_frame(idorig = idsup, marginalcost = mcup) %>%
-  filter(marginalcost > 0)
-upsides <- left_join(upsides, dtup, by = 'idorig')
-## end marginal cost calculation 
-
-## clean up
-rm(upsides2,dtup,mcup,idsup,upsides_kobe)
-## end clean up
-
+##############################
+########## Load data #########
+##############################
 
 ## Load bycatch data
-bycatch_df <- read_csv("Data/bycatch_species.csv")
+bycatch_df <- read_csv("bycatch_species.csv")
+target_df <- read_csv("target_species.csv")
 
-target_df <- read_csv("Data/target_species.csv")
+## Load target data 
+# uncertainty, no nei stocks version
+upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
 
+# no uncertainty, nei stocks version
+#upsides <- read_csv("bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
 
 ###############################
 ########### Results ###########
 ###############################
 
 ## Sampling parameters
-n1 <- 100 # Run n = 1000 in 10 chunks of 100
-n2 <- 100
-# n1 <- 10 
-# n2 <- 10
+# n1 <- 100 # Run n = 1000 in 10 chunks of 100
+# n2 <- 100
+n1 <- 10 
+n2 <- 10
 
 ######## TIME CONSUMING PART ######################
 all_species_samp <- bycatch_df$species 
@@ -146,7 +84,7 @@ sfInit(parallel = do.parallel, cpus = NumCPUs)
 sfExportAll()
 
 # Source functions
-sfSource("bycatch_funcs_cost_uncert - Copy.R")
+sfSource("bycatch_funcs_cost_uncert.R")
 
 # Load packages on all cores
 sfLibrary(tidyr)
