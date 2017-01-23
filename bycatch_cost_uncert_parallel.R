@@ -69,7 +69,7 @@ upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "
 ## Sampling parameters
 # n1 <- 100 # Run n = 1000 in 10 chunks of 100
 # n2 <- 100
-n1 <- 10 
+n1 <- 1 
 n2 <- 10
 
 ######## TIME CONSUMING PART ######################
@@ -85,7 +85,7 @@ sfInit(parallel = do.parallel, cpus = NumCPUs)
 sfExportAll()
 
 # Source functions
-sfSource("bycatch_funcs_cost_uncert - Copy.R")
+sfSource("bycatch_funcs_cost_uncert.R")
 
 # Load packages on all cores
 sfLibrary(tidyr)
