@@ -19,6 +19,8 @@ library(pbmcapply)
 library(snow)
 library(snowfall)
 
+setsd("C:/")
+
 # Date
 run_date <- "20170309"
 
@@ -26,10 +28,10 @@ run_date <- "20170309"
 NumCPUs <- 4
 
 # Turn on parallel processing if CPUs > 1
-do.parallel <- ifelse(NumCPUS > 1, TRUE, FALSE)
+do.parallel <- ifelse(NumCPUs > 1, TRUE, FALSE)
 
 # Make directory to store the results
-run_dir = paste('results/', run_date, sep = "")
+run_dir = paste('boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/results/', run_date, sep = "")
 
 if(dir.exists(run_dir) == F) {
   dir.create(run_dir, recursive = T)
@@ -42,7 +44,7 @@ start.time <- Sys.time()
 ########## Load functions #########
 ###################################
 
-source("bycatch_funcs_cost_uncert_sensitivity.R")
+source("Users/bowashi.ESM/github/global_bycatch2/bycatch_funcs_cost_uncert_sensitivity.R")
 
 
 
@@ -51,15 +53,15 @@ source("bycatch_funcs_cost_uncert_sensitivity.R")
 ##############################
 
 ## Load bycatch data
-bycatch_df <- read_csv("bycatch_species.csv")
-target_df <- read_csv("target_species.csv")
+bycatch_df <- read_csv("boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/bycatch_species.csv")
+target_df <- read_csv("boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/target_species.csv")
 
 ## Load target data 
 # uncertainty, no nei stocks version
-#upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
+#upsides <- read_csv("boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
 
 # no uncertainty, nei stocks version
-upsides <- read_csv("bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
+upsides <- read_csv("boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
 
 ###############################
 ########### Results ###########
@@ -87,7 +89,7 @@ sfInit(parallel = do.parallel, cpus = NumCPUs)
 sfExportAll()
 
 # Source functions
-sfSource("bycatch_funcs_cost_uncert_sensitivity.R")
+sfSource("Users/bowashi.ESM/github/global_bycatch2/bycatch_funcs_cost_uncert_sensitivity.R")
 
 # Load packages on all cores
 sfLibrary(tidyr)
