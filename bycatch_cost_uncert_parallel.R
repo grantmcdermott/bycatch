@@ -15,18 +15,18 @@ library(cowplot)
 library(pbapply)
 library(magrittr)
 library(stringr)
-#library(pbmcapply)
+library(pbmcapply)
 library(snow)
 library(snowfall)
 
 # Date
-run_date <- "20170123"
+run_date <- "20170309"
 
 # Number of CPUs available for parallel processing
 NumCPUs <- 4
 
 # Turn on parallel processing if CPUs > 1
-do.parallel <- ifelse(NumCPUs > 1, TRUE, FALSE)
+do.parallel <- ifelse(NumCPUS > 1, TRUE, FALSE)
 
 # Make directory to store the results
 run_dir = paste('results/', run_date, sep = "")
@@ -42,7 +42,8 @@ start.time <- Sys.time()
 ########## Load functions #########
 ###################################
 
-source("bycatch_funcs_cost_uncert.R")
+source("bycatch_funcs_cost_uncert_sensitivity.R")
+
 
 
 ##############################
@@ -55,22 +56,23 @@ target_df <- read_csv("target_species.csv")
 
 ## Load target data 
 # uncertainty, no nei stocks version
-upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
-
-# upsides <- upsides[,-c(19, 22)]
+#upsides <- read_csv("bycatch-upuncert-input.csv", col_types = cols(regionfao = "c"))
 
 # no uncertainty, nei stocks version
-#upsides <- read_csv("bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
+upsides <- read_csv("bycatch-nouncert-input.csv", col_types = cols(regionfao = "c"))
 
 ###############################
 ########### Results ###########
 ###############################
 
 ## Sampling parameters
-# n1 <- 100 # Run n = 1000 in 10 chunks of 100
-# n2 <- 100
-n1 <- 1 
-n2 <- 10
+n1 <- 10 # Run n = 1000 in 10 chunks of 100
+n2 <- 100
+sens_exp <- 1 # 1 is the normal value (i.e. same as main analysis). 
+# Please also run the no-uncert analysis once each with sens_exp <- 0.5 and sens_exp <- 2. Thanks!
+
+# n1 <- 10 
+# n2 <- 10
 
 ######## TIME CONSUMING PART ######################
 all_species_samp <- bycatch_df$species 
@@ -85,7 +87,7 @@ sfInit(parallel = do.parallel, cpus = NumCPUs)
 sfExportAll()
 
 # Source functions
-sfSource("bycatch_funcs_cost_uncert.R")
+sfSource("bycatch_funcs_cost_uncert_sensitivity.R")
 
 # Load packages on all cores
 sfLibrary(tidyr)
@@ -93,10 +95,8 @@ sfLibrary(dplyr)
 sfLibrary(pbapply)
 
 # All species results (run 10 times)
-# all_samp1 <- bind_rows(sfLapply(all_species_samp, bycatch_func))
-# sfStop()
-
 all_samp1 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
+sfStop()
 all_samp2 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
 all_samp3 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
 all_samp4 <- bind_rows(tryCatch(sfLapply(all_species_samp, bycatch_func), error = function(e) NULL))
