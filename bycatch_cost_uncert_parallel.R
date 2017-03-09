@@ -15,11 +15,11 @@ library(cowplot)
 library(pbapply)
 library(magrittr)
 library(stringr)
-library(pbmcapply)
+#library(pbmcapply)
 library(snow)
 library(snowfall)
 
-setsd("C:/")
+setwd("C:/")
 
 # Date
 run_date <- "20170309"
@@ -70,7 +70,7 @@ upsides <- read_csv("boxsync/bowashi/SFG Centralized Resources/Projects/Bycatch/
 ## Sampling parameters
 n1 <- 10 # Run n = 1000 in 10 chunks of 100
 n2 <- 100
-sens_exp <- 1 # 1 is the normal value (i.e. same as main analysis). 
+sens_exp <- 0.5 # 1 is the normal value (i.e. same as main analysis). 
 # Please also run the no-uncert analysis once each with sens_exp <- 0.5 and sens_exp <- 2. Thanks!
 
 # n1 <- 10 
