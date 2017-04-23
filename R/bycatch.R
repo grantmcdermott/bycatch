@@ -1,159 +1,326 @@
+## Clear environment
 rm(list = ls())
 
-##################################
-########### Data Setup ###########
-##################################
-require(readr)
-require(dplyr)
-require(tidyr)
-library(tibble)
-library(ggplot2)
-library(cowplot)
+#####################################
+########### Load packages ###########
+#####################################
+library(data.table) ## Mostly for super fast reading/writing of large csv files
 library(pbapply)
-library(pbmcapply)
+# library(pbmcapply) ## Now assign parallel computation through pbapply (with cl option)
+library(parallel)
+library(scales)
+library(tidyverse)
+library(cowplot)
+library(RColorBrewer)
+library(extrafont) ## See https://github.com/wch/extrafont for first-time instructions
 
-## Choose the number of process to run in parallel. Will choose the smaller of
-## 4 or the number of CPUs your computer has. Edit this as needed. Also be advised
-## that it is better to turn off all other applications while this code is
-## runnning, to avoid overloading your computer.
-num_cores <- min(4, detectCores())
+#######################################################
+########## Load functions and global elements #########
+#######################################################
 
-###########################################
-############ Read in the data #############
-###########################################
+### Assign global elements for figures. 
 
-# upsides_uncert <- read_csv("Data/upsides_uncert.csv", col_types = cols(regionfao = "c"))
-upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c"))
+## Assign font. Register to extrafont package DB first. If below font is not
+## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
+font_type <- "Open Sans" ## Download here: https://fonts.google.com/specimen/Open+Sans
+## Assign color scheme
+bycatch_cols <- c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506",
+                  "#a6cee3","#fb9a99","#984ea3","#ffff33")
+## Make some adjustments to (now default) cowplot ggplot2 theme for figures
+theme_update(
+  text = element_text(family = font_type),
+  legend.title = element_blank(),
+  strip.background = element_rect(fill = "white"), ## Facet strip
+  panel.spacing = unit(2, "lines") ## Increase gap between facet panels
+)
 
+## Load functions
+source("R/bycatch_funcs.R")
+
+
+##############################
+########## Load data #########
+##############################
+
+### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
-
 target_df <- read_csv("Data/target_species.csv")
 
-##################################################
-##################################################
-### Add pctred fvfmey columns to upsides table ###
-##################################################
-##################################################
+### Load target stock data, derived from the "upsides" model of Costello et al. 
+### (PNAS, 2016).
 
-test <- 
-  pbmclapply(
-    1:length(upsides$idorig),
-    mc.cores = num_cores,
-    function(i){
-      
-      ids <- upsides$idorig[i]
-      
-      eqfvfmeys <- 
-        1/(optim(par = 0.005,  
-                 fn = function(x){
-                   - ((upsides$price[i] * upsides$g[i] * x * upsides$k[i] * 
-                         ((1 - ((upsides$g[i] * x * upsides$phi[i])/(upsides$g[i] * (upsides$phi[i] + 1))))^(1/upsides$phi[i]))) - 
-                        (upsides$marginalcost[i] * ((upsides$g[i] * x)^upsides$beta[i])))
-                   }, 
-                 method = "Brent", 
-                 lower = 0, 
-                 upper = 1.5)$par * 
-             (1/upsides$fvfmsy[i]))
-      
-      df = data_frame(idorig = ids, eqfvfmey = eqfvfmeys)
-      return(df)
-         }) %>%
-  bind_rows
+## First choose which version of the upsides data to: 1) With uncertainty (have 
+## to exclude NEI stocks), or 2) no uncertainty (can include NEI stocks). The 
+## main results of the paper use the latter. The former are used for the 
+## sensitivty analysis in the SI.
+uncert_type <- c("uncert", "nouncert")[2] ## Change as needed.
 
-# add equilibrium MEY cols to upsides
-upsides <- left_join(upsides, test, by = "idorig")
-
-# make pctred columns
+## Now read in the data
 upsides <- 
+  fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
+  as_data_frame()
+
+
+################################
+########### Analysis ###########
+################################
+
+### MCMC sampling parameters
+
+## How many draws (states of the world) are we simulating for each species?
+n1 <- 10000
+## How many times do we sample (with replacement) over target stocks to resolve 
+## uncertainty for a single draw?
+n2 <- 100 
+## Set "alpha" parameter, i.e. elasticity of (changes in) bycatch to (changes 
+## in) target stocks. Default is 1. Other options used in sensitivity analysis.
+## See equation (S14). 
+alpha_exp <- c(1, 0.5, 2)[1] 
+
+### Results for all species
+
+## First get a vector of bycatch species
+all_species <- bycatch_df$species 
+
+## Now apply the MCMC simulation function over all species (and bind into a 
+## common data frame). A progress bar (PB) will give you an indication of how  
+## long you have to wait. For the non-parallel version, you'll see one PB per
+## species, i.e. 20 in total. For the parallel version, you'll see a single PB
+## updated in clumps, i.e. corresponding to how many CPUs you have.
+# all_dt <- pblapply(all_species, bycatch_func) %>% bind_rows() ## Non-parallel version (slower)
+all_dt <- pblapply(all_species, bycatch_func, cl = detectCores()) %>% bind_rows() ## Parallel version (faster)
+
+## Write results for convenient later use
+write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, ".csv"))
+
+# rm(upsides)
+
+################################################
+### READ IN THE PREVIOUSLY GENERATED RESULTS ###
+################################################
+
+all_dt <- read_csv(paste0("Results/bycatch_results_", uncert_type, ".csv"))
+
+alldistplots <- 
+  bycatchdistggplot(all_dt) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+alldistplots + ggsave(paste0("Figures/dist-", uncert_type,".png"), width = 10, height = 13)
+alldistplots + ggsave(paste0("Figures/PDFs/dist-", uncert_type,".pdf"), width = 10, height = 13)
+
+allcostplots <- 
+  costggplot(all_dt) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+allcostplots + ggsave(paste0("Figures/cost-", uncert_type,".png"), width = 10, height = 13)
+allcostplots + ggsave(paste0("Figures/PDFs/cost-", uncert_type,".pdf"), width = 10, height = 13)
+
+rm(alldistplots, allcostplots)
+dev.off()
+
+####################################################
+########### Summary Figs and sensitivity ###########
+####################################################
+
+### Get median, 2.5th, 25th, 75th, 97.5th percentiles from main run for Figs. 3a,b
+
+## GRM: ASSIGN NAME 
+# results_summary_nouncert <- resultssummary(all_dt) ## GRM: DELETE OLD FUNCTION
+results_summary_nouncert <- summ_func(all_dt)
+# rm(all_dt)
+
+
+#########################################
+###########  Sensitivity runs ########### 
+#########################################
+
+## Uncertainty, alpha = 1
+all_dt_uncert <- read_csv("Results/bycatch_results_uncert.csv")
+# results_summary_uncert <- resultssummary(all_dt_uncert)
+results_summary_uncert <- summ_func(all_dt_uncert)
+rm(all_dt_uncert)
+
+## No uncertainty, alpha = 0.5
+all_dt_alpha05 <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv")
+# results_summary_alpha05 <- resultssummary(all_dt_alpha05)
+results_summary_alpha05 <- summ_func(all_dt_alpha05)
+rm(all_dt_alpha05)
+
+## No uncertainty, alpha = 2
+all_dt_alpha2 <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv")
+# results_summary_alpha2 <- resultssummary(all_dt_alpha2)
+results_summary_alpha2 <- summ_func(all_dt_alpha2)
+rm(all_dt_alpha2)
+
+
+### Sensitivity for Supplement, where FbMEY/Fbcurrent = (FtargetMSY/Ftargetcurrent) ^ b
+
+### Part 1: show how this assumption drives a result for a hypothetical species
+### (i.e. in general)
+
+## Fig. S4
+fig_s4 <-
+  ggplot(data.frame(x = c(0, 5)), aes(x = x)) +
+  stat_function(fun = function(x) 100 * (1 - (0.5^x))) +
+  geom_vline(aes(xintercept = 1), lty = 2) +
+  geom_hline(aes(yintercept = 50), lty = 2) +
+  annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 3, parse=T, family = font_type) +
+  annotate("text", label = "% reduction in target \nsp. mortality (50%)", x = 3, y = 40, family = font_type) +
+  labs(
+    x = expression(alpha), 
+    y = "% reduction in bycatch mortality"
+    ) 
+fig_s4 + ggsave("Figures/Fig-S4.png", width = 4, height = 4)
+fig_s4 + ggsave("Figures/PDFs/Fig-S4.pdf", width = 4, height = 4)
+rm(fig_s4)
+
+### Part 2: Show how it affects our results
+
+## Fig. 3
+fig_3mey <- tradeoffs_plot(results_summary_nouncert, "MEY")
+fig_3mey + ggsave("Figures/Fig-3-mey.png", width=10*.6, height=13*.6)
+fig_3mey + ggsave("Figures/PDFs/Fig-3-mey.pdf", width=10*.6, height=13*.6)
+dev.off()
+
+fig_3msy <- tradeoffs_plot(results_summary_nouncert, "MSY")
+fig_3msy + ggsave("Figures/Fig-3-msy.png", width=10*.6, height=13*.6)
+fig_3msy + ggsave("Figures/PDFs/Fig-3-msy.pdf", width=10*.6, height=13*.6)
+dev.off()
+
+# ## MEY
+# save_plot("Figures/Fig-3-mey.pdf", fig3mey(results_summary_nouncert, -50),
+#           ncol = 1, # we're saving a grid plot of 2 columns
+#           nrow = 2, # and 2 rows
+#           # each individual subplot should have an aspect ratio of 1.3
+#           base_aspect_ratio = 1.3
+#           )
+# ## MSY
+# save_plot("Figures/Fig-3-msy.pdf", fig3msy(results_summary_nouncert, -75),
+#           ncol = 1, # we're saving a grid plot of 2 columns
+#           nrow = 2, # and 2 rows
+#           # each individual subplot should have an aspect ratio of 1.3
+#           base_aspect_ratio = 1.3
+#           )
+
+
+# Joint figure
+fig3all(results_summary_no_uncert,-75)
+
+# Sensitivity figure
+sensfigmsy(results_summary_no_uncert, 
+           results_summary_uncert, 
+           results_summary_alpha05, 
+           results_summary_alpha2, 
+           -75)
+
+sensfigmey(results_summary_no_uncert, 
+           results_summary_uncert, 
+           results_summary_alpha05, 
+           results_summary_alpha2, 
+           -75)
+
+
+###################################################
+########### Fig. 2 - Loggerhead Example ###########
+###################################################
+
+sp_type <- "Loggerhead turtle (NW Atlantic)"
+
+### Fig 2.A
+
+### Fig 2.B
+
+### Fig 2.C
+## First select the relevant stocks
+fig2c <- 
+  stockselect_func(sp_type) %>%
+  samples_plot()
+# ## Then plot the results figure (Note: Log scale)
+# fig2c +
+#   ggsave("Figures/Fig-2c.png", height = 3, width = 9)
+# fig2c +
+#   ggsave("Figures/PDFs/Fig-2c.pdf", height = 3, width = 9)
+
+### Fig 2.D
+fig2d <- bycatchdistggplot(all_dt %>% filter(species==sp_type)) 
+
+### Fig 2. E
+fig2e <- costggplot(all_dt %>% filter(species==sp_type))
+
+### Extract Legend (to serve as common legend at bottom of composite figure) 
+g_legend <- 
+  function(a_ggplot){ 
+    tmp <- ggplot_gtable(ggplot_build(a_ggplot)) 
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+    legend <- tmp$grobs[[leg]] 
+    return(legend)
+    } 
+legend <- g_legend(fig2d) 
+# grid::grid.draw(legend)
+
+### Tweak plots before putting theme together in composite figure
+fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
+fig2e <- fig2e + theme(strip.text.x = element_blank(), legend.position = "none")
+
+### Finally, draw composite figure
+ggdraw() +
+  draw_plot(fig2c, 0, 0.55, 1, 0.45) +
+  draw_plot(fig2d, 0, 0.05, 0.5, 0.45) +
+  draw_plot(fig2e, 0.5, 0.05, 0.5, 0.45) +
+  draw_plot(legend, 0, 0, 1, 0.10) +
+  draw_plot_label(c("C", "D", "E", ""), c(0, 0, 0.5, 0), c(1, 0.5, 0.5, 0), size = 15)
+
+
+### WORKING HERE ###
+
+# plot.iris <- ggplot(iris, aes(Sepal.Length, Sepal.Width)) + 
+#   geom_point() + facet_grid(. ~ Species) + 
+#   panel_border() # and a border around each panel
+
+ggdraw() +
+  draw_plot(fig2c, 0, .5, 1, .5) +
+  draw_plot(fig2d, 0, 0, .5, .5) +
+  draw_plot(fig2e, .5, 0, .5, .5) +
+  draw_plot_label(c("C", "D", "E"), c(0, 0, 0.5), c(1, 0.5, 0.5), size = 15)
+
+################################################################
+########### Fig 1b. Overall Reductions (MEY and MSY) ###########
+################################################################
+
+ovrred <- 
   upsides %>%
-  mutate(pctredfmsy = 100 * (1 - (1/fvfmsy))) %>%
-  mutate(pctredfmey = 100 * (1 - (1/eqfvfmey))) # defines pctredmey in terms of eqfmey, but we can change this if we want.
-# mutate(pctredfmey = 100 * (1 - (1/(fvfmsy/fmeyvfmsy)))) # defines pctredmey in terms of NPV fmey
+  group_by(idoriglumped) %>%
+  summarise(margc = mean(marginalcost),
+            bet = mean(beta),
+            g = mean(g),
+            fvfmey = mean(eqfvfmey),
+            fvfmsy = mean(fvfmsy),
+            pctmey = mean(pctredfmey),
+            pctmsy = mean(pctredfmsy)) %>%
+  mutate(wt = margc * ((g * fvfmsy)^bet),
+         cstcurr = wt,
+         cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
+         cstmsy = margc * ((g)^bet)) %>%
+  ungroup() %>%
+  mutate(wt = wt/sum(wt, na.rm = T)) %>%
+  mutate(wtpctmey = wt * pctmey,
+         wtpctmsy = wt * pctmsy) 
 
+avpctmey <- sum(ovrred$wtpctmey, na.rm = T)
+avpctmsy <- sum(ovrred$wtpctmsy, na.rm = T)
 
-###################################
-########## Load functions #########
-###################################
+avpctmey <- 100 * (1 - (sum(ovrred$cstmey, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
+avpctmsy <- 100 * (1 - (sum(ovrred$cstmsy, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
 
-source("bycatch_funcs_cost.R")
-
-
-###############################
-########### Results ###########
-###############################
-
-## Desired chance (%) that the bycatch reduction threshold is met
-pctchance <- 95
-## Sampling parameters
-n1 <- 1000
-n2 <- 100
-
-## Choose the percent increment for calculating (marginal) yield and profit
-## losses when there is a shortfall.
-incrmt <- 1 ## i.e. one tenth of a percent increment in bycatch reduction
-
-###############
-### Turtles ###
-###############
-
-turtle_species <- (filter(bycatch_df, grp=="turtle"))$species
-
-## Run the bycatch function over all turtle species 
-## Each progress bar represents the time needed for a particular turtle stock. 
-## There are four turtle stocks, so there will be four progress bars in succession.
-## This next line takes 4 and a bit minutes to run on my laptop (with a 1 percent 
-## increment).
-turtles <- bind_rows(pblapply(turtle_species, bycatch_func))
-
-## % reduction plot
-bycatchdistggplot(turtles) +
-  ggsave("TablesFigures/turtles1.png", width = 8, height = 6)
-bycatchdistggplot(turtles) +
-  facet_wrap(~species, scales = "free") + 
-  ggsave("TablesFigures/turtles2.png", width = 8, height = 6)
-# ## Note: To add axes to each plot while keeping scales="fixed"
-# bycatchdistggplot(turtles) +
-#   annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
-#   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
-
-## Yield loss and cost plot
-costggplot(turtles)
-
-
-###############
-### Mammals ###
-###############
-
-mammal_species <- (filter(bycatch_df, grp=="mammal"))$species
-
-## Run the bycatch function over all turtle species (takes 47s on my laptop)
-mammals <- bind_rows(pblapply(mammal_species, bycatch_func))
-
-## Plot the data
-bycatchdistggplot(mammals) 
-## NZ sea lion is a huge outlier
-bycatchdistggplot(filter(mammals, species != "NZ sea lion")) + 
-  ggsave("TablesFigures/mammals1.png", width = 8, height = 6)
-bycatchdistggplot(mammals) + 
-  facet_wrap(~species, scales = "free") + 
-  ggsave("TablesFigures/mammals2.png", width = 8, height = 6)
-
-
-#############
-### Birds ###
-#############
-
-bird_species <- (filter(bycatch_df, grp=="bird"))$species
-
-## Run the bycatch function over all turtle species (takes 01m 14s on my laptop)
-birds <- bind_rows(pblapply(bird_species, bycatch_func))
-
-## Plot the data
-bycatchdistggplot(birds) 
-## Sooty shearwater is a huge outlier
-bycatchdistggplot(filter(birds, species != "Sooty shearwater")) + 
-  facet_wrap(~species, ncol = 2) + 
-  ggsave("TablesFigures/birds1.png", width = 8, height = 6)
-bycatchdistggplot(filter(birds, species != "Sooty shearwater")) + 
-  facet_wrap(~species, scales = "free", ncol = 2) + 
-  ggsave("TablesFigures/birds2.png", width = 8, height = 6)
+## List of species categories
+# list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
+#   "Cods, hakes, haddocks" = 32,"Miscellaneous coastal fishes" = 33,
+#  "Miscellaneous demersal fishes" = 34,"Herrings, sardines,anchovies" = 35,
+# "Tunas,bonitos,billfishes" = 36,"Miscellaneous pelagic fishes" = 37,
+#"Sharks, rays, chimeras" = 38,"Shrimps, prawns" = 45,
+#"Carps, barbels and other cyprinids" = 11,"Sturgeons, paddlefishes" = 21,
+#"Salmons, trouts, smelts" = 23,"Miscellaneous diadromous fishes" = 25,
+#"Crabs, sea-spiders" = 42,"Lobsters, spiny rock lobsers" = 43,
+#"King crabs, squat lobsters" = 44,"Miscellaneous marine crustaceans" = 47,
+#"Abalones, winkles, conchs" = 52,"Oysters" = 53,"Mussels" = 54,
+#"Scallops, pectens" = 55,"Clams, cockles, arkshells" = 56,
+#"Squids, cuttlefishes, octopuses" = 57,"Horseshoe crabs and other arachnoids" = 75,
+#"Sea-urchins and other echinoderms" = 76,"Miscellaneous aquatic invertebrates" = 56)
