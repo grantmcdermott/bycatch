@@ -12,7 +12,7 @@ library(scales)
 library(tidyverse)
 library(cowplot)
 library(RColorBrewer)
-library(extrafont) ## See https://github.com/wch/extrafont for first-time instructions
+library(extrafont) ## See https://github.com/wch/extrafont for first-time use instructions
 
 #######################################################
 ########## Load functions and global elements #########
@@ -22,7 +22,7 @@ library(extrafont) ## See https://github.com/wch/extrafont for first-time instru
 
 ## Assign font. Register to extrafont package DB first. If below font is not
 ## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
-font_type <- "Open Sans" ## Download here: https://fonts.google.com/specimen/Open+Sans
+font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
 ## Assign color scheme
 bycatch_cols <- c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506",
                   "#a6cee3","#fb9a99","#984ea3","#ffff33")
@@ -158,15 +158,16 @@ rm(all_dt_alpha2)
 
 ## Fig. S4
 fig_s4 <-
-  ggplot(data.frame(x = c(0, 5)), aes(x = x)) +
-  stat_function(fun = function(x) 100 * (1 - (0.5^x))) +
+  ggplot(data_frame(x = c(0, 5)), aes(x = x)) +
+  stat_function(fun = function(x) (1 - (0.5^x))) +
   geom_vline(aes(xintercept = 1), lty = 2) +
-  geom_hline(aes(yintercept = 50), lty = 2) +
-  annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 3, parse=T, family = font_type) +
-  annotate("text", label = "% reduction in target \nsp. mortality (50%)", x = 3, y = 40, family = font_type) +
+  geom_hline(aes(yintercept = 0.5), lty = 2) +
+  scale_y_continuous(label = percent) +
+  annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 0.03, parse=T, family = font_type) +
+  annotate("text", label = "        Reduction in target \nspecies mortality (50%)", x = 3.5, y = 0.75, family = font_type) +
   labs(
     x = expression(alpha), 
-    y = "% reduction in bycatch mortality"
+    y = "Reduction in bycatch mortality"
     ) 
 fig_s4 + ggsave("Figures/Fig-S4.png", width = 4, height = 4)
 fig_s4 + ggsave("Figures/PDFs/Fig-S4.pdf", width = 4, height = 4)
@@ -226,6 +227,45 @@ sp_type <- "Loggerhead turtle (NW Atlantic)"
 
 ### Fig 2.A
 
+library(png)
+library(gridGraphics)
+# library(viridis)
+
+img1 <- readPNG("Figures/AnimalSilhouettes/turtle-silhouette.png")
+g1 <- rasterGrob(img1, interpolate=FALSE)
+
+lh_delta <- (filter(bycatch_df, species == sp_type))$delta
+lh_fe <- (filter(bycatch_df, species == sp_type))$fe
+
+fig2a <-
+  crossing(delta = seq(-5,0, length.out = 100), fe = seq(0,10, length.out = 100)) %>%
+  mutate(z = abs(delta/fe)*100) %>%
+  mutate(z = ifelse(z>100, 100, z)) %>%
+  mutate_all(funs(./100)) %>%
+  ggplot(aes(delta, fe, fill = z)) + 
+  geom_raster(interpolate = T) +
+  scale_fill_gradientn(
+    name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")), 
+    colours = c("#F2F2F2FF", brewer_pal(palette = "Spectral")(11)), 
+    trans = "reverse",
+    labels = percent
+    ) +
+  annotation_custom(g1, xmin=lh_delta-0.005, xmax=lh_delta+0.005, ymin=lh_fe-0.005, ymax=lh_fe+0.005) +
+  # geom_vline(xintercept = lh_delta*c(.75, 1.25), lty = 2) +
+  geom_segment(aes(y=-Inf, yend=.1, x=lh_delta*.75, xend=lh_delta*.75), lty=2) +
+  geom_segment(aes(y=-Inf, yend=.1, x=lh_delta*1.25, xend=lh_delta*1.25), lty=2) +
+  # geom_hline(yintercept = lh_fe*c(.75, 1.25), lty = 2) +
+  geom_segment(aes(x=-Inf, xend=0, y=lh_fe*.75, yend=lh_fe*.75), lty=2) +
+  geom_segment(aes(x=-Inf, xend=0, y=lh_fe*1.25, yend=lh_fe*1.25), lty=2) +
+  labs(
+    x = expression(Rate~of~population~decline~(Delta)),
+    y = expression(Bycatch~mortality~rate~(italic(F)[e]))
+  ) +
+  theme(legend.title = element_text())
+# detach(package:gridGraphics)
+# detach(package:png)
+
+
 ### Fig 2.B
 
 ### Fig 2.C
@@ -261,12 +301,37 @@ fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2e <- fig2e + theme(strip.text.x = element_blank(), legend.position = "none")
 
 ### Finally, draw composite figure
-ggdraw() +
-  draw_plot(fig2c, 0, 0.55, 1, 0.45) +
-  draw_plot(fig2d, 0, 0.05, 0.5, 0.45) +
-  draw_plot(fig2e, 0.5, 0.05, 0.5, 0.45) +
-  draw_plot(legend, 0, 0, 1, 0.10) +
-  draw_plot_label(c("C", "D", "E", ""), c(0, 0, 0.5, 0), c(1, 0.5, 0.5, 0), size = 15)
+# fig2 <-
+#   ggdraw() +
+#   # draw_plot(figureName, xpos, ypos, width, height) +
+#   draw_plot(fig2a, 0, 0.7, 0.5, 0.3) +
+#   draw_plot(fig2a, 0.5, 0.7, 0.5, 0.3) +
+#   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
+#   draw_plot(fig2d, 0, 0.05, 0.5, 0.3) +
+#   draw_plot(fig2e, 0.5, 0.05, 0.5, 0.3) +
+#   draw_plot(legend, 0, 0, 1, 0.05) +
+#   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.5, 0, 0, 0.5, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15) 
+fig2 <-
+  ggdraw() +
+  # draw_plot(figureName, xpos, ypos, width, height) +
+  draw_plot(fig2a, 0, 0.7, 0.475, 0.3) +
+  draw_plot(fig2a, 0.525, 0.7, 0.475, 0.3) +
+  draw_plot(fig2c, 0, 0.375, 1, 0.3) +
+  draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
+  draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
+  draw_plot(legend, 0, 0, 1, 0.05) +
+  draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
+
+fig2
+
+save_plot("Figures/fig2.png", fig2,
+          base_height = 13,
+          base_aspect_ratio = 1/1.3
+          )
+save_plot("Figures/PDFs/fig2.pdf", fig2,
+          base_height = 13,
+          base_aspect_ratio = 1/1.3
+          )
 
 
 ### WORKING HERE ###

@@ -695,7 +695,7 @@ samples_plot <-
     lbl_df <- 
       data_frame(
         trgcat=c("Shrimp", "Demersals", "Tuna"),
-        target_lab1=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
+        target_description=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
       )
     
     bd <- 
@@ -703,8 +703,7 @@ samples_plot <-
       left_join(lbl_df) %>%
       rename(MSY = pctredfmsy, MEY = pctredfmey) %>%
       ## Special chars ('(', '%', etc) req. diff quotation marks and spacing tokens (~, *) for plotmath parsing to work
-      # mutate(target = paste0(target,"~'('*",wt_Fe*100,"*'%'~of~F[e]*')'")) %>%
-      mutate(target_lab2 = paste0("'('*",wt_Fe*100,"*'%'~of~italic(F)[e]*')'")) %>% ## Need to add second facet to get on new line
+      mutate(target_lab = paste0("atop(", target_description, paste0(",~'('*", wt_Fe*100,"*'%'~of~italic(F)[e]*')')"))) %>%
       group_by(trgcat) %>%
       gather(key, pctred, c(MSY, MEY)) %>%
       mutate(key = factor(key, levels = c("MSY", "MEY"))) %>%
@@ -716,9 +715,8 @@ samples_plot <-
       scale_color_brewer(palette = "Set1") +
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
       scale_y_log10(labels = trans_format("log10", math_format(10^.x))) +
-      labs(x = "Reduction in Mortality", y = "2012 Effort (USD)") +
-      facet_grid( ~ forcats::fct_reorder(target_lab1, wt_Fe, .desc = T) + 
-                    forcats::fct_reorder(target_lab2, wt_Fe, .desc = T), 
+      labs(x = "Reduction in mortality", y = "2012 Effort (USD)") +
+      facet_grid( ~ forcats::fct_reorder(target_lab, wt_Fe, .desc = T), 
                   labeller = label_parsed) +
       theme(
         # strip.text = element_text(size=14),
