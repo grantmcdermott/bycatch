@@ -9,10 +9,12 @@ library(pbapply)
 # library(pbmcapply) ## Now assign parallel computation through pbapply (with cl option)
 library(parallel)
 library(scales)
-library(tidyverse)
+library(tidyverse) ## NOTE: Using dev. version of ggplot2 for geom_sf() devtools::install_github("tidyverse/ggplot2")
 library(cowplot)
 library(RColorBrewer)
 library(extrafont) ## See https://github.com/wch/extrafont for first-time use instructions
+library(png)
+library(gridGraphics)
 
 #######################################################
 ########## Load functions and global elements #########
@@ -227,10 +229,6 @@ sp_type <- "Loggerhead turtle (NW Atlantic)"
 
 ### Fig 2.A
 
-library(png)
-library(gridGraphics)
-# library(viridis)
-
 img1 <- readPNG("Figures/AnimalSilhouettes/turtle-silhouette.png")
 g1 <- rasterGrob(img1, interpolate=FALSE)
 
@@ -262,22 +260,15 @@ fig2a <-
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
   ) +
   theme(legend.title = element_text())
-# detach(package:gridGraphics)
-# detach(package:png)
 
 
 ### Fig 2.B
 
+
 ### Fig 2.C
-## First select the relevant stocks
 fig2c <- 
   stockselect_func(sp_type) %>%
-  samples_plot()
-# ## Then plot the results figure (Note: Log scale)
-# fig2c +
-#   ggsave("Figures/Fig-2c.png", height = 3, width = 9)
-# fig2c +
-#   ggsave("Figures/PDFs/Fig-2c.pdf", height = 3, width = 9)
+  samples_plot() ## Note log scale
 
 ### Fig 2.D
 fig2d <- bycatchdistggplot(all_dt %>% filter(species==sp_type)) 
@@ -334,46 +325,120 @@ save_plot("Figures/PDFs/fig2.pdf", fig2,
           )
 
 
-### WORKING HERE ###
-
-# plot.iris <- ggplot(iris, aes(Sepal.Length, Sepal.Width)) + 
-#   geom_point() + facet_grid(. ~ Species) + 
-#   panel_border() # and a border around each panel
-
-ggdraw() +
-  draw_plot(fig2c, 0, .5, 1, .5) +
-  draw_plot(fig2d, 0, 0, .5, .5) +
-  draw_plot(fig2e, .5, 0, .5, .5) +
-  draw_plot_label(c("C", "D", "E"), c(0, 0, 0.5), c(1, 0.5, 0.5), size = 15)
 
 ################################################################
 ########### Fig 1b. Overall Reductions (MEY and MSY) ###########
 ################################################################
 
-ovrred <- 
+# sp_type <- "Loggerhead turtle (NW Atlantic)"
+sp_type <- all_species
+
+### Fig 1.A
+
+lh_delta <- (filter(bycatch_df, species %in% sp_type))$delta
+lh_fe <- (filter(bycatch_df, species %in% sp_type))$fe
+
+fig1a <-
+  crossing(delta = seq(-40,0, length.out = 100), fe = seq(0,40, length.out = 100)) %>%
+  mutate(z = abs(delta/fe)*100) %>%
+  mutate(z = ifelse(z>100, 101, z)) %>%
+  mutate_all(funs(./100)) %>%
+  ggplot(aes(delta, fe, fill = z)) + 
+  geom_raster(interpolate = T) +
+  scale_fill_gradientn(
+    name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")), 
+    colours = c("#F2F2F2FF", brewer_pal(palette = "Spectral")(11)), 
+    trans = "reverse",
+    labels = percent
+  ) +
+  labs(
+    x = expression(Rate~of~population~decline~(Delta)),
+    y = expression(Bycatch~mortality~rate~(italic(F)[e]))
+  ) +
+  theme(legend.title = element_text())
+
+fig1a <-
+  fig1a +
+  lapply(unique(bycatch_df$silhouette), function(s){
+    ii <- (bycatch_df %>% mutate(n = row_number()) %>% filter(silhouette==s))$n
+    img <- readPNG(paste0("Figures/AnimalSilhouettes/",s,"-silhouette.png"))
+    g_img <- rasterGrob(img, interpolate=FALSE)
+    lapply(ii, function(i) {
+      annotation_custom(g_img, xmin=lh_delta[i]-0.025, xmax=lh_delta[i]+0.025, ymin=lh_fe[i]-0.025, ymax=lh_fe[i]+0.025)
+    })
+  })
+
+fig1a +
+  xlim(-0.2, 0) +
+  ylim(0, 0.2)
+  
+
+
+### Fig 1.B
+
+overall_red <- 
   upsides %>%
-  group_by(idoriglumped) %>%
-  summarise(margc = mean(marginalcost),
-            bet = mean(beta),
-            g = mean(g),
-            fvfmey = mean(eqfvfmey),
-            fvfmsy = mean(fvfmsy),
-            pctmey = mean(pctredfmey),
-            pctmsy = mean(pctredfmsy)) %>%
-  mutate(wt = margc * ((g * fvfmsy)^bet),
-         cstcurr = wt,
-         cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
-         cstmsy = margc * ((g)^bet)) %>%
+  group_by(idoriglumped, regionfao) %>%
+  ### GRM: ADDED ", na.rm=T" to all of these
+  summarise(
+    margc = mean(marginalcost, na.rm=T), 
+    bet = mean(beta, na.rm=T),
+    g = mean(g, na.rm=T),
+    fvfmey = mean(eqfvfmey, na.rm=T),
+    fvfmsy = mean(fvfmsy, na.rm=T),
+    pctmey = mean(pctredfmey, na.rm=T),
+    pctmsy = mean(pctredfmsy, na.rm=T)
+    ) %>%
+  ### GRM: ADDED
+  mutate(
+    fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
+    fvfmsy = ifelse(fvfmsy==-Inf, NA, pctmey),
+    pctmey = ifelse(pctmey==-Inf, NA, pctmey),
+    pctmsy = ifelse(pctmey==-Inf, NA, pctmsy)
+    ) %>%
+  mutate(
+    wt = margc * ((g * fvfmsy)^bet),
+    cstcurr = wt,
+    cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
+    cstmsy = margc * ((g)^bet)
+    ) %>%
   ungroup() %>%
   mutate(wt = wt/sum(wt, na.rm = T)) %>%
-  mutate(wtpctmey = wt * pctmey,
-         wtpctmsy = wt * pctmsy) 
+  mutate(
+    wtpctmey = wt * pctmey,
+    wtpctmsy = wt * pctmsy
+    ) 
 
-avpctmey <- sum(ovrred$wtpctmey, na.rm = T)
-avpctmsy <- sum(ovrred$wtpctmsy, na.rm = T)
+avpctmey <- sum(overall_red$wtpctmey, na.rm = T)
+avpctmsy <- sum(overall_red$wtpctmsy, na.rm = T)
 
-avpctmey <- 100 * (1 - (sum(ovrred$cstmey, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
-avpctmsy <- 100 * (1 - (sum(ovrred$cstmsy, na.rm = T)/sum(ovrred$cstcurr, na.rm = T)))
+avpctmey <- 100 * (1 - (sum(overall_red$cstmey, na.rm = T)/sum(overall_red$cstcurr, na.rm = T)))
+avpctmsy <- 100 * (1 - (sum(overall_red$cstmsy, na.rm = T)/sum(overall_red$cstcurr, na.rm = T)))
+
+
+## GRM: ADDING BELOW
+fao_red <-
+  overall_red %>% 
+  select(-idoriglumped) %>%
+  separate_rows(regionfao) %>%
+  group_by(regionfao) %>%
+  summarise_all(funs(mean(., na.rm=T))) %>%
+  ### GRM: ADDED
+  mutate(
+    fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
+    fvfmsy = ifelse(fvfmsy==-Inf, NA, pctmey),
+    pctmey = ifelse(pctmey==-Inf, NA, pctmey),
+    pctmsy = ifelse(pctmey==-Inf, NA, pctmsy)
+  ) 
+
+write_csv(fao_red, "Data/fao_red.csv")
+
+
+# library(maps)
+# library(sf)
+# world1 <- st_as_sf(map('world', plot = FALSE, fill = TRUE))
+# detach(package:maps)
+# ggplot() + geom_sf(data = world1)
 
 ## List of species categories
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
