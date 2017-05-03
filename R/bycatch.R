@@ -426,26 +426,19 @@ fig2b <-
 #### Fig 2.C (Target species) ####
 fig2c <- 
   stockselect_func(sp_type) %>%
-  samples_plot() ## Note log scale
+  samples_plot() + ## Note log scale
+  theme(strip.text = element_text(size = 14))
 
 #### Fig 2.D (Bycatch reduction disb) ####
-fig2d <- bycatchdistggplot(all_dt %>% filter(species==sp_type)) 
+fig2d <- bycatchdist_plot(all_dt %>% filter(species==sp_type)) 
 
 #### Fig 2.E (Cost disb) ####
-fig2e <- costggplot(all_dt %>% filter(species==sp_type))
+fig2e <- cost_plot(all_dt %>% filter(species==sp_type))
 
 #### Composite Fig. 2 ####
 
-### Extract Legend (to serve as common legend at bottom of composite figure) 
-g_legend <- 
-  function(a_ggplot){ 
-    tmp <- ggplot_gtable(ggplot_build(a_ggplot)) 
-    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
-    legend <- tmp$grobs[[leg]] 
-    return(legend)
-  } 
-legend <- g_legend(fig2d) 
-# grid::grid.draw(legend)
+## Extract legend
+legend_fig2 <- g_legend(fig2d) 
 
 ### Tweak plots before putting theme together in composite figure
 fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
@@ -456,11 +449,11 @@ fig2 <-
   ggdraw() +
   # draw_plot(figureName, xpos, ypos, width, height) +
   draw_plot(fig2a, 0.025, 0.7, 0.475, 0.3) +
-  draw_plot(fig2b, 0.525, 0.7, 0.475, 0.3) +
+  draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
   draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
   draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
-  draw_plot(legend, 0, 0, 1, 0.05) +
+  draw_plot(legend_fig2, 0, 0, 1, 0.05) +
   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
 
 ### Alternatively, draw the figure, but include a global map inset for panel A
@@ -469,7 +462,7 @@ fig2 <-
 #   # draw_plot(figureName, xpos, ypos, width, height) +
 #   draw_plot(fig2a, 0, 0.7, 0.475, 0.3) +
 #   draw_plot(fig2a_inset, 0.275, 0.725, 0.175, 0.175) +
-#   draw_plot(fig2b, 0.525, 0.7, 0.475, 0.3) +
+#   draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
 #   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
 #   draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
 #   draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
@@ -491,8 +484,6 @@ rm(fig2, fig2a, fig2a_inset, fig2b, fig2c, fig2d, fig2e)
 dev.off()
 
 
-
-
 ###############################
 ### Fig. 3 (Tradeoff plots) ###
 ###############################
@@ -502,7 +493,7 @@ results_summary_nouncert <- summ_func(all_dt)
 fig_3mey <- tradeoffs_plot(results_summary_nouncert, "MEY")
 fig_3mey + ggsave("Figures/fig-3-mey.png", width=10*.6, height=13*.6)
 fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=10*.6, height=13*.6)
-# rm(fig_3mey)
+rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary_nouncert, "MSY")
@@ -597,7 +588,7 @@ fig_s1 <-
 ##### Fig S.2 (Combined bycatch reduction distributions) #####
 ##############################################################
 fig_s2 <- 
-  bycatchdistggplot(all_dt) +
+  bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
 # fig_s2 + ggsave(paste0("Figures/fig-S2-", uncert_type,".png"), width = 10, height = 13)
 # fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2-", uncert_type,".pdf"), width = 10, height = 13)
@@ -608,7 +599,7 @@ fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13)
 ##### Fig S.2 (Combined cost distributions) #####
 #################################################
 fig_s3 <- 
-  costggplot(all_dt) +
+  cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
 # fig_s3 + ggsave(paste0("Figures/fig-S3-", uncert_type,".png"), width = 10, height = 13)
 # fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3-", uncert_type,".pdf"), width = 10, height = 13)
@@ -643,15 +634,16 @@ dev.off()
 ########################################
 
 ## Fig. S5 (A): Main results. No uncertainty, alpha = 1
-fig_s5a <- fig_3mey + theme(legend.position = "bottom", legend.text = element_text(size = 15))
+df_s5a <- summ_func(all_dt)
+fig_s5a <- tradeoffs_plot(df_s5a, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
 ## Fig. S5 (B): With uncertainty, alpha = 1
-df_s5b <- read_csv(paste0("Results/bycatch_results_uncert.csv")) %>% summ_func()
+df_s5b <- read_csv("Results/bycatch_results_uncert.csv") %>% summ_func()
 fig_s5b <- tradeoffs_plot(df_s5b, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 ## Fig. S5 (C): No uncertainty, alpha = 0.5
-df_s5c <- read_csv(paste0("Results/bycatch_results_nouncert_alpha=05.csv")) %>% summ_func()
+df_s5c <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv") %>% summ_func()
 fig_s5c <- tradeoffs_plot(df_s5c, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 ## Fig. S5 (D): No uncertainty, alpha = 2
-df_s5d <- read_csv(paste0("Results/bycatch_results_nouncert_alpha=2.csv")) %>% summ_func()
+df_s5d <- read_csv("Results/bycatch_results_nouncert_alpha=2.csv") %>% summ_func()
 fig_s5d <- tradeoffs_plot(df_s5d, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
 #### Composite Fig. S5 ####
@@ -683,55 +675,7 @@ rm(fig_s5, fig_s5a, fig_s5b, fig_s5c, fig_s5d)
 dev.off()
 
 
-
-
-
-
-
-
-####################################################
-########### Summary Figs and sensitivity ###########
-####################################################
-
-### Get median, 2.5th, 25th, 75th, 97.5th percentiles from main run for Figs. 3a,b
-
-## GRM: ASSIGN NAME 
-# results_summary_nouncert <- resultssummary(all_dt) ## GRM: DELETE OLD FUNCTION
-results_summary_nouncert <- summ_func(all_dt)
-# rm(all_dt)
-
-
-#########################################
-###########  Sensitivity runs ########### 
-#########################################
-
-## Uncertainty, alpha = 1
-all_dt_uncert <- read_csv("Results/bycatch_results_uncert.csv")
-# results_summary_uncert <- resultssummary(all_dt_uncert)
-results_summary_uncert <- summ_func(all_dt_uncert)
-rm(all_dt_uncert)
-
-## No uncertainty, alpha = 0.5
-all_dt_alpha05 <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv")
-# results_summary_alpha05 <- resultssummary(all_dt_alpha05)
-results_summary_alpha05 <- summ_func(all_dt_alpha05)
-rm(all_dt_alpha05)
-
-## No uncertainty, alpha = 2
-all_dt_alpha2 <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv")
-# results_summary_alpha2 <- resultssummary(all_dt_alpha2)
-results_summary_alpha2 <- summ_func(all_dt_alpha2)
-rm(all_dt_alpha2)
-
-
-### Sensitivity for Supplement, where FbMEY/Fbcurrent = (FtargetMSY/Ftargetcurrent) ^ b
-
-
-
-
-
-
-# List of species categories
+#### List of species categories ####
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
 #   "Cods, hakes, haddocks" = 32,"Miscellaneous coastal fishes" = 33,
 #  "Miscellaneous demersal fishes" = 34,"Herrings, sardines,anchovies" = 35,

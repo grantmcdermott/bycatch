@@ -607,11 +607,20 @@ bycatch_func <-
 ######################
 
 
+### Function to extract legend (to serve as common legend at bottom of composite figures) 
+g_legend <- 
+  function(a_ggplot){ 
+    tmp <- ggplot_gtable(ggplot_build(a_ggplot)) 
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+    legend <- tmp$grobs[[leg]] 
+    return(legend)
+  } 
+
 ##################################################################
 ### Plot that asks: Will rebuilding be enough to stop decline? ###
 ##################################################################
 
-bycatchdistggplot <-
+bycatchdist_plot <-
   function(bdist){
     
     df <- 
@@ -645,7 +654,7 @@ bycatchdistggplot <-
 ##############################################################
 ### Plot that asks: How much will it cost to stop decline? ###
 ##############################################################
-costggplot <-
+cost_plot <-
   function(bdist){
     
     df <- 
@@ -753,15 +762,16 @@ tradeoffs_plot <-
       mutate(pctredbu_dash = pctredbu) %>% ## This and next two lines for visualization (see geom_errorbarh)
       mutate(pctredbu = ifelse(pctredbu<=1, pctredbu, 1)) %>%
       mutate(pctredbl_dash = pctredbu) %>%
+      mutate(q025_dash = q025) %>% ## This and next two lines for visualization (see geom_errorbar)
+      mutate(q025 = ifelse(q025>=0, q025, 0)) %>%
+      mutate(q975_dash = q025) %>%
       filter(n()==2) ## Make sure we only keep cases that can be depicted in both facets
     df$key <- factor(df$key, levels = c(lvl0_a, lvl0_b), labels = c(lvl1_a, lvl1_b))
     
     excld_species <- anti_join(distinct(summ_df, species), distinct(df, species))$species
     
     print(noquote(paste0("Note: The following (outlier) species has been excluded from the plot: ", excld_species)))
-    
-    # pd = position_dodge(0.5)
-    
+
     df %>%
       mutate(grp = stringr::str_to_title(grp)) %>%
       ggplot(aes(x = pctredbpt, y = q50, col = grp, fill = grp, group = species)) +
@@ -778,6 +788,7 @@ tradeoffs_plot <-
       geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = grp), height = 0, alpha = 0.7) +
       geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
       geom_point(stroke = 0.25, size = 3, shape = 1) +
+      geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = grp), width = 0, linetype = "21", alpha = 0.7) +
       geom_errorbar(aes(ymin = q025, ymax = q975, col = grp), width = 0, alpha = 0.7) +
       # geom_pointrange(aes(ymin = q025, ymax = q975), fatten = 6, alpha = 0.7, stroke = 0.25, shape = 21) +
       scale_colour_manual(values = bycatch_cols) +
@@ -790,9 +801,11 @@ tradeoffs_plot <-
         ) +
       scale_y_continuous(
         #limits=c(NA,1),
+        limits=c(0,1),
         labels=percent,
         oob = rescale_none
         ) +
+      coord_fixed() +
       labs(
         x = "Reduction in mortality \nneeded to halt decline",
         y = NULL
@@ -842,629 +855,6 @@ tradeoffs_plot <-
 #   )
 
 
-### OLD FIGURE 3 ETC CODE
-# pctmsyplot <-
-#   function(bdist){
-#     
-#     df <- left_join(bdist, bycatch_df, by = 'species') %>% group_by(species) 
-#     
-#     df %>%
-#       rename(MSY = ycostmsy,
-#              MEY = pcostmey) %>%
-#       select(MSY:species) %>%
-#       gather(key, pctcost, -species) %>%
-#       ggplot() +
-#       # geom_line(stat = "density") + ## lines only
-#       geom_errorbar(limits, width=0.2) +
-#       geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5) +
-#       labs(x = "Cost (% of MSY or MEY)", y = "Density") +
-#       # xlim(0, 100) +
-#       #scale_color_brewer(name = "", palette = "Set1") +
-#       #scale_fill_brewer(name = "", palette = "Set1") +
-#       scale_color_manual(values=c("red", "blue")) +
-#       scale_fill_manual(values=c("red", "blue")) +
-#       facet_wrap(~species) +
-#       theme(
-#         #text = element_text(family = font_type),
-#         legend.position = "bottom",
-#         legend.title = element_blank(),
-#         # strip.text = element_text(size = 18, colour = "black"),
-#         strip.background = element_rect(fill = "white"), ## Facet strip
-#         panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-#       ) 
-#   } 
-# 
-# # Multiple plot function (for Fig 3 and SI figure that shows all of sensitivty analyses)
-# #
-# # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# # - cols:   Number of columns in layout
-# # - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-# #
-# # If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# # then plot 1 will go in the upper left, 2 will go in the upper right, and
-# # 3 will go all the way across the bottom.
-# #
-# multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-#   library(grid)
-#   
-#   # Make a list from the ... arguments and plotlist
-#   plots <- c(list(...), plotlist)
-#   
-#   numPlots = length(plots)
-#   
-#   # If layout is NULL, then use 'cols' to determine layout
-#   if (is.null(layout)) {
-#     # Make the panel
-#     # ncol: Number of columns of plots
-#     # nrow: Number of rows needed, calculated from # of cols
-#     layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-#                      ncol = cols, nrow = ceiling(numPlots/cols))
-#   }
-#   
-#   if (numPlots==1) {
-#     print(plots[[1]])
-#     
-#   } else {
-#     # Set up the page
-#     grid.newpage()
-#     pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-#     
-#     # Make each plot, in the correct location
-#     for (i in 1:numPlots) {
-#       # Get the i,j matrix positions of the regions that contain this subplot
-#       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-#       
-#       print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-#                                       layout.pos.col = matchidx$col))
-#     }
-#   }
-# }
-# 
-# 
-# 
-# theme_fig3a <-
-#   theme(
-#     text = element_text(family = font_type),
-#     legend.position = "top",
-#     legend.title = element_blank(),
-#     axis.line.x = element_blank(),
-#     axis.text.x = element_blank(),
-#     axis.ticks.x = element_blank(),
-#     strip.text = element_text(size = 18, colour = "black"),
-#     strip.background = element_rect(fill = "white"), ## Facet strip
-#     panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-#   )
-# 
-# theme_fig3b <-
-#   theme(
-#     text = element_text(family = font_type),
-#     legend.position = "none",
-#     legend.title = element_blank(),
-#     # strip.text = element_text(size = 18, colour = "black"),
-#     strip.background = element_rect(fill = "white"), ## Facet strip
-#     panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-#   )
-# 
-# fig3mey <-
-#   function(resultssum, yminimum){
-#     
-#     df <- resultssum 
-#     
-#     f3a <- (ggplot(data = df, aes(x = pctredbpt, y = pctredmey50, col = grp, fill = grp)) +
-#               geom_abline(slope = 1, lty = 2) + 
-#               geom_point(alpha = 0.7, stroke = 0.25, size = 4) + 
-#               geom_point(shape = 1, stroke = 0.25, size = 4) +
-#               scale_color_brewer(palette = "Set1") +
-#               geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), height = 0) +
-#               #xlim(0,100) +
-#               #ylim(-50,100) +
-#               scale_x_continuous(expand = c(0, 0), limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(expand = c(0.05, 0), limits=c(yminimum,100), oob = rescale_none) +
-#               # geom_hline(yintercept = 0, lty = 2) + 
-#               # geom_hline(yintercept = 51, lty = 2, colour = "grey33") + ## mean reduction across our population samples
-#               labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-#                    y = "Projected % reduction \nin mortality (MEY)") +
-#               theme_fig3a
-#     )
-#     
-#     f3b <- (ggplot(data = df, aes(x = pctredbpt, y = pcostmey50, col = grp, fill = grp)) +
-#               geom_point(alpha = 0.7, stroke = 0.25, size = 4) + 
-#               geom_point(shape = 1, stroke = 0.25, size = 4) +
-#               scale_color_brewer(palette = "Set1") +
-#               geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), height = 0) +
-#               #xlim(0,100) +
-#               #ylim(0,100) +
-#               scale_x_continuous(expand = c(0, 0), limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(expand = c(0.05, 0), limits=c(0,100), oob = rescale_none) +
-#               # geom_vline(xintercept = 51, lty = 2, colour = "grey33") + ## mean reduction across our population samples
-#               labs(x = "Required % reduction in \nmortality to halt decline", 
-#                    y = "Projected profit cost \n (% of MEY)") +
-#               theme_fig3b
-#     )
-#     # figure3 <- multiplot(f3a, f3b)
-#     figure3 <- plot_grid(f3a, f3b, labels = c("A", "B"), align = "v")
-#     
-#     return(figure3)
-#     
-#   } 
-# 
-# fig3msy <-
-#   function(resultssum, yminimum){
-#     
-#     df <- resultssum 
-#     
-#     f3a <- (ggplot(data = df, aes(pctredbpt, pctredmsy50, col = grp, fill = grp)) +
-#               geom_abline(slope = 1, lty = 2) + 
-#               geom_point(alpha = 0.7, stroke = 0.25, size = 4) + 
-#               geom_point(shape = 1, stroke = 0.25, size = 4) +
-#               scale_color_brewer(palette = "Set1") +
-#               geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), height = 0) +
-#               #xlim(0,100) +
-#               #ylim(-50,100) +
-#               scale_x_continuous(expand = c(0, 0), limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-#               # geom_hline(yintercept = 0, lty = 2) + 
-#               # geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-#               labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-#                    y = "Projected % reduction \nin mortality (MSY)") +
-#               theme_fig3a
-#     )
-#     
-#     f3b <- (ggplot(data = df, aes(pctredbpt, ycostmsy50, col = grp, fill = grp)) +
-#               geom_point(alpha = 0.7, stroke = 0.25, size = 4) + 
-#               geom_point(shape = 1, stroke = 0.25, size = 4) +
-#               scale_color_brewer(palette = "Set1") +
-#               geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), height = 0) +
-#               #xlim(0,100) +
-#               #ylim(0,100) +
-#               scale_x_continuous(expand = c(0, 0), limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-#               labs(x = "Required % reduction in \nmortality to halt decline", 
-#                    y = "Projected profit cost \n (% of MSY)") +
-#               theme_fig3b
-#     )
-#     figure3 <- multiplot(f3a, f3b)
-#     return(figure3)
-#     
-#   } 
-# 
-# # Combined fig (Alt. Fig 3 if decided to show MEY *and* MSY)
-# fig3all <-
-#   function(resultssum, yminimum){
-#     
-#     df <- resultssum 
-#     
-#     fa <- (ggplot(data = df, aes(pctredbpt, pctredmey50)) +
-#               geom_point(aes(colour = grp), size = 4) + 
-#               scale_color_brewer(palette = "Paired") +
-#               geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0.25) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-#               #xlim(0,100) +
-#               #ylim(-50,100) +
-#               scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-#               geom_abline(slope = 1) + 
-#               # geom_hline(yintercept = 0, lty = 2) + 
-#               geom_hline(yintercept = 51, lty = 2, colour = "grey33") + 
-#               labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-#                    y = "% reduction in mortality \n projected (MEY)") +
-#              theme_fig3a 
-#     )
-#     
-#     fb <- (ggplot(data = df, aes(pctredbpt, pcostmey50)) +
-#               geom_point(aes(colour = grp), size = 4) + 
-#               scale_color_brewer(palette = "Paired") +
-#               geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0.25) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-#               #xlim(0,100) +
-#               #ylim(0,100) +
-#               scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-#               geom_vline(xintercept = 51, lty = 2, colour = "grey33") + 
-#               labs(x = "% reduction in mortality \n needed to halt decline", 
-#                    y = "Projected profit cost \n (% of MEY)") +
-#              theme_fig3b
-#     )
-#     
-#     fc <- (ggplot(data = df, aes(pctredbpt, pctredmsy50)) +
-#               geom_point(aes(colour = grp), size = 4) + 
-#               scale_color_brewer(palette = "Paired") +
-#               geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0.25) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-#               #xlim(0,100) +
-#               #ylim(-50,100) +
-#               scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-#               geom_abline(slope = 1) + 
-#               # geom_hline(yintercept = 0, lty = 2) + 
-#               geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-#               labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-#                    y = "% reduction in mortality \n projected (MSY)") +
-#              theme_fig3a 
-#     )
-#     
-#     fd <- (ggplot(data = df, aes(pctredbpt, ycostmsy50)) +
-#               geom_point(aes(colour = grp), size = 4) + 
-#               scale_color_brewer(palette = "Paired") +
-#               geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0.25) +
-#               geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-#               #xlim(0,100) +
-#               #ylim(0,100) +
-#               scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-#               scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-#               geom_vline(xintercept = 23, lty = 2, colour = "grey33") + 
-#               labs(x = "% reduction in mortality \n needed to halt decline", 
-#                    y = "Projected yield cost \n (% of MSY)") +
-#              theme_fig3b
-#     )
-#     figure3 <- multiplot(fa, fb, fc, fd, cols = 2)
-#     return(figure3)
-#     
-#   } 
-
-
-#########################
-### Sensitivity plots ###
-#########################
-
-## Alt. Fig S5 with MSY
-
-sensfigmsy <-
-  function(resultssum_nouncert, resultssum_uncert, resultssum_alpha05, resultssum_alpha2, yminimum){
-    
-    df_nouncert <- resultssum_nouncert 
-    df_uncert <- resultssum_uncert 
-    df_alpha05 <- resultssum_alpha05 
-    df_alpha2 <- resultssum_alpha2 
-    
-    fa <- (ggplot(data = df_nouncert, aes(pctredbpt, pctredmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(-50,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-              geom_abline(slope = 1) + 
-              # geom_hline(yintercept = 0, lty = 2) + 
-              geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                   y = "% reduction in mortality \n projected (MEY)") +
-             theme_fig3a 
-    )
-    
-    fb <- (ggplot(data = df_nouncert, aes(pctredbpt, ycostmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(0,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-              geom_vline(xintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = "% reduction in mortality \n needed to halt decline", 
-                   y = "Projected yield cost \n (% of MSY)") +
-             theme_fig3b
-    )
-    
-    fc <- (ggplot(data = df_uncert, aes(pctredbpt, pctredmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(-50,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-              geom_abline(slope = 1) + 
-              # geom_hline(yintercept = 0, lty = 2) + 
-              geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                   y = "% reduction in mortality \n projected (MEY)") +
-             theme_fig3a 
-    )
-    
-    fd <- (ggplot(data = df_uncert, aes(pctredbpt, ycostmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(0,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-              geom_vline(xintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = "% reduction in mortality \n needed to halt decline", 
-                   y = "Projected yield cost \n (% of MSY)") +
-             theme_fig3b
-    )
-    
-    fe <- (ggplot(data = df_alpha05, aes(pctredbpt, pctredmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(-50,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-              geom_abline(slope = 1) + 
-              # geom_hline(yintercept = 0, lty = 2) + 
-              geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                   y = "% reduction in mortality \n projected (MEY)") +
-             theme_fig3a 
-    )
-    
-    ff <- (ggplot(data = df_alpha05, aes(pctredbpt, ycostmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(0,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-              geom_vline(xintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = "% reduction in mortality \n needed to halt decline", 
-                   y = "Projected yield cost \n (% of MSY)") +
-             theme_fig3b
-    )
-    
-    fg <- (ggplot(data = df_alpha2, aes(pctredbpt, pctredmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = pctredmsy975, ymin = pctredmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(-50,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-              geom_abline(slope = 1) + 
-              # geom_hline(yintercept = 0, lty = 2) + 
-              geom_hline(yintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                   y = "% reduction in mortality \n projected (MEY)") +
-             theme_fig3a 
-    )
-    
-    fh <- (ggplot(data = df_alpha2, aes(pctredbpt, ycostmsy50)) +
-              geom_point(aes(colour = grp), size = 4) + 
-              scale_color_brewer(palette = "Paired") +
-              geom_errorbar(aes(ymax = ycostmsy975, ymin = ycostmsy025), width = 0.25) +
-              geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-              #xlim(0,100) +
-              #ylim(0,100) +
-              scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-              scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-              geom_vline(xintercept = 23, lty = 2, colour = "grey33") + 
-              labs(x = "% reduction in mortality \n needed to halt decline", 
-                   y = "Projected yield cost \n (% of MSY)") +
-             theme_fig3b
-    )
-    
-    figure3 <- multiplot(fa, fb, fc, fd, fe, ff, fg, fh, cols = 4)
-    return(figure3)
-    
-  } 
-
-## Fig. S5
-
-sensfigmey <-
-  function(resultssum_nouncert, resultssum_uncert, resultssum_alpha05, resultssum_alpha2, yminimum){
-    
-    df_nouncert <- resultssum_nouncert 
-    df_uncert <- resultssum_uncert 
-    df_alpha05 <- resultssum_alpha05 
-    df_alpha2 <- resultssum_alpha2 
-    
-    fa <- (ggplot(data = df_nouncert, aes(pctredbpt, pctredmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(-50,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-             geom_abline(slope = 1) + 
-             # geom_hline(yintercept = 0, lty = 2) + 
-             geom_hline(yintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                  y = "% reduction in mortality \n projected (MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "top",
-               legend.title = element_blank(),
-               axis.line.x = element_blank(),
-               axis.text.x = element_blank(),
-               axis.ticks.x = element_blank(),
-               strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fb <- (ggplot(data = df_nouncert, aes(pctredbpt, pcostmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(0,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-             geom_vline(xintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = "% reduction in mortality \n needed to halt decline", 
-                  y = "Projected profit cost \n (% of MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "none",
-               legend.title = element_blank(),
-               # strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fc <- (ggplot(data = df_uncert, aes(pctredbpt, pctredmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(-50,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-             geom_abline(slope = 1) + 
-             # geom_hline(yintercept = 0, lty = 2) + 
-             geom_hline(yintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                  y = "% reduction in mortality \n projected (MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "top",
-               legend.title = element_blank(),
-               axis.line.x = element_blank(),
-               axis.text.x = element_blank(),
-               axis.ticks.x = element_blank(),
-               strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fd <- (ggplot(data = df_uncert, aes(pctredbpt, pcostmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(0,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-             geom_vline(xintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = "% reduction in mortality \n needed to halt decline", 
-                  y = "Projected profit cost \n (% of MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "none",
-               legend.title = element_blank(),
-               # strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fe <- (ggplot(data = df_alpha05, aes(pctredbpt, pctredmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(-50,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-             geom_abline(slope = 1) + 
-             # geom_hline(yintercept = 0, lty = 2) + 
-             geom_hline(yintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                  y = "% reduction in mortality \n projected (MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "top",
-               legend.title = element_blank(),
-               axis.line.x = element_blank(),
-               axis.text.x = element_blank(),
-               axis.ticks.x = element_blank(),
-               strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    ff <- (ggplot(data = df_alpha05, aes(pctredbpt, pcostmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(0,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-             geom_vline(xintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = "% reduction in mortality \n needed to halt decline", 
-                  y = "Projected profit cost \n (% of MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "none",
-               legend.title = element_blank(),
-               # strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fg <- (ggplot(data = df_alpha2, aes(pctredbpt, pctredmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pctredmey975, ymin = pctredmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(-50,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(yminimum,100), oob = rescale_none) +
-             geom_abline(slope = 1) + 
-             # geom_hline(yintercept = 0, lty = 2) + 
-             geom_hline(yintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = NULL, #"% reduction in mortality \n needed to halt decline", 
-                  y = "% reduction in mortality \n projected (MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "top",
-               legend.title = element_blank(),
-               axis.line.x = element_blank(),
-               axis.text.x = element_blank(),
-               axis.ticks.x = element_blank(),
-               strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    fh <- (ggplot(data = df_alpha2, aes(pctredbpt, pcostmey50)) +
-             geom_point(aes(colour = grp), size = 4) + 
-             scale_color_brewer(palette = "Paired") +
-             geom_errorbar(aes(ymax = pcostmey975, ymin = pcostmey025), width = 0.25) +
-             geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl), width = 0.25) +
-             #xlim(0,100) +
-             #ylim(0,100) +
-             scale_x_continuous(limits=c(0,100), oob = rescale_none) +
-             scale_y_continuous(limits=c(0,100), oob = rescale_none) +
-             geom_vline(xintercept = 51, lty = 2, colour = "grey33") + 
-             labs(x = "% reduction in mortality \n needed to halt decline", 
-                  y = "Projected profit cost \n (% of MEY)") +
-             theme(
-               #text = element_text(family = font_type),
-               legend.position = "none",
-               legend.title = element_blank(),
-               # strip.text = element_text(size = 18, colour = "black"),
-               strip.background = element_rect(fill = "white"), ## Facet strip
-               panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-             )
-    )
-    
-    figure3 <- multiplot(fa, fb, fc, fd, fe, ff, fg, fh, cols = 4)
-    return(figure3)
-    
-  } 
-
 #########################
 ### Results summaries ###
 #########################
@@ -1483,30 +873,3 @@ summ_func <-
       left_join(bycatch_df, by = 'species') %>%
       select(species, grp, region, contains("pctred"), everything())
   }
-
-# resultssummary <- function(df) {
-#   dt <- df %>%
-#     group_by(species) %>%
-#     summarise(pctredmsy025 = quantile(pctredmsy, probs = 0.025),
-#               pctredmsy25 = quantile(pctredmsy, probs = 0.25),
-#               pctredmsy50 = median(pctredmsy),
-#               pctredmsy75 = quantile(pctredmsy, probs = 0.75),
-#               pctredmsy975 = quantile(pctredmsy, probs = 0.975),
-#               pctredmey025 = quantile(pctredmey, probs = 0.025),
-#               pctredmey25 = quantile(pctredmey, probs = 0.25),
-#               pctredmey50 = median(pctredmey),
-#               pctredmey75 = quantile(pctredmey, probs = 0.75),
-#               pctredmey975 = quantile(pctredmey, probs = 0.975),
-#               ycostmsy025 = quantile(ycostmsy, probs = 0.025),
-#               ycostmsy25 = quantile(ycostmsy, probs = 0.25),
-#               ycostmsy50 = median(ycostmsy),
-#               ycostmsy75 = quantile(ycostmsy, probs = 0.75),
-#               ycostmsy975 = quantile(ycostmsy, probs = 0.975),
-#               pcostmey025 = quantile(pcostmey, probs = 0.025),
-#               pcostmey25 = quantile(pcostmey, probs = 0.25),
-#               pcostmey50 = median(pcostmey),
-#               pcostmey75 = quantile(pcostmey, probs = 0.75),
-#               pcostmey975 = quantile(pcostmey, probs = 0.975))
-#   rs <- left_join(dt, bycatch_df, by = 'species')
-#   return(rs)
-# }
