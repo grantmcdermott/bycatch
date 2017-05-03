@@ -763,6 +763,7 @@ tradeoffs_plot <-
     # pd = position_dodge(0.5)
     
     df %>%
+      mutate(grp = stringr::str_to_title(grp)) %>%
       ggplot(aes(x = pctredbpt, y = q50, col = grp, fill = grp, group = species)) +
       # geom_abline(
       #   data = data.frame(key=levels(df$key), b = c(1, NA)),
