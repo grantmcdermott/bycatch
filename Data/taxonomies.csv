@@ -1,0 +1,28 @@
+speciescat,speciescatname,taxonomy
+11,"Carps, barbels and other cyprinids",Not Included
+21,"Sturgeons, paddlefishes",Not Included
+23,"Salmons, trouts, smelts",Not Included
+24,Shads,Other Pelagic Finfish
+25,Miscellaneous diadromous fishes,Not Included
+31,"Flounders, halibuts, soles",Demersal Finfish
+32,"Cods, hakes, haddocks",Demersal Finfish
+33,Miscellaneous coastal fishes,Reef & Coastal Finfish
+34,Miscellaneous demersal fishes,Demersal Finfish
+35,"Herrings, sardines, anchovies",Other Pelagic Finfish
+36,"Tunas, bonitos, billfishes",Tuna & Billfish
+37,Miscellaneous pelagic fishes,Other Pelagic Finfish
+38,"Sharks, rays, chimaeras",Not Included
+42,"Crabs, sea-spiders",Not Included
+43,"Lobsters, spiny-rock lobsters",Not Included
+44,"King crabs, squat-lobsters",Not Included
+45,"Shrimps, prawns",Shrimps
+47,Miscellaneous marine crustaceans,Not Included
+52,"Abalones, winkles, conchs",Not Included
+53,Oysters,Not Included
+54,Mussels,Not Included
+55,"Scallops, pectens",Not Included
+56,"Clams, cockles, arkshells",Not Included
+57,"Squids, cuttlefishes, octopuses",Not Included
+75,Horseshoe crabs and other arachnoids,Not Included
+76,Sea-urchins and other echinoderms,Not Included
+77,Miscellaneous aquatic invertebrates,Not Included

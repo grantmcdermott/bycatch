@@ -53,6 +53,7 @@ source("R/bycatch_funcs.R")
 ### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
 target_df <- read_csv("Data/target_species.csv")
+# target_df <- target_df %>% mutate(spcat = ifelse(target=="Totoaba", 33, spcat))
 
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
@@ -68,6 +69,12 @@ uncert_type <- c("uncert", "nouncert")[2] ## Change as needed.
 upsides <- 
   fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
   as_data_frame()
+# upsides <-
+#   upsides %>% 
+#   mutate(
+#     speciescat = ifelse(commname=="Totoaba", 33, speciescat),
+#     speciescatname = ifelse(commname=="Totoaba", "Miscellaneous coastal fishes", speciescatname)
+#     )
 
 
 ################################
@@ -111,9 +118,8 @@ all_dt <- read_csv(paste0("Results/bycatch_results_nouncert.csv"))
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
-  c("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs", ## Base
+  c("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs", ## Default (Mercator?)
     "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs", ## Robinson World
-    "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +a=6371000 +b=6371000 +units=m +no_defs", ## Robinson Sphere
     "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs" ## Google projection
   )[2]
 
@@ -331,13 +337,12 @@ lh_nesters_df <-
       rename(x=V1, y=V2)
     )
 
-
 ## Bounding box
 # # extent <- st_bbox(st_buffer(lh_rmus, 1000000))
 # extent <- st_bbox(lh_rmus)
 #       xmin       ymin       xmax       ymax 
 # -9042320.1   463591.8  1603802.3  5358890.1 
-## Manually adjust latitude limits
+## Manually adjust limits
 extent <- c(-10000000.0, -500000.0, 2100000.0, 6250000.0)
 
 fig2a <-
@@ -472,11 +477,11 @@ fig2 <-
 # fig2
 
 save_plot("Figures/fig-2.png", fig2,
-          base_height = 12,
+          base_height = 10,
           base_aspect_ratio = 1
           )
 save_plot("Figures/PDFs/fig-2.pdf", fig2,
-          base_height = 12,
+          base_height = 10,
           base_aspect_ratio = 1
           )
 
@@ -502,23 +507,6 @@ fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=10*.6, height=13*.6)
 rm(fig_3msy)
 dev.off()
 
-# ## GRM: MATT'S OLD CODE (DELETE)
-# # Joint figure
-# fig3all(results_summary_no_uncert,-75)
-# 
-# # Sensitivity figure
-# sensfigmsy(results_summary_no_uncert, 
-#            results_summary_uncert, 
-#            results_summary_alpha05, 
-#            results_summary_alpha2, 
-#            -75)
-# 
-# sensfigmey(results_summary_no_uncert, 
-#            results_summary_uncert, 
-#            results_summary_alpha05, 
-#            results_summary_alpha2, 
-#            -75)
-
 
 #############################################
 ########### SUPPLEMENTARY FIGURES ########### 
@@ -528,18 +516,22 @@ dev.off()
 ##### Fig S.1 (Upsides by FAO region & taxonomic group) #####
 #############################################################
 
+## Read in taxonomy CSV for faceting categories
+tax_df <- 
+  read_csv("Data/taxonomies.csv") %>%
+  mutate(taxonomy = gsub("Not Included", "Other Miscellaneous", taxonomy))
+
 ## Start with `overall_red` DF created above (Fig. 1B)
 fao_tax_red <-
   overall_red %>% 
-  # left_join(tax_df) %>% 
+  left_join(tax_df) %>% 
   select(-c(idoriglumped, speciescatname)) %>%
   separate_rows(regionfao) %>%
-  mutate(taxonomy = as.factor(round(speciescat/10))) %>% ## !TESTING! Actually need to join by taxonomic group above...
   group_by(regionfao, taxonomy) %>% 
   # summarise_all(funs(mean(., na.rm=T))) %>%
   summarise_all(funs(sum(., na.rm=T))) %>% ## CHANGED TO SUMS
   ### GRM: ADDED (RELATIVE CHANGE SINCE 2012?)
-  group_by(regionfao, taxonomy) %>%
+  group_by(taxonomy, regionfao) %>%
   mutate(
     avpctmey = 100 * (1 - (cstmey/cstcurr)),
     avpctmsy = 100 * (1 - (cstmsy/cstcurr))
@@ -558,7 +550,16 @@ fao_tax_sf <-
   st_transform(proj_string) %>%
   filter(F_LEVEL=="MAJOR") %>%
   as_data_frame() %>%
-  mutate(regionfao = as.character(F_AREA)) %>%
+  mutate(regionfao = as.character(F_AREA)) 
+fao_tax_sf <- 
+  fao_tax_sf %>%
+  ## Next step ensures all FAO regions are represented for each taxonomy (even if NA)
+  right_join(
+    crossing(
+      taxonomy=unique(fao_tax_red$taxonomy), 
+      regionfao=unique(fao_tax_sf$regionfao)
+      )
+    ) %>%
   left_join(fao_tax_red)
 
 ## Plot the figure
@@ -573,7 +574,7 @@ fig_s1 <-
   guides(
     fill=guide_colourbar(barwidth=18.5, label.position="bottom", title.position="top")
   ) +
-  facet_wrap(~taxonomy) +
+  facet_wrap(~taxonomy, ncol=2) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
     legend.position = "bottom",
@@ -581,8 +582,12 @@ fig_s1 <-
     axis.text.y=element_blank(),axis.ticks=element_blank(),
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
+    panel.spacing = unit(1, "lines"),
     panel.grid.major = element_line(colour = "white")
   )
+fig_s1 + ggsave("Figures/fig-S1.png", width = 7, height = 7)
+fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
+rm(fig_s1)
 
 ##############################################################
 ##### Fig S.2 (Combined bycatch reduction distributions) #####
@@ -590,10 +595,9 @@ fig_s1 <-
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-# fig_s2 + ggsave(paste0("Figures/fig-S2-", uncert_type,".png"), width = 10, height = 13)
-# fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2-", uncert_type,".pdf"), width = 10, height = 13)
 fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
-fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13)
+fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
+rm(fig_s2)
 
 #################################################
 ##### Fig S.2 (Combined cost distributions) #####
@@ -601,12 +605,10 @@ fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13)
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-# fig_s3 + ggsave(paste0("Figures/fig-S3-", uncert_type,".png"), width = 10, height = 13)
-# fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3-", uncert_type,".pdf"), width = 10, height = 13)
 fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
-fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13)
+fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
 
-rm(fig_s2, fig_s3)
+rm(fig_s3)
 dev.off()
 
 #################################################
@@ -637,7 +639,7 @@ dev.off()
 df_s5a <- summ_func(all_dt)
 fig_s5a <- tradeoffs_plot(df_s5a, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
 ## Fig. S5 (B): With uncertainty, alpha = 1
-df_s5b <- read_csv("Results/bycatch_results_uncert.csv") %>% summ_func()
+df_s5b <- read_csv("Results/bycatch_results_uncert.csv", col_types = "ddddc") %>% summ_func()
 fig_s5b <- tradeoffs_plot(df_s5b, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 ## Fig. S5 (C): No uncertainty, alpha = 0.5
 df_s5c <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv") %>% summ_func()
@@ -660,14 +662,14 @@ fig_s5 <-
   draw_plot(fig_s5c, 0.52, 0.05, 0.23, 0.95) +
   draw_plot(fig_s5d, 0.77, 0.05, 0.23, 0.95) +
   draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.2625, 0.5125, 0.7625), c(1, 1, 1, 1), size = 15)
+  draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.26, 0.51, 0.76), c(1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S5.png", fig_s5,
-          base_height = 10,
+          base_height = 8,
           base_aspect_ratio = 2
           )
 save_plot("Figures/PDFs/fig-S5.pdf", fig_s5,
-          base_height = 10,
+          base_height = 8,
           base_aspect_ratio = 2
           )
 
