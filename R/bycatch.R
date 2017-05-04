@@ -256,7 +256,7 @@ fao_red <-
 
 ## Load (and filter) FAO spatial data, before joining with the fao_red DF above
 fao_sf <- 
-  st_read("Data/FAO_AREAS/FAO_AREAS.shp") %>%
+  st_read("Data/Shapefiles/FAO_AREAS/FAO_AREAS.shp") %>%
   st_transform(proj_string) %>%
   filter(F_LEVEL=="MAJOR") %>%
   as_data_frame() %>%
@@ -319,10 +319,10 @@ sp_type <- "Loggerhead turtle (NW Atlantic)"
 
 ## Load shape file of NWA LH Regional Mgmt Units (based on Wallace et. al, PLoSONE 2010)
 lh_rmus <- 
-  read_sf("Data/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp") %>%
+  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp") %>%
   st_transform(proj_string)
 lh_nesters <- 
-  read_sf("Data/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
+  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
   st_set_crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
   st_transform(proj_string)
 
@@ -546,7 +546,7 @@ fao_tax_red <-
 
 ## Load (and filter) FAO spatial data, before joining with the `fao_tax_red` DF above
 fao_tax_sf <- 
-  st_read("Data/FAO_AREAS/FAO_AREAS.shp") %>%
+  st_read("Data/Shapefiles/FAO_AREAS/FAO_AREAS.shp") %>%
   st_transform(proj_string) %>%
   filter(F_LEVEL=="MAJOR") %>%
   as_data_frame() %>%
