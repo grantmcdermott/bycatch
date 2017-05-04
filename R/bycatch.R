@@ -53,7 +53,6 @@ source("R/bycatch_funcs.R")
 ### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
 target_df <- read_csv("Data/target_species.csv")
-# target_df <- target_df %>% mutate(spcat = ifelse(target=="Totoaba", 33, spcat))
 
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
@@ -63,18 +62,12 @@ all_species <- bycatch_df$species
 ## 1. First choose which version of the upsides data to: 1) With uncertainty (have 
 ## to exclude NEI stocks), or 2) no uncertainty (can include NEI stocks). The 
 ## main results of the paper use the latter. The former are used for the 
-## sensitivty analysis in the SI.
+## sensitivity analysis in the SI.
 uncert_type <- c("uncert", "nouncert")[2] ## Change as needed.
 ## 2. Now read in the data
 upsides <- 
   fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
   as_data_frame()
-# upsides <-
-#   upsides %>% 
-#   mutate(
-#     speciescat = ifelse(commname=="Totoaba", 33, speciescat),
-#     speciescatname = ifelse(commname=="Totoaba", "Miscellaneous coastal fishes", speciescatname)
-#     )
 
 
 ################################
