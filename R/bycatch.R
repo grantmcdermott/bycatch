@@ -32,8 +32,8 @@ library(extrafont) ## See https://github.com/wch/extrafont for first-time use in
 ## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
 ## Assign color scheme
-bycatch_cols <- c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506",
-                  "#a6cee3","#fb9a99","#984ea3","#ffff33")
+bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
+                  "#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")
 ## Make some adjustments to (now default) cowplot ggplot2 theme for figures
 theme_update(
   text = element_text(family = font_type),
@@ -156,14 +156,14 @@ fig1a <-
 fig1a <-
   fig1a +
   geom_point(
-    data = bycatch_df %>% mutate(grp = stringr::str_to_title(grp)), 
-    aes(shape=grp), fill="black", alpha=0.5, size = 3.5, stroke = 0
+    data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
+    aes(shape=clade), fill="black", alpha=0.5, size = 3.5, stroke = 0
     ) +
     geom_point(
-      data = bycatch_df %>% mutate(grp = stringr::str_to_title(grp)),
-      aes(shape=grp), size = 3.5
+      data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)),
+      aes(shape=clade), size = 3.5
     ) +
-  scale_shape_manual(values = 21:23) +
+  scale_shape_manual(values = 21:24) +
   guides(
     fill = guide_colourbar(order = 1),
     shape = guide_legend(order = 2, title = NULL)
@@ -669,11 +669,11 @@ fig_s5 <-
   draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.26, 0.51, 0.76), c(1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S5.png", fig_s5,
-          base_height = 8,
+          base_height = 7,
           base_aspect_ratio = 2
           )
 save_plot("Figures/PDFs/fig-S5.pdf", fig_s5,
-          base_height = 8,
+          base_height = 7,
           base_aspect_ratio = 2
           )
 

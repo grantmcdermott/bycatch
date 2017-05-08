@@ -738,6 +738,26 @@ samples_plot <-
 ### Fig. 3 Trade-offs ###
 #########################
 
+#########################
+### Results summaries ###
+#########################
+
+summ_func <-
+  function(df) {
+    df %>%
+      gather(key, value, -species) %>%
+      group_by(species, key) %>%
+      # do(q=(quantile(.$value))) %>%
+      summarise(
+        q025 = quantile(value, .025),
+        q50 = quantile(value, .5),
+        q975 = quantile(value, .975)
+      ) %>%
+      left_join(bycatch_df, by = 'species') %>%
+      select(species, grp, clade, region, contains("pctred"), everything())
+  }
+
+
 tradeoffs_plot <-
   function(summ_df, scenario) {
     
@@ -773,8 +793,8 @@ tradeoffs_plot <-
     print(noquote(paste0("Note: The following (outlier) species has been excluded from the plot: ", excld_species)))
 
     df %>%
-      mutate(grp = stringr::str_to_title(grp)) %>%
-      ggplot(aes(x = pctredbpt, y = q50, col = grp, fill = grp, group = species)) +
+      mutate(clade = stringr::str_to_title(clade)) %>%
+      ggplot(aes(x = pctredbpt, y = q50, col = clade, fill = clade, group = species)) +
       # geom_abline(
       #   data = data.frame(key=levels(df$key), b = c(1, NA)),
       #   aes(intercept=0, slope = b), lty = 2
@@ -784,12 +804,12 @@ tradeoffs_plot <-
         inherit.aes = F,
         aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2
         ) +
-      geom_errorbarh(aes(xmin = pctredbl_dash, xmax = pctredbu_dash, col = grp), height = 0, linetype = "21", alpha = 0.7) +
-      geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = grp), height = 0, alpha = 0.7) +
+      geom_errorbarh(aes(xmin = pctredbl_dash, xmax = pctredbu_dash, col = clade), height = 0, linetype = "21", alpha = 0.7) +
+      geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = clade), height = 0, alpha = 0.7) +
       geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
       geom_point(stroke = 0.25, size = 3, shape = 1) +
-      geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = grp), width = 0, linetype = "21", alpha = 0.7) +
-      geom_errorbar(aes(ymin = q025, ymax = q975, col = grp), width = 0, alpha = 0.7) +
+      geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = clade), width = 0, linetype = "21", alpha = 0.7) +
+      geom_errorbar(aes(ymin = q025, ymax = q975, col = clade), width = 0, alpha = 0.7) +
       # geom_pointrange(aes(ymin = q025, ymax = q975), fatten = 6, alpha = 0.7, stroke = 0.25, shape = 21) +
       scale_colour_manual(values = bycatch_cols) +
       scale_fill_manual(values = bycatch_cols) +
@@ -853,23 +873,3 @@ tradeoffs_plot <-
 #     strip.text = element_text(size=14),
 #     strip.placement = "outside"
 #   )
-
-
-#########################
-### Results summaries ###
-#########################
-
-summ_func <-
-  function(df) {
-    df %>%
-      gather(key, value, -species) %>%
-      group_by(species, key) %>%
-      # do(q=(quantile(.$value))) %>%
-      summarise(
-        q025 = quantile(value, .025),
-        q50 = quantile(value, .5),
-        q975 = quantile(value, .975)
-      ) %>%
-      left_join(bycatch_df, by = 'species') %>%
-      select(species, grp, region, contains("pctred"), everything())
-  }

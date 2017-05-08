@@ -1,21 +1,21 @@
-species,region,grp,silhouette,lambda,delta,fe,pctredbpt,pctredbl,pctredbu
-Loggerhead turtle (NW Atlantic),NW Atlantic,turtle,turtle,0.98,-0.02,0.067,29.9,17.9,49.8
-Loggerhead turtle (NW Indian),NW Indian Ocean,turtle,turtle,0.958,-0.042,0.089,47.2,28.3,78.7
-Loggerhead turtle (S Pacific),S Pacific,turtle,turtle,0.964,-0.036,0.089,43.4,26,72.3
-Leatherback turtle (E Pacific),E Pacific,turtle,turtle,0.846,-0.154,0.334,46.1,27.7,76.8
-Leatherback turtle (W Pacific),W Pacific,turtle,turtle,0.927,-0.073,0.127,57.5,34.5,95.8
-Leatherback turtle (SW Indian),SW Indian Ocean,turtle,turtle,0.999,-0.001,0.011,9.1,5.5,15.2
-Olive ridley turtle (NE Indian),NE Indian Ocean,turtle,turtle,0.97,-0.03,0.078,38.5,23.1,64.1
-Olive ridley turtle (W Indian),W Indian Ocean,turtle,turtle,0.82,-0.18,0.14,128.6,77.1,214.3
-Australian sea lion,Australia,mammal,pinniped,0.9946,-0.0054,0.026,20.8,12.5,34.6
-NZ sea lion,New Zealand,mammal,pinniped,0.96,-0.04,0.067,59.7,35.8,99.5
-Hector's dolphin,New Zealand,mammal,dolphin,0.97,-0.03,0.07,42.9,25.7,71.4
-Māui dolphin,New Zealand,mammal,dolphin,0.96,-0.04,0.08,50,30,83.3
-Indo-Pacific finless porpoise,Indo-Pacific,mammal,porpoise,0.99,-0.01,0.05,20,12,33.3
-Narrow-ridged finless porpoise,NW Pacific,mammal,porpoise,0.943,-0.057,0.097,58.7,35.2,97.9
-Indo-Pacific humpback dolphin,Indo-Pacific,mammal,dolphin,0.994,-0.006,0.046,13,7.8,21.7
-ETS humpback dolphin,NW Pacific,mammal,dolphin,0.975,-0.025,0.065,38.5,23.1,64.1
-Vaquita porpoise,Gulf of California - Mexico,mammal,porpoise,0.66,-0.34,0.38,89.5,53.7,149.1
-Sooty shearwater,"Atlantic, Pacific, S Indian Ocean, S Ocean",bird,bird,0.982,-0.018,0.003,600,360,1e3
-Tristan albatross,S Atlantic,bird,bird,0.971,-0.029,0.032,90.6,54.4,151
-White-chinned petrel,"S Pacific, S Atlantic, S Indian, S Ocean",bird,bird,0.964,-0.036,0.13,27.7,16.6,46.1
+species,region,grp,clade,silhouette,lambda,delta,fe,pctredbpt,pctredbl,pctredbu
+Loggerhead turtle (NW Atlantic),NW Atlantic,turtle,turtle,turtle,0.98,-0.02,0.067,29.9,17.9,49.8
+Loggerhead turtle (NW Indian),NW Indian Ocean,turtle,turtle,turtle,0.958,-0.042,0.089,47.2,28.3,78.7
+Loggerhead turtle (S Pacific),S Pacific,turtle,turtle,turtle,0.964,-0.036,0.089,43.4,26,72.3
+Leatherback turtle (E Pacific),E Pacific,turtle,turtle,turtle,0.846,-0.154,0.334,46.1,27.7,76.8
+Leatherback turtle (W Pacific),W Pacific,turtle,turtle,turtle,0.927,-0.073,0.127,57.5,34.5,95.8
+Leatherback turtle (SW Indian),SW Indian Ocean,turtle,turtle,turtle,0.999,-0.001,0.011,9.1,5.5,15.2
+Olive ridley turtle (NE Indian),NE Indian Ocean,turtle,turtle,turtle,0.97,-0.03,0.078,38.5,23.1,64.1
+Olive ridley turtle (W Indian),W Indian Ocean,turtle,turtle,turtle,0.82,-0.18,0.14,128.6,77.1,214.3
+Australian sea lion,Australia,mammal,pinniped,pinniped,0.9946,-0.0054,0.026,20.8,12.5,34.6
+NZ sea lion,New Zealand,mammal,pinniped,pinniped,0.96,-0.04,0.067,59.7,35.8,99.5
+Hector's dolphin,New Zealand,mammal,cetacean,dolphin,0.97,-0.03,0.07,42.9,25.7,71.4
+Māui dolphin,New Zealand,mammal,cetacean,dolphin,0.96,-0.04,0.08,50,30,83.3
+Indo-Pacific finless porpoise,Indo-Pacific,mammal,cetacean,porpoise,0.99,-0.01,0.05,20,12,33.3
+Narrow-ridged finless porpoise,NW Pacific,mammal,cetacean,porpoise,0.943,-0.057,0.097,58.7,35.2,97.9
+Indo-Pacific humpback dolphin,Indo-Pacific,mammal,cetacean,dolphin,0.994,-0.006,0.046,13,7.8,21.7
+ETS humpback dolphin,NW Pacific,mammal,cetacean,dolphin,0.975,-0.025,0.065,38.5,23.1,64.1
+Vaquita porpoise,Gulf of California - Mexico,mammal,cetacean,porpoise,0.66,-0.34,0.38,89.5,53.7,149.1
+Sooty shearwater,"Atlantic, Pacific, S Indian Ocean, S Ocean",bird,bird,bird,0.982,-0.018,0.003,600,360,1e3
+Tristan albatross,S Atlantic,bird,bird,bird,0.971,-0.029,0.032,90.6,54.4,151
+White-chinned petrel,"S Pacific, S Atlantic, S Indian, S Ocean",bird,bird,bird,0.964,-0.036,0.13,27.7,16.6,46.1
