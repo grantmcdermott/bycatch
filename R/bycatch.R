@@ -521,14 +521,13 @@ dev.off()
 #############################################################
 
 ## Read in taxonomy CSV for faceting categories
-tax_df <- 
-  read_csv("Data/taxonomies.csv") %>%
-  mutate(taxonomy = gsub("Not Included", "Other Miscellaneous", taxonomy))
+tax_df <- read_csv("Data/taxonomies.csv") 
 
 ## Start with `overall_red` DF created above (Fig. 1B)
 fao_tax_red <-
   overall_red %>% 
-  left_join(tax_df) %>% 
+  left_join(tax_df) %>%
+  filter(taxonomy != "Not Included") %>%
   select(-c(idoriglumped, speciescatname)) %>%
   separate_rows(regionfao) %>%
   group_by(regionfao, taxonomy) %>% 
@@ -565,6 +564,17 @@ fao_tax_sf <-
       )
     ) %>%
   left_join(fao_tax_red)
+## Now join with the total reduction sf DF created in Fig 1B above
+fao_tax_sf <-
+  rbind(
+    fao_tax_sf,
+    fao_sf %>%
+      mutate(
+        taxonomy = "All",
+        speciescat = 0
+        ) %>%
+      select_(.dots = colnames(fao_tax_sf))
+    )
 
 ## Plot the figure
 fig_s1 <-

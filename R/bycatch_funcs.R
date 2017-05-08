@@ -846,12 +846,12 @@ tradeoffs_plot <-
 #     data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
 #     aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2
 #   ) +
-#   geom_point(aes(col = grp, fill = grp), alpha = 0.7, stroke = 0.25, size = 3) +
-#   geom_point(aes(col = grp, fill = grp), shape = 1, stroke = 0.25, size = 3) +
+#   geom_point(aes(col = clade, fill = clade), alpha = 0.7, stroke = 0.25, size = 3) +
+#   geom_point(aes(col = clade, fill = clade), shape = 1, stroke = 0.25, size = 3) +
 #   # scale_color_brewer(palette = "Set1") +
 #   scale_colour_manual(values = bycatch_cols) +
-#   geom_errorbar(aes(ymax = q975, ymin = q025, col = grp), width = 0) +
-#   geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl, col = grp), height = 0) +
+#   geom_errorbar(aes(ymax = q975, ymin = q025, col = clade), width = 0) +
+#   geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl, col = clade), height = 0) +
 #   geom_rect(
 #     inherit.aes = FALSE,
 #     aes(xmin=-0.01, xmax=1.01, ymin=-0.01, ymax=1.01),
