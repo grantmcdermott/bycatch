@@ -57,14 +57,20 @@ target_df <- read_csv("Data/target_species.csv")
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
 
+## Set "alpha" parameter, i.e. elasticity of (changes in) bycatch to (changes 
+## in) target stocks. Default is 1. Other options used in sensitivity analysis.
+## See equation (S14). 
+alpha_exp <- c(1, 0.5, 2)[1] 
+alpha_str <- gsub("\\.","",paste0("_alpha=",alpha_exp)) ## Convenience variable for reading and writing files
+
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
-## 1. First choose which version of the upsides data to: 1) With uncertainty (have 
-## to exclude NEI stocks), or 2) no uncertainty (can include NEI stocks). The 
-## main results of the paper use the latter. The former are used for the 
-## sensitivity analysis in the SI.
-uncert_type <- c("uncert", "nouncert")[2] ## Change as needed.
-## 2. Now read in the data
+## First choose which version of the upsides data to use: 1) No uncertainty (can 
+## include NEI stocks), or 2) With uncertainty (have to exclude NEI stocks). The 
+## main results of the paper use the former. The latter are used for sensitivity 
+## analysis in the SM.
+uncert_type <- c("nouncert", "uncert")[1] ## Change as needed.
+## Now read in the data
 upsides <- 
   fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
   as_data_frame()
@@ -84,10 +90,6 @@ n1 <- 10000
 ## How many times do we sample (with replacement) over target stocks to resolve 
 ## uncertainty for a single draw?
 n2 <- 100 
-## Set "alpha" parameter, i.e. elasticity of (changes in) bycatch to (changes 
-## in) target stocks. Default is 1. Other options used in sensitivity analysis.
-## See equation (S14). 
-alpha_exp <- c(1, 0.5, 2)[1] 
 
 ### Results for all species
 
@@ -98,8 +100,7 @@ alpha_exp <- c(1, 0.5, 2)[1]
 ## updated in clumps, i.e. corresponding to how many CPUs you have.
 all_dt <- pblapply(all_species, bycatch_func, cl = detectCores()) %>% bind_rows() ## Parallel version (faster)
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, ".csv"))
-
+write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, alpha_str, ".csv"))
 
 
 ####################################
@@ -107,7 +108,7 @@ write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, ".csv"))
 ####################################
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
-all_dt <- read_csv(paste0("Results/bycatch_results_nouncert.csv"))
+all_dt <- read_csv("Results/bycatch_results_nouncert_alpha=1.csv")
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
@@ -132,16 +133,20 @@ sp_type <- all_species ## All species
 fig1a <-
   crossing(delta = seq(-40,0, length.out = 100), fe = seq(0,40, length.out = 100)) %>%
   mutate(z = abs(delta/fe)*100) %>%
-  mutate(z = ifelse(z>100, 100.1, z)) %>%
+  mutate(z = ifelse(z>100, 100, z)) %>%
   mutate_all(funs(./100)) %>%
   ggplot(aes(x = delta, y = fe)) + 
   geom_raster(aes(fill = z), interpolate = T) +
   scale_fill_gradientn(
     name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")), 
-    colours = c("#F2F2F2FF", brewer_pal(palette = "Spectral")(11)), 
+    colours = brewer_pal(palette = "Spectral")(11), 
     trans = "reverse",
     labels = percent
   ) +
+  geom_polygon(
+    data=data_frame(delta=c(-40,-40,0)/100, fe=c(0,40,0)/100), 
+    fill="#F2F2F2FF", col="#F2F2F2FF", lwd=1.5
+    ) +
   labs(
     x = expression(Rate~of~population~decline~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
@@ -362,7 +367,7 @@ fig2a_inset <-
 
 fig2a <-
   fig2a +
-  geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.25, size = 2.5) +
+  geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.25, size = 2) +
   coord_sf(xlim = c(extent[[1]], extent[[3]]),ylim = c(extent[[2]], extent[[4]])) +
   guides(shape = guide_legend(override.aes = list(alpha = 0.5, size = 3))) +
   theme(
@@ -380,18 +385,22 @@ fig2a <-
 #### Fig 2.B (Heatmap) ####
 
 fig2b <-
-  crossing(delta = seq(-5,0, length.out = 100), fe = seq(0,10, length.out = 100)) %>%
+  crossing(delta = seq(-10,0, length.out = 100), fe = seq(0,10, length.out = 100)) %>%
   mutate(z = abs(delta/fe)*100) %>%
-  mutate(z = ifelse(z>100, 100.1, z)) %>%
+  mutate(z = ifelse(z>100, 100, z)) %>%
   mutate_all(funs(./100)) %>%
   ggplot(aes(delta, fe, fill = z)) +
   geom_raster(interpolate = T) +
   scale_fill_gradientn(
     name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")),
-    colours = c("#F2F2F2FF", brewer_pal(palette = "Spectral")(11)),
+    colours = brewer_pal(palette = "Spectral")(11),
     trans = "reverse",
     labels = percent
   ) +
+  geom_polygon(
+    data=data_frame(delta=c(-10,-10,0)/100, fe=c(0,10,0)/100), 
+    fill="#F2F2F2FF", col="#F2F2F2FF", lwd=0.75
+    ) +
   labs(
     x = expression(Rate~of~population~decline~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
@@ -408,7 +417,7 @@ fig2b <-
     img <- readPNG(paste0("Figures/AnimalSilhouettes/",z,"-silhouette.png"))
     g_img <- rasterGrob(img, interpolate=FALSE)
     lapply(j, function(i) {
-      geom_img <- annotation_custom(g_img, xmin=delta[i]-0.005, xmax=delta[i]+0.005, ymin=fe[i]-0.005, ymax=fe[i]+0.005) 
+      geom_img <- annotation_custom(g_img, xmin=delta[i]-0.004, xmax=delta[i]+0.004, ymin=fe[i]-0.004, ymax=fe[i]+0.004) 
       # geom_deltas <- geom_vline(xintercept = delta*c(.75, 1.25), lty = 2) ## Don't like vline extending above plot
       # geom_fes <- geom_hline(yintercept = fe*c(.75, 1.25), lty = 2) ## Don't like hline extending beyond plot
       geom_deltal <- geom_segment(y=-Inf, yend=.1, x=delta*.75, xend=delta*.75, lty=2)
@@ -418,7 +427,8 @@ fig2b <-
       return(list(geom_img, geom_deltal, geom_deltau, geom_fel, geom_feh))
     }) 
   }) +
-  scale_y_continuous(breaks=seq(0, 0.1, by=0.02))
+  scale_x_continuous(breaks=seq(-0.1, 0, by=0.02)) +
+  scale_y_continuous(breaks=seq(0, 0.1, by=0.02)) 
 
 
 #### Fig 2.C (Target species) ####
@@ -486,15 +496,16 @@ dev.off()
 ### Fig. 3 (Tradeoff plots) ###
 ###############################
 
-results_summary_nouncert <- summ_func(all_dt)
+results_summary <- summ_func(all_dt)
+write_csv(results_summary, paste0("Results/bycatch_results_", uncert_type, alpha_str, "_summary.csv"))
 
-fig_3mey <- tradeoffs_plot(results_summary_nouncert, "MEY")
+fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave("Figures/fig-3-mey.png", width=10*.6, height=13*.6)
 fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=10*.6, height=13*.6)
 rm(fig_3mey)
 dev.off()
 
-fig_3msy <- tradeoffs_plot(results_summary_nouncert, "MSY")
+fig_3msy <- tradeoffs_plot(results_summary, "MSY")
 fig_3msy + ggsave("Figures/fig-3-msy.png", width=10*.6, height=13*.6)
 fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=10*.6, height=13*.6)
 rm(fig_3msy)
@@ -632,7 +643,7 @@ dev.off()
 df_s5a <- summ_func(all_dt)
 fig_s5a <- tradeoffs_plot(df_s5a, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
 ## Fig. S5 (B): With uncertainty, alpha = 1
-df_s5b <- read_csv("Results/bycatch_results_uncert.csv", col_types = "ddddc") %>% summ_func()
+df_s5b <- read_csv("Results/bycatch_results_uncert_alpha=1.csv", col_types = "ddddc") %>% summ_func()
 fig_s5b <- tradeoffs_plot(df_s5b, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 ## Fig. S5 (C): No uncertainty, alpha = 0.5
 df_s5c <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv") %>% summ_func()
