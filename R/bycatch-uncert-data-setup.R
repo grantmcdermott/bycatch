@@ -1,3 +1,4 @@
+#rm(list = ls())
 require(readr)
 require(dplyr)
 require(tidyr)
@@ -21,11 +22,15 @@ names(upuncert) %<>% tolower
 # Add in price and marginal cost columns 
 # (prices are not bootstrapped, marginal costs are recalculated for each bootstrap, 
 # based on non-bootstrapped 'b_oa' and 'f_oa')
-load("ProjectionData.rdata")
+load("/Users/mattburgess/Documents/Active Papers/Bycatch/Upsides raw outputs/ProjectionData.rdata")
 rm(OriginalProjectionData)
 upsmalll <- as_data_frame(ProjectionData) %>% 
   select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
-  filter(Year %in% c(2012,2050))
+  filter(Year %in% c(2012))
+upsmallu <- as_data_frame(UnlumpedProjectionData) %>% 
+  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
+  filter(Year %in% c(2012))
+names(upsmallu) %<>% tolower
 rm(ProjectionData,UnlumpedProjectionData)
 upidslumped <- select(upsmalll,Year,IdOrig,CommName,MarginalCost,Price,g,phi,k,beta) %>%
   filter(Year %in% c(2012))
@@ -156,7 +161,7 @@ upuncert <- upuncert %>%
 # create repeated rows in the country table
 
 # load unlumped table
-upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c")) %>%
+upsides <- upsmallu %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,g,k) %>%
   rename(g2 = g,
          k2 = k)
@@ -369,15 +374,13 @@ write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
 ############ No uncertainty data setup #############
 ####################################################
 
-## Load upsides (i.e. target species projection) data from Costello et al. 2016
-# upsides_uncert <- read_csv("Data/upsides_uncert.csv", col_types = cols(regionfao = "c"))
 upsides_kobe <- read_csv("Kobe MEY data for chris.csv") %>%
   rename(idoriglumped = IdOrig,
          eqfvfmey = current_f_mey,
          eqfmeyvfmsy = f_mey) %>%
   select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
 
-upsides <- read_csv("Data/upsides.csv", col_types = cols(regionfao = "c"))
+upsides <- upsmallu
 upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
   mutate(curr_f = g * fvfmsy,
          f_mey = g * eqfmeyvfmsy,
