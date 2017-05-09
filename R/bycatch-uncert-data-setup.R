@@ -381,6 +381,8 @@ upsides_kobe <- read_csv("Kobe MEY data for chris.csv") %>%
   select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
 
 upsides <- upsmallu
+rm(upsmallu)
+
 upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
   mutate(curr_f = g * fvfmsy,
          f_mey = g * eqfmeyvfmsy,
