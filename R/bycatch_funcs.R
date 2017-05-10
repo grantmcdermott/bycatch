@@ -505,7 +505,7 @@ upsides_subset_func <-
       filter(fmeyvfmsy > 0,
              marginalcost > 0) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
-      select(idorig,idoriglumped,pctredfmsy,pctredfmey,wgt,speciescat,speciescatname,fmeyvfmsy, ## GRM: ADDED speciescat/name,fmeyvfmsy
+      select(dbase, idorig,idoriglumped,pctredfmsy,pctredfmey,wgt,speciescat,speciescatname,fmeyvfmsy, ## GRM: ADDED dbase, speciescat/name,fmeyvfmsy
              k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
       mutate(trgcat = dt$target) %>%
       mutate(wt = dt$wt) %>%
