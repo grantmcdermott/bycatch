@@ -15,27 +15,28 @@ library(splitstackshape)
 ############ Uncertainty & no-nei stocks data setup #############
 #################################################################
 
-## Load Dan Ovando's Boostraps for lumped, non-NEI stocks
-upuncert <- read_csv("upsidessamples.csv")
+## Load Dan Ovando's C-MSY samples for lumped, non-NEI, non-RAM stocks in Costello et al. 2016.
+upuncert <- read_csv("Data/upsidessamples.csv")
 names(upuncert) %<>% tolower
 
-# Add in price and marginal cost columns 
-# (prices are not bootstrapped, marginal costs are recalculated for each bootstrap, 
-# based on non-bootstrapped 'b_oa' and 'f_oa')
-load("/Users/mattburgess/Documents/Active Papers/Bycatch/Upsides raw outputs/ProjectionData.rdata")
-rm(OriginalProjectionData)
-upsmalll <- as_data_frame(ProjectionData) %>% 
-  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
-  filter(Year %in% c(2012))
-upsmallu <- as_data_frame(UnlumpedProjectionData) %>% 
-  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,MarginalCost,SpeciesCat,SpeciesCatName,RegionFAO,Policy,beta,FvFmsy,BvBmsy,Catch,Price) %>%
-  filter(Year %in% c(2012))
+# Load in upsides data (from Costello et al. 2016) and clean it.
+upsideslumped <- read_csv("Data/ProjectionData.csv", col_types = cols(RegionFAO = "c")) # ProjectionData is by stock
+upsidesunlumped <- read_csv("Data/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
+upsmalll <- upsideslumped %>% 
+  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
+  filter(Year %in% c(2012)) %>%
+  rename(marginalcost = c) %>%
+  mutate(beta = 1.3)
+upsmallu <- upsidesunlumped %>% 
+  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
+  filter(Year %in% c(2012)) %>%
+  rename(marginalcost = c) %>%
+  mutate(beta = 1.3)
 names(upsmallu) %<>% tolower
-rm(ProjectionData,UnlumpedProjectionData)
-upidslumped <- select(upsmalll,Year,IdOrig,CommName,MarginalCost,Price,g,phi,k,beta) %>%
+upidslumped <- select(upsmalll,Year,IdOrig,CommName,marginalcost,Price,g,phi,k,beta) %>%
   filter(Year %in% c(2012))
 names(upidslumped) %<>% tolower
-rm(upsmalll)
+rm(upsmalll,upsidesunlumped,upsideslumped)
 
 # calculate 'b_oa', 'f_oa', remove marginalcost from upidslumped
 #         Costello et al. SI pg 8: MSY = ((g * k)/((phi + 1)^(1/phi)))
