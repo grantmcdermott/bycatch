@@ -14,6 +14,7 @@ library(png)
 # library(maps)
 library(rworldmap) ## Better shape files
 library(sf)
+library(rgeos)
 library(tidyverse) ## NOTE: Using dev. version of ggplot2 for geom_sf() devtools::install_github("tidyverse/ggplot2")
 library(cowplot)
 library(ggthemes)
@@ -666,7 +667,7 @@ fig_s5d <- tradeoffs_plot(df_s5d, "MEY") + theme(legend.position = "none", strip
 
 ## Extract common legend from panel 5A and then remove
 legend_s5 <- g_legend(fig_s5a) 
-fig_s5a <- fig_s5a+ theme(legend.position = "none")
+fig_s5a <- fig_s5a + theme(legend.position = "none")
 ### Now, draw the figure
 fig_s5 <-
   ggdraw() +

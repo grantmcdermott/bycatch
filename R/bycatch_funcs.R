@@ -794,11 +794,7 @@ tradeoffs_plot <-
 
     df %>%
       mutate(clade = stringr::str_to_title(clade)) %>%
-      ggplot(aes(x = pctredbpt, y = q50, col = clade, fill = clade, group = species)) +
-      # geom_abline(
-      #   data = data.frame(key=levels(df$key), b = c(1, NA)),
-      #   aes(intercept=0, slope = b), lty = 2
-      #   ) +
+      ggplot(aes(x = pctredbpt, y = q50, col = clade, group = species)) +
       geom_segment(
         data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
         inherit.aes = F,
@@ -806,11 +802,19 @@ tradeoffs_plot <-
         ) +
       geom_errorbarh(aes(xmin = pctredbl_dash, xmax = pctredbu_dash, col = clade), height = 0, linetype = "21", alpha = 0.7) +
       geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = clade), height = 0, alpha = 0.7) +
-      geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
-      geom_point(stroke = 0.25, size = 3, shape = 1) +
       geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = clade), width = 0, linetype = "21", alpha = 0.7) +
       geom_errorbar(aes(ymin = q025, ymax = q975, col = clade), width = 0, alpha = 0.7) +
-      # geom_pointrange(aes(ymin = q025, ymax = q975), fatten = 6, alpha = 0.7, stroke = 0.25, shape = 21) +
+      # geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
+      # geom_point(stroke = 0.25, size = 3, shape = 1) +
+      geom_point(aes(shape=clade), fill="white", size = 3.5, stroke = 0) + ## to "white out" the error bar at the points
+      geom_point(aes(shape=clade, fill = clade), alpha=0.7, size = 3.5, stroke = 0) +
+      # geom_point(aes(shape=clade), size = 3.25, stroke = 0.25) + ## uncomment if want the points to have outlines
+      geom_segment(
+        data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
+        inherit.aes = F,
+        aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2, alpha=0.2 ## adding again (w/ low alpha to give effect behind points)
+        ) +
+      scale_shape_manual(values = 21:24) +
       scale_colour_manual(values = bycatch_cols) +
       scale_fill_manual(values = bycatch_cols) +
       scale_x_continuous(
