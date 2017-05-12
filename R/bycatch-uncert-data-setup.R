@@ -1,39 +1,43 @@
 #rm(list = ls())
-require(readr)
-require(dplyr)
-require(tidyr)
-library(tibble)
-library(ggplot2)
+# library(readr)
+# library(dplyr)
+# library(tidyr)
+# library(tibble)
+# library(ggplot2)
+library(splitstackshape)
+library(tidyverse)
+library(stringr)
+library(magrittr)
 library(cowplot)
 library(pbapply)
-library(magrittr)
-require(stringr)
 library(pbmcapply)
-library(splitstackshape)
 
 #################################################################
 ############ Uncertainty & no-nei stocks data setup #############
 #################################################################
 
 ## Load Dan Ovando's C-MSY samples for lumped, non-NEI, non-RAM stocks in Costello et al. 2016.
-upuncert <- read_csv("Data/upsidessamples.csv")
+upuncert <- read_csv("Data/TBD_IF_NEEDED/upsidessamples.csv")
 names(upuncert) %<>% tolower
 
 # Load in upsides data (from Costello et al. 2016) and clean it.
-upsideslumped <- read_csv("Data/ProjectionData.csv", col_types = cols(RegionFAO = "c")) # ProjectionData is by stock
-upsidesunlumped <- read_csv("Data/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
-upsmalll <- upsideslumped %>% 
+upsideslumped <- read_csv("Data/TBD_IF_NEEDED/ProjectionData.csv", col_types = cols(RegionFAO = "c")) # ProjectionData is by stock
+upsidesunlumped <- read_csv("Data/TBD_IF_NEEDED/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
+upsmalll <- 
+  upsideslumped %>% 
   select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
   filter(Year %in% c(2012)) %>%
   rename(marginalcost = c) %>%
   mutate(beta = 1.3)
-upsmallu <- upsidesunlumped %>% 
+upsmallu <- 
+  upsidesunlumped %>% 
   select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
   filter(Year %in% c(2012)) %>%
   rename(marginalcost = c) %>%
   mutate(beta = 1.3)
 names(upsmallu) %<>% tolower
-upidslumped <- select(upsmalll,Year,IdOrig,CommName,marginalcost,Price,g,phi,k,beta) %>%
+upidslumped <- 
+  select(upsmalll,Year,IdOrig,CommName,marginalcost,Price,g,phi,k,beta) %>%
   filter(Year %in% c(2012))
 names(upidslumped) %<>% tolower
 rm(upsmalll,upsidesunlumped,upsideslumped)
@@ -44,11 +48,12 @@ rm(upsmalll,upsidesunlumped,upsideslumped)
 #         From Costello et al. SI eq. 5, at equilibrium: f_oa =  (((phi + 1)/phi) * (1 - ((b_oa^phi)/(phi + 1))))
 #         Therefore: marginalcost = (price * f_oa * b_oa * MSY)/((g *f_oa)^beta)
 # calculate b_oa from equations above:
-num_cores <- min(4, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
+num_cores <- min(24, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
 test <- 
-  pbmclapply(
+  # pbmclapply(
+  pblapply(
     1:length(upidslumped$idorig),
-    mc.cores = num_cores,
+    # mc.cores = num_cores,
     function(i){
       
       ids <- upidslumped$idorig[i]
@@ -69,16 +74,19 @@ test <-
       )$root
       df = data_frame(idorig = ids, b_oa = boas)
       return(df)
-    }) %>%
+    },
+    cl = num_cores) %>%
   bind_rows
 # merge 'b_oa' column into upidslumped
 upidslumped <- left_join(upidslumped,test,by = 'idorig')
 rm(test)
 
 # calculate 'f_oa' from 'b_oa'
-upidslumped <- upidslumped %>%
+upidslumped <- 
+  upidslumped %>%
   mutate(f_oa = (((phi + 1)/phi) * (1 - ((b_oa^phi)/(phi + 1)))))
-upidslumped <- upidslumped %>%
+upidslumped <- 
+  upidslumped %>%
   select(idorig,commname,price,b_oa,f_oa,k) %>%
   rename(klumped = k)
 
@@ -86,15 +94,19 @@ upidslumped <- upidslumped %>%
 upuncert <- left_join(upuncert,upidslumped,by='idorig')
 
 # Add beta column and rename fvfmsy column
-upuncerttest <- upuncert %>%
+upuncerttest <- 
+  upuncert %>%
   mutate(beta = 1.3) %>%
-  rename(fvfmsy = finalfvfmsy,
-         bvbmsy = finalbvbmsy)
+  rename(
+    fvfmsy = finalfvfmsy,
+    bvbmsy = finalbvbmsy
+    )
 upuncert <- upuncerttest
 rm(upuncerttest)
 
 # calculate marginal costs for bootstraps
-upuncerttest <- upuncert %>%
+upuncerttest <- 
+  upuncert %>%
   mutate(marginalcost = (price * f_oa * b_oa * ((g * k)/((phi + 1)^(1/phi))))/((g *f_oa)^beta))
 upuncert <- upuncerttest
 rm(upuncerttest)
@@ -106,11 +118,12 @@ rm(upuncerttest)
 # upuncert <- read_csv("bycatch-upuncert-input.csv")
 
 # Calculate fmey's for each bootstrap
-num_cores <- min(4, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
+num_cores <- min(24, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
 test <- 
-  pbmclapply(
+  pblapply(
+  # pbmclapply(
     1:length(upuncert$idorig),
-    mc.cores = num_cores,
+    # mc.cores = num_cores,
     function(i){
       
       ids <- upuncert$idorig[i]
@@ -129,46 +142,63 @@ test <-
       
       df = data_frame(idorig = ids, eqfvfmey = eqfvfmeys)
       return(df)
-    }) %>%
+    },
+    cl = num_cores) %>%
   bind_rows
+# |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed = 01h 34m 42s
 
 # Save intermediate file (so don't have to calculate fmeys again)
-# write.csv(test,"fmeys-uncert.csv",row.names = F)
+# write_csv(test, "Data/TBD_IF_NEEDED/fmeys-uncert.csv")
 
 # load 'test' if starting new session
-test <- read_csv("fmeys-uncert.csv")
+# test <- read_csv("Data/TBD_IF_NEEDED/fmeys-uncert.csv")
 
 # Merge fmeys into original table
 upuncert$eqfvfmey <- test$eqfvfmey
 rm(test)
 
-upuncert <- upuncert %>%
-  mutate(fmeyvfmsy = fvfmsy/eqfvfmey,
-         curr_f = g * fvfmsy,
-         f_mey = g * fmeyvfmsy) %>%
-  mutate(pctredfmsy = 100 * (1 - (1/fvfmsy)),
-         pctredfmey = 100 * (1 - (1/eqfvfmey)))
+upuncert <- 
+  upuncert %>%
+  mutate(
+    fmeyvfmsy = fvfmsy/eqfvfmey,
+    curr_f = g * fvfmsy,
+    f_mey = g * fmeyvfmsy
+    ) %>%
+  mutate(
+    pctredfmsy = 100 * (1 - (1/fvfmsy)),
+    pctredfmey = 100 * (1 - (1/eqfvfmey))
+    )
 
 # Save intermediate file (so don't have to calculate fmeys again)
-# write.csv(upuncert,"bycatch-upuncert-input.csv",row.names = F)
+# write_csv(upuncert, "Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # load 'upuncert' if starting new session
-# upuncert <- read_csv("bycatch-upuncert-input.csv")
+# upuncert <- read_csv("Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
-upuncert <- upuncert %>%
+upuncert <- 
+  upuncert %>%
   rename(idoriglumped = idorig) 
 
 # Create unlumped version of table
 # create repeated rows in the country table
 
+## First read in a lookup table to map idoriglumped column to upsmallu DF
+idlookup <- read_csv("Data/TBD_IF_NEEDED/upsidesidlookup.csv", col_types = "ccd")
+names(idlookup) %<>% tolower
+
 # load unlumped table
-upsides <- upsmallu %>%
+upsides <- 
+  upsmallu %>%
+  left_join(idlookup) %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,g,k) %>%
-  rename(g2 = g,
-         k2 = k)
+  rename(
+    g2 = g,
+    k2 = k
+    )
 
 # Remove all nei stocks
-test <- upidslumped %>%
+test <- 
+  upidslumped %>%
   ungroup() %>%
   mutate(nei = grepl(' nei',commname)) %>%
   filter(nei == FALSE) %>%
@@ -176,19 +206,16 @@ test <- upidslumped %>%
   select(idoriglumped, nei) 
 
 upsides <- left_join(upsides, test, by = 'idoriglumped')
-upsides <- upsides %>%
+upsides <- 
+  upsides %>%
   filter(nei == FALSE) # 2781 non-nei lumped stocks
-rm(test)
+rm(test, idlookup)
 
-# diagnostics
-median((upuncert %>%
-          filter(fmeyvfmsy > 0))$g)
-max((upuncert %>%
-          filter(fmeyvfmsy > 0))$fmeyvfmsy)
-max((upsides %>%
-       filter(fmeyvfmsy > 0))$fmeyvfmsy)
-head((upuncert %>%
-        filter(fmeyvfmsy > 0))$fmeyvfmsy)
+############ Diagnostics #############
+median((upuncert %>% filter(fmeyvfmsy > 0))$g)
+max((upuncert %>% filter(fmeyvfmsy > 0))$fmeyvfmsy)
+max((upsides %>% filter(fmeyvfmsy > 0))$fmeyvfmsy) ## no fmeyvfmsy
+head((upuncert %>% filter(fmeyvfmsy > 0))$fmeyvfmsy)
 hist((upuncert %>%
         filter(fmeyvfmsy > 0))$fmeyvfmsy,
      breaks = c(0,0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,30000),
@@ -197,10 +224,8 @@ hist((upsides %>%
         filter(fmeyvfmsy > 0))$fmeyvfmsy,
      breaks = c(0,0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,30000),
      xlim = c(0,2))
-length((upuncert %>%
-          filter(fmeyvfmsy > 0))$g)
-# end diagnostics
-
+length((upuncert %>% filter(fmeyvfmsy > 0))$g)
+######## end diagnostics
 
 # Number upuncert rows and create stock-by-replicate column
 repno <- c(rep(seq(1:1000),3415)) 
@@ -212,10 +237,10 @@ upuncert <- test
 rm(test)
 
 # Save intermediate file (so don't have to calculate fmeys again)
-# write.csv(upuncert,"bycatch-upuncert-input.csv",row.names = F)
+# write_csv(upuncert, "Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # load 'upuncert' if starting new session
-# upuncert <- read_csv("bycatch-upuncert-input.csv")
+# upuncert <- read_csv("Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # Replicate upsides rows 1000 times and create stock-by-replicate column
 test <- upsides
@@ -230,17 +255,16 @@ upsides <- upsides %>%
   mutate(idlumped_n_rep = paste(idoriglumped,repnumber,sep = "-")) %>%
   filter(repnumber < 1001)
 rm(repno)
-upuncert <- upuncert %>%
-  select(-x1)
+
 # Merge upuncert columns into upsides
 upsides <- left_join(upsides,upuncert,by = 'idlumped_n_rep')
 rm(upuncert)
 
 # Save intermediate file (so don't have to calculate fmeys again)
-# write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
+# write_csv(upsides,"Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # load 'upuncert' if starting new session
-# upsides <- read_csv("bycatch-upuncert-input.csv")
+# upsides <- read_csv("Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # Clean column names so that they match
 upsides <- upsides %>%
@@ -269,7 +293,8 @@ rm(upsides2)
 # end temporary
 
 upidslumped <- upidslumped %>%
-  rename(idoriglumped = idorig) %>%
+  rename(idoriglumped = idorig,
+         klumped = k) %>%
   select(idoriglumped,klumped)
 upsides <- left_join(upsides,upidslumped,by = 'idoriglumped')
 rm(upidslumped)
@@ -312,7 +337,8 @@ upsides <- upsides %>%
   mutate(pctredfmsy = 100 * (1-(g/curr_f)),
          pctredfmey = 100 * (1-(f_mey/curr_f)))
 upsides <- upsides %>%
-  mutate(id_n_rep = paste(idorig,repnumber,sep = "-"))
+  mutate(id_n_rep = paste(idorig,repnumber,sep = "-")) # we add this column so that there is a column in which each row is unique, 
+                                                       #  for the marginal cost calculation below
 
 # Save intermediate file (so don't have to calculate fmeys again)
 # write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
@@ -322,7 +348,7 @@ upsides <- upsides %>%
 
 ## Recalculate marginal costs for unlumped stocks
 # calculation function
-source("bycatch_funcs_cost_uncert.R")
+source("R/bycatch_funcs.R")
 
 margcost <- function(fmey,price,g,k,phi,beta) {
   mc <- uniroot((function (x) mprofitf(fmey,price,x,g,k,phi,beta)), 
@@ -332,7 +358,7 @@ margcost <- function(fmey,price,g,k,phi,beta) {
 # parallelized calculation
 upsides2 <- upsides %>%
   filter(f_mey > 0)
-num_cores <- min(4, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
+num_cores <- min(24, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
 dtup <- 
   pbmclapply(
     1:length(upsides2$id_n_rep),
@@ -357,7 +383,7 @@ rm(upsides2)
 ## end marginal cost calculation 
 
 # save marginal costs
-# write.csv(dtup,"uncert-marg-costs-dtup.csv",row.names = F)
+# write_csv(dtup,"Data/TBD_IF_NEEDED/uncert-marg-costs-dtup.csv")
 
 # load marginal costs if starting new session
 # dtup <- read_csv("uncert-marg-costs-dtup.csv")
@@ -366,8 +392,18 @@ rm(upsides2)
 rm(dtup)
 ## end clean up
 
+## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
+dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv")
+names(dbaseid) %<>% tolower
+upsides <-
+  upsides %>%
+  left_join(dbaseid %>% select(-lumpedid)) %>%
+  select(dbase, everything()) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+
 # Export final file
-write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
+write_csv(upsides, "Data/upsides_uncert.csv")
 
 
 
@@ -375,13 +411,20 @@ write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
 ############ No uncertainty data setup #############
 ####################################################
 
-upsides_kobe <- read_csv("Kobe MEY data for chris.csv") %>%
+upsides_kobe <- read_csv("Data/TBD_IF_NEEDED/Kobe_MEY.csv") %>%
   rename(idoriglumped = IdOrig,
          eqfvfmey = current_f_mey,
          eqfmeyvfmsy = f_mey) %>%
   select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
 
-upsides <- upsmallu
+## First read in a lookup table to map idoriglumped column to upsmallu DF
+idlookup <- read_csv("Data/TBD_IF_NEEDED/upsidesidlookup.csv", col_types = "ccd")
+names(idlookup) %<>% tolower
+
+# load unlumped table
+upsides <- 
+  upsmallu %>%
+  left_join(idlookup)
 rm(upsmallu)
 
 upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
@@ -389,6 +432,7 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
          f_mey = g * eqfmeyvfmsy,
          pctredfmsy = 100 * (1 - (1/fvfmsy)),
          pctredfmey = 100 * (1 - (1/eqfvfmey))) %>%
+  rename(fmeyvfmsy = eqfmeyvfmsy) %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
          k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
@@ -442,5 +486,24 @@ upsides <- left_join(upsides, dtup, by = 'idorig')
 rm(upsides2,dtup,mcup,idsup,upsides_kobe,totoab)
 ## end clean up
 
+## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
+# dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv") ## already loaded
+# names(dbaseid) %<>% tolower
+upsides <-
+  upsides %>%
+  left_join(dbaseid %>% select(-lumpedid)) %>%
+  select(dbase, everything()) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+
 # Write final input file
-write.csv(upsides,"bycatch-nouncert-input.csv",row.names = F)
+write_csv(upsides, "Data/upsides_nouncert.csv")
+
+
+############ Diagnostics #############
+max((upsides %>% filter(fmeyvfmsy > 0))$fmeyvfmsy) ## no fmeyvfmsy
+hist((upsides %>%
+        filter(fmeyvfmsy > 0))$fmeyvfmsy,
+     breaks = c(0,0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,30000),
+     xlim = c(0,2))
+######## end diagnostics
