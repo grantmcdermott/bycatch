@@ -148,10 +148,10 @@ test <-
 # |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed = 01h 34m 42s
 
 # Save intermediate file (so don't have to calculate fmeys again)
-write_csv(test, "Data/TBD_IF_NEEDED/fmeys-uncert.csv")
+# write_csv(test, "Data/TBD_IF_NEEDED/fmeys-uncert.csv")
 
 # load 'test' if starting new session
-test <- read_csv("Data/TBD_IF_NEEDED/fmeys-uncert.csv")
+# test <- read_csv("Data/TBD_IF_NEEDED/fmeys-uncert.csv")
 
 # Merge fmeys into original table
 upuncert$eqfvfmey <- test$eqfvfmey
@@ -170,10 +170,10 @@ upuncert <-
     )
 
 # Save intermediate file (so don't have to calculate fmeys again)
-write_csv(upuncert, "Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
+# write_csv(upuncert, "Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 # load 'upuncert' if starting new session
-upuncert <- read_csv("Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
+# upuncert <- read_csv("Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 upuncert <- 
   upuncert %>%
@@ -189,7 +189,6 @@ names(idlookup) %<>% tolower
 # load unlumped table
 upsides <- 
   upsmallu %>%
-  # mutate(fmeyvfmsy = fvfmsy/eqfvfmey) %>% ## MATT: I'M HERE.
   left_join(idlookup) %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,g,k) %>%
   rename(
@@ -212,7 +211,7 @@ upsides <-
   filter(nei == FALSE) # 2781 non-nei lumped stocks
 rm(test, idlookup)
 
-# diagnostics
+############ Diagnostics #############
 median((upuncert %>% filter(fmeyvfmsy > 0))$g)
 max((upuncert %>% filter(fmeyvfmsy > 0))$fmeyvfmsy)
 max((upsides %>% filter(fmeyvfmsy > 0))$fmeyvfmsy) ## no fmeyvfmsy
@@ -226,8 +225,7 @@ hist((upsides %>%
      breaks = c(0,0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,30000),
      xlim = c(0,2))
 length((upuncert %>% filter(fmeyvfmsy > 0))$g)
-# end diagnostics
-
+######## end diagnostics
 
 # Number upuncert rows and create stock-by-replicate column
 repno <- c(rep(seq(1:1000),3415)) 
@@ -257,8 +255,7 @@ upsides <- upsides %>%
   mutate(idlumped_n_rep = paste(idoriglumped,repnumber,sep = "-")) %>%
   filter(repnumber < 1001)
 rm(repno)
-upuncert <- upuncert %>%
-  select(-x1)
+
 # Merge upuncert columns into upsides
 upsides <- left_join(upsides,upuncert,by = 'idlumped_n_rep')
 rm(upuncert)
@@ -296,7 +293,8 @@ rm(upsides2)
 # end temporary
 
 upidslumped <- upidslumped %>%
-  rename(idoriglumped = idorig) %>%
+  rename(idoriglumped = idorig,
+         klumped = k) %>%
   select(idoriglumped,klumped)
 upsides <- left_join(upsides,upidslumped,by = 'idoriglumped')
 rm(upidslumped)
@@ -339,7 +337,8 @@ upsides <- upsides %>%
   mutate(pctredfmsy = 100 * (1-(g/curr_f)),
          pctredfmey = 100 * (1-(f_mey/curr_f)))
 upsides <- upsides %>%
-  mutate(id_n_rep = paste(idorig,repnumber,sep = "-"))
+  mutate(id_n_rep = paste(idorig,repnumber,sep = "-")) # we add this column so that there is a column in which each row is unique, 
+                                                       #  for the marginal cost calculation below
 
 # Save intermediate file (so don't have to calculate fmeys again)
 # write.csv(upsides,"bycatch-upuncert-input.csv",row.names = F)
@@ -349,7 +348,7 @@ upsides <- upsides %>%
 
 ## Recalculate marginal costs for unlumped stocks
 # calculation function
-source("bycatch_funcs_cost_uncert.R")
+source("R/bycatch_funcs.R")
 
 margcost <- function(fmey,price,g,k,phi,beta) {
   mc <- uniroot((function (x) mprofitf(fmey,price,x,g,k,phi,beta)), 
@@ -359,7 +358,7 @@ margcost <- function(fmey,price,g,k,phi,beta) {
 # parallelized calculation
 upsides2 <- upsides %>%
   filter(f_mey > 0)
-num_cores <- min(4, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
+num_cores <- min(24, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
 dtup <- 
   pbmclapply(
     1:length(upsides2$id_n_rep),
@@ -384,7 +383,7 @@ rm(upsides2)
 ## end marginal cost calculation 
 
 # save marginal costs
-# write.csv(dtup,"uncert-marg-costs-dtup.csv",row.names = F)
+# write_csv(dtup,"Data/TBD_IF_NEEDED/uncert-marg-costs-dtup.csv")
 
 # load marginal costs if starting new session
 # dtup <- read_csv("uncert-marg-costs-dtup.csv")
@@ -394,7 +393,7 @@ rm(dtup)
 ## end clean up
 
 # Export final file
-write_csv(upsides,"bycatch-upuncert-input.csv")
+write_csv(upsides,"Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
 
 
 
@@ -402,13 +401,20 @@ write_csv(upsides,"bycatch-upuncert-input.csv")
 ############ No uncertainty data setup #############
 ####################################################
 
-upsides_kobe <- read_csv("Kobe_MEY.csv") %>%
+upsides_kobe <- read_csv("Data/TBD_IF_NEEDED/Kobe_MEY.csv") %>%
   rename(idoriglumped = IdOrig,
          eqfvfmey = current_f_mey,
          eqfmeyvfmsy = f_mey) %>%
   select(idoriglumped, eqfvfmey, eqfmeyvfmsy)
 
-upsides <- upsmallu
+## First read in a lookup table to map idoriglumped column to upsmallu DF
+idlookup <- read_csv("Data/TBD_IF_NEEDED/upsidesidlookup.csv", col_types = "ccd")
+names(idlookup) %<>% tolower
+
+# load unlumped table
+upsides <- 
+  upsmallu %>%
+  left_join(idlookup)
 rm(upsmallu)
 
 upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
@@ -416,6 +422,7 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
          f_mey = g * eqfmeyvfmsy,
          pctredfmsy = 100 * (1 - (1/fvfmsy)),
          pctredfmey = 100 * (1 - (1/eqfvfmey))) %>%
+  rename(fmeyvfmsy = eqfmeyvfmsy) %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
          k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
@@ -470,4 +477,13 @@ rm(upsides2,dtup,mcup,idsup,upsides_kobe,totoab)
 ## end clean up
 
 # Write final input file
-write_csv(upsides,"bycatch-nouncert-input.csv")
+write_csv(upsides,"Data/TBD_IF_NEEDED/bycatch-nouncert-input.csv")
+
+
+############ Diagnostics #############
+max((upsides %>% filter(fmeyvfmsy > 0))$fmeyvfmsy) ## no fmeyvfmsy
+hist((upsides %>%
+        filter(fmeyvfmsy > 0))$fmeyvfmsy,
+     breaks = c(0,0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,30000),
+     xlim = c(0,2))
+######## end diagnostics
