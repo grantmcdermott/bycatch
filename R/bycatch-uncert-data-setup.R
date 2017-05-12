@@ -392,8 +392,18 @@ rm(upsides2)
 rm(dtup)
 ## end clean up
 
+## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
+dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv")
+names(dbaseid) %<>% tolower
+upsides <-
+  upsides %>%
+  left_join(dbaseid %>% select(-lumpedid)) %>%
+  select(dbase, everything()) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+
 # Export final file
-write_csv(upsides,"Data/TBD_IF_NEEDED/bycatch-upuncert-input.csv")
+write_csv(upsides, "Data/upsides_uncert.csv")
 
 
 
@@ -476,8 +486,18 @@ upsides <- left_join(upsides, dtup, by = 'idorig')
 rm(upsides2,dtup,mcup,idsup,upsides_kobe,totoab)
 ## end clean up
 
+## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
+# dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv") ## already loaded
+# names(dbaseid) %<>% tolower
+upsides <-
+  upsides %>%
+  left_join(dbaseid %>% select(-lumpedid)) %>%
+  select(dbase, everything()) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+
 # Write final input file
-write_csv(upsides,"Data/TBD_IF_NEEDED/bycatch-nouncert-input.csv")
+write_csv(upsides, "Data/upsides_nouncert.csv")
 
 
 ############ Diagnostics #############
