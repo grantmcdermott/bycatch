@@ -94,6 +94,7 @@ mprofitf <-
 inverse = function (f, lower = -100, upper = 100) {
   function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]$root
 }
+# inverse <- possibly(inverse, NA_real)
 
 #1.2 Inverse marginal cost (in eq. yield or profit) of reducing f for one target stock:
 #     Input is marginal cost of reducing f (denoted 'mp', equal to marginal profit from increasing f ('my' for yield))
@@ -557,7 +558,7 @@ single_worldstate_outputs <-
 
 ## Input is list of 'dt's'
 disb_func <-
-  function(dt2, n1 = 10000, n2 = 100){
+  function(dt2, n1, n2){
     
     ##########################################################
     ## Step 3.1: Create dataframe of relevant target stocks ##
@@ -575,9 +576,15 @@ disb_func <-
     #########################################################################################################
 
     dists <-
-      pblapply(1:n1, function(i) {
-        single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets)
-      }) %>%
+      pblapply(1:n1, 
+               possibly(function(i) {
+                 single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets)
+                 }, 
+                 # otherwise = NULL
+                 otherwise = data_frame(pctredmsy=NA, pctredmey=NA, ycostmsy=NA, pcostmey=NA) ## To catch failed uniroot cases
+                 ),
+               cl=detectCores()
+               ) %>%
       bind_rows()
     
     return(dists)
@@ -590,6 +597,7 @@ disb_func <-
 
 bycatch_func <- 
   function(z){
+    print(z)
     disb_func(extract_func(z), n1, n2) %>%
       as_data_frame() %>%
       mutate(species = z)
@@ -749,9 +757,9 @@ summ_func <-
       group_by(species, key) %>%
       # do(q=(quantile(.$value))) %>%
       summarise(
-        q025 = quantile(value, .025),
-        q50 = quantile(value, .5),
-        q975 = quantile(value, .975)
+        q025 = quantile(value, .025, na.rm = T),
+        q50 = quantile(value, .5, na.rm = T),
+        q975 = quantile(value, .975, na.rm = T)
       ) %>%
       left_join(bycatch_df, by = 'species') %>%
       select(species, grp, clade, region, contains("pctred"), everything())

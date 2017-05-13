@@ -78,18 +78,18 @@ upsides <-
 
 ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
 corr_factor <- 2.2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
-upsides <- upsides %>%
-  mutate(curr_f_corr = curr_f/corr_factor,
-         fvfmsy_corr = curr_f_corr/g,
-         eqfvfmey_corr = curr_f_corr/f_mey,
-         pctredfmsy_corr = 100 * (1 - (1/fvfmsy_corr)),
-         pctredfmey_corr = 100 * (1 - (1/eqfvfmey_corr))) %>%
-  select(-fvfmsy,-curr_f,-eqfvfmey,-pctredfmsy,-pctredfmey) %>%
-  rename(curr_f = curr_f_corr,
-         fvfmsy = fvfmsy_corr,
-         eqfvfmey = eqfvfmey_corr,
-         pctredfmsy = pctredfmsy_corr,
-         pctredfmey = pctredfmey_corr)
+upsides <- 
+  upsides %>%
+  mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%  
+  ## Adjust additionally affected variables in sequence
+  mutate(
+    fvfmsy = curr_f/g,
+    eqfvfmey = curr_f/f_mey
+    ) %>%
+  mutate(
+    pctredfmsy = 100 * (1 - (1/fvfmsy)),
+    pctredfmey = 100 * (1 - (1/eqfvfmey))
+    ) 
 ### END OPTIONAL
 
 ################################
@@ -109,12 +109,11 @@ n2 <- 100
 
 ### Results for all species
 
-## Apply the MCMC simulation function over all species (and bind into a 
-## common data frame). A progress bar (PB) will give you an indication of how  
-## long you have to wait. For the non-parallel version, you'll see one PB per
-## species, i.e. 20 in total. For the parallel version, you'll see a single PB
-## updated in clumps, i.e. corresponding to how many CPUs you have.
-all_dt <- pblapply(all_species, bycatch_func, cl = detectCores()) %>% bind_rows() ## Parallel version (faster)
+## Apply the MCMC simulation function over all species (and bind into a common
+## data frame). A series of progress bars will give you an indication of how
+## long you have to wait, with one progress shown per bycatch species. In other 
+## words, you'll see 20 progress bars in total if you run the full sample.
+all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() ## Parallel version (faster)
 ## Write results for convenient later use
 write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, alpha_str, ".csv"))
 
