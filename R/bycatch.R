@@ -76,6 +76,21 @@ upsides <-
   fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
   as_data_frame()
 
+### OPTIONAL: add in correction factor for possible bias in C-MSY projections
+corr_factor <- 2.2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
+upsides <- upsides %>%
+  mutate(curr_f_corr = curr_f/corr_factor,
+         fvfmsy_corr = curr_f_corr/g,
+         eqfvfmey_corr = curr_f_corr/f_mey,
+         pctredfmsy_corr = 100 * (1 - (1/fvfmsy_corr)),
+         pctredfmey_corr = 100 * (1 - (1/eqfvfmey_corr))) %>%
+  select(-fvfmsy,-curr_f,-eqfvfmey,-pctredfmsy,-pctredfmey) %>%
+  rename(curr_f = curr_f_corr,
+         fvfmsy = fvfmsy_corr,
+         eqfvfmey = eqfvfmey_corr,
+         pctredfmsy = pctredfmsy_corr,
+         pctredfmey = pctredfmey_corr)
+### END OPTIONAL
 
 ################################
 ########### ANALYSIS ###########
