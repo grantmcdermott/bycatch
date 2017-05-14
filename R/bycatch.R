@@ -75,6 +75,8 @@ uncert_type <- c("nouncert", "uncert")[1] ## Change as needed.
 upsides <- 
   fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
   as_data_frame()
+# upsides <- read_csv(paste0("Data/upsides_", uncert_type, ".csv"), col_types = cols(regionfao = "c"))
+
 
 ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
 corr_factor <- 2.2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
