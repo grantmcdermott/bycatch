@@ -399,7 +399,7 @@ upsides <-
   upsides %>%
   left_join(dbaseid %>% select(-lumpedid)) %>%
   select(dbase, everything()) %>%
-  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", dbase)) %>%
   mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
 
 # Export final file
@@ -493,7 +493,7 @@ upsides <-
   upsides %>%
   left_join(dbaseid %>% select(-lumpedid)) %>%
   select(dbase, everything()) %>%
-  mutate(dbase = ifelse(is.na(dbase), "FAO", NA)) %>%
+  mutate(dbase = ifelse(is.na(dbase), "FAO", dbase)) %>%
   mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
 
 # Write final input file
