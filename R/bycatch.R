@@ -8,6 +8,7 @@ library(data.table) ## Mostly for super fast reading/writing of large csv files
 library(pbapply)
 # library(pbmcapply) ## Now assign parallel computation through pbapply (with cl option)
 library(parallel)
+library(R.utils)
 library(scales)
 library(gridGraphics)
 library(png)
@@ -26,6 +27,8 @@ library(extrafont) ## See https://github.com/wch/extrafont for first-time use in
 #######################################################
 ########## LOAD FUNCTIONS AND GLOBAL ELEMENTS #########
 #######################################################
+
+set.seed(123) 
 
 ### Assign global elements for figures. 
 
@@ -104,7 +107,7 @@ upsides <-
 ### MCMC sampling parameters
 
 ## How many draws (states of the world) are we simulating for each species?
-n1 <- 10000
+n1 <- 1000
 ## How many times do we sample (with replacement) over target stocks to resolve 
 ## uncertainty for a single draw?
 n2 <- 100 
@@ -115,7 +118,7 @@ n2 <- 100
 ## data frame). A series of progress bars will give you an indication of how
 ## long you have to wait, with one progress shown per bycatch species. In other 
 ## words, you'll see 20 progress bars in total if you run the full sample.
-all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() ## Parallel version (faster)
+all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
 write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, alpha_str, ".csv"))
 

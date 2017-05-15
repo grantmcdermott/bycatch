@@ -279,7 +279,12 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
       #1. Calculate marginal yield cost (with function 'my_calc'), 
       #     given pct reduction needed for bycatch species.
       #2. Calculate total yield cost, given marginal cost calculated in 1. 
-      ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
+      # ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
+      ycost <-
+        tryCatch(
+          withTimeout(redncost_giv_my(df, my_calc(df, pctredb))$cost, timeout=10), 
+          TimeoutException=function(ex) NA
+          )
     )
   )
   return(ycost)
@@ -303,7 +308,13 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
       #     given pct reduction needed for bycatch species.
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
-      pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
+      # pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
+      pcost <-
+        tryCatch(
+          withTimeout(redncost_giv_mp(df, mp_calc(df, pctredb))$cost, timeout=10), 
+          TimeoutException=function(ex) NA
+          )
+      
     )
   )
   return(pcost)
@@ -578,7 +589,11 @@ disb_func <-
     dists <-
       pblapply(1:n1, 
                possibly(function(i) {
-                 single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets)
+                 evalWithTimeout(
+                   single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets), 
+                   timeout = 10, ## i.e. Time out after 10 seconds if can't resolve 
+                   TimeoutException = function(ex) "TimedOut"
+                   )
                  }, 
                  # otherwise = NULL
                  otherwise = data_frame(pctredmsy=NA, pctredmey=NA, ycostmsy=NA, pcostmey=NA) ## To catch failed uniroot cases
