@@ -530,12 +530,9 @@ upsides <-
   left_join(dbaseid %>% select(-lumpedid)) %>%
   select(dbase, everything()) %>%
   mutate(dbase = ifelse(is.na(dbase), "FAO", dbase)) %>%
-<<<<<<< HEAD
   mutate(dbase = ifelse(idorig=="toto", "Totoaba", dbase)) ## Totoaba was added manually (not part of upsides)
-=======
-  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+
 # rm(dbaseid,idlookup)
->>>>>>> 4a66cd76b3a4e37597ab42f5e2fc31c79b768e9d
 
 # Write final input file
 write_csv(upsides, "Data/upsides_nouncert.csv")
