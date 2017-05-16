@@ -67,6 +67,9 @@ all_species <- bycatch_df$species
 alpha_exp <- c(1, 0.5, 2)[1] 
 alpha_str <- gsub("\\.","",paste0("_alpha=",alpha_exp)) ## Convenience variable for reading and writing files
 
+## Determine whether cost analysis simulates over 25% sensitivity range in Fe and delta
+sensrange25 <- c(0,1)[1] # 0 = off, 1 = on
+
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
 ## First choose which version of the upsides data to use: 1) No uncertainty (can 
@@ -107,7 +110,7 @@ upsides <-
 ### MCMC sampling parameters
 
 ## How many draws (states of the world) are we simulating for each species?
-n1 <- 1000
+n1 <- 100
 ## How many times do we sample (with replacement) over target stocks to resolve 
 ## uncertainty for a single draw?
 n2 <- 100 

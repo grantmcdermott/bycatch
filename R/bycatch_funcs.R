@@ -541,7 +541,7 @@ samp_func <-
 
 ## Input is a list of 'dt's' -> output from 'extract_func'
 single_worldstate_outputs <- 
-  function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf) {
+  function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept25) {
     
     samp <- 
       lapply(dt2, function (x) samp_func(x, n2, reltdf)) %>%
@@ -555,8 +555,11 @@ single_worldstate_outputs <-
     mpctmsy <- sum(samp$pctrmsywt)
     mpctmey <- sum(samp$pctrmeywt)
     
-    pctb <- runif(1, min = pctredbl, max = pctredbu)
-    
+    if (sensrangept25 == 1) {
+    pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
+    } else {
+      pctb <- pctredb
+    }
     stwld <- 
       data_frame(
         pctredmsy = mpctmsy, 
@@ -590,7 +593,7 @@ disb_func <-
       pblapply(1:n1, 
                possibly(function(i) {
                  evalWithTimeout(
-                   single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets), 
+                   single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets, sensrange25), 
                    timeout = 10, ## i.e. Time out after 10 seconds if can't resolve 
                    TimeoutException = function(ex) "TimedOut"
                    )
