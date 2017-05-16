@@ -436,6 +436,40 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
          k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
+
+# OPTIONAL: change Fs and Bs to 3-year geometric mean (2010-2012) in upsides stocks
+upsidesunlumped <- read_csv("Data/TBD_IF_NEEDED/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
+names(upsidesunlumped) %<>% tolower
+up2012 <- 
+  upsidesunlumped %>% 
+  filter(year %in% c(2012)) %>%
+  select(idorig,fvfmsy) %>%
+  rename(fvfmsy2012 = fvfmsy)
+up2011 <- 
+  upsidesunlumped %>% 
+  filter(year %in% c(2011)) %>%
+  select(idorig,fvfmsy) %>%
+  rename(fvfmsy2011 = fvfmsy)
+up2010 <- 
+  upsidesunlumped %>% 
+  filter(year %in% c(2010)) %>%
+  select(idorig,fvfmsy) %>%
+  rename(fvfmsy2010 = fvfmsy)
+up3yr <- up2012 %>%
+  left_join(up2011, by = 'idorig') %>%
+  left_join(up2010, by = 'idorig') %>%
+  mutate(fvfmsy3yr = (fvfmsy2010 * fvfmsy2011 * fvfmsy2012)^(1/3)) %>%
+  select(idorig,fvfmsy3yr)
+upsides <- 
+  upsides %>%
+  left_join(up3yr, by = 'idorig') %>%
+  mutate(fvfmsy = fvfmsy3yr,
+         curr_f = fvfmsy * g,
+         eqfvfmey = curr_f/f_mey) %>%
+  select(-fvfmsy3yr)
+rm(upsidesunlumped,up2010,up2011,up2012,up3yr)
+# END OPTIONAL
+
 # Add Totoaba row to upsides (for vaquita)
 totoab <- data_frame(idorig = "toto",
                      idoriglumped = "totoaba",
@@ -460,7 +494,9 @@ totoab <- data_frame(idorig = "toto",
          pctredfmey = 100 * (1-(f_mey/curr_f)))
 
 upsides <- bind_rows(upsides,totoab)
+
 ## recalculate unlumped marginalcosts based on f_mey estimates from Kobe file
+source("R/bycatch_funcs.R")
 
 # calculation function
 margcost <- function(fmey,price,g,k,phi,beta) {
@@ -494,7 +530,12 @@ upsides <-
   left_join(dbaseid %>% select(-lumpedid)) %>%
   select(dbase, everything()) %>%
   mutate(dbase = ifelse(is.na(dbase), "FAO", dbase)) %>%
+<<<<<<< HEAD
   mutate(dbase = ifelse(idorig=="toto", "Totoaba", dbase)) ## Totoaba was added manually (not part of upsides)
+=======
+  mutate(dbase = ifelse(idorig=="toto", NA, dbase)) ## Totoaba was added manually (not part of upsides)
+# rm(dbaseid,idlookup)
+>>>>>>> 4a66cd76b3a4e37597ab42f5e2fc31c79b768e9d
 
 # Write final input file
 write_csv(upsides, "Data/upsides_nouncert.csv")
