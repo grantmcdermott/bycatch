@@ -88,7 +88,7 @@ upsides <-
 corr_factor <- 2.2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
 upsides <- 
   upsides %>%
-  mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%  
+  mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>% 
   ## Adjust additionally affected variables in sequence
   mutate(
     fvfmsy = curr_f/g,
