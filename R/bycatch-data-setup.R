@@ -43,7 +43,7 @@ rm(upsmalll,upsideslumped)
 #         From Costello et al. SI eq. 5, at equilibrium: f_oa =  (((phi + 1)/phi) * (1 - ((b_oa^phi)/(phi + 1))))
 #         Therefore: marginalcost = (price * f_oa * b_oa * MSY)/((g *f_oa)^beta)
 # calculate b_oa from equations above:
-num_cores <- min(24, detectCores()) # The specified number or the number of CPUs your computer has, whichever is smaller.
+num_cores <- detectCores() # The specified number or the number of CPUs your computer has, whichever is smaller.
 test <- 
   # pbmclapply(
   pblapply(
@@ -432,35 +432,38 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
          k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
 
-# OPTIONAL: change Fs to 3-year geometric mean (2010-2012) in upsides stocks
-up2012 <- 
+## OPTIONAL: 3-YEAR MOVING AVERAGES FOR F
+gm_mean = function(x, na_rm = TRUE, zero_propagate = TRUE){
+  if(any(x < 0, na.rm = TRUE)){
+    return(NaN)
+  }
+  if(zero_propagate){
+    if(any(x == 0, na.rm = TRUE)){
+      return(0)
+    }
+    exp(mean(log(x), na.rm = na_rm))
+  } else {
+    exp(sum(log(x[x > 0]), na.rm=na_rm) / length(x))
+  }
+}
+
+up3yr <- 
   upsidesunlumped %>% 
-  filter(year %in% c(2012)) %>%
-  select(idorig,fvfmsy) %>%
-  rename(fvfmsy2012 = fvfmsy)
-up2011 <- 
-  upsidesunlumped %>% 
-  filter(year %in% c(2011)) %>%
-  select(idorig,fvfmsy) %>%
-  rename(fvfmsy2011 = fvfmsy)
-up2010 <- 
-  upsidesunlumped %>% 
-  filter(year %in% c(2010)) %>%
-  select(idorig,fvfmsy) %>%
-  rename(fvfmsy2010 = fvfmsy)
-up3yr <- up2012 %>%
-  left_join(up2011, by = 'idorig') %>%
-  left_join(up2010, by = 'idorig') %>%
-  mutate(fvfmsy3yr = (fvfmsy2010 * fvfmsy2011 * fvfmsy2012)^(1/3)) %>%
-  select(idorig,fvfmsy3yr)
+  select(idorig, year, fvfmsy) %>% 
+  filter(year %in% 2010:2012) %>% 
+  group_by(idorig) %>% 
+  summarise(fvfmsy3yr = gm_mean(fvfmsy))
+
 upsides <- 
   upsides %>%
   left_join(up3yr, by = 'idorig') %>%
-  mutate(fvfmsy = fvfmsy3yr,
-         curr_f = fvfmsy * g,
-         eqfvfmey = curr_f/f_mey) %>%
+  mutate(
+    fvfmsy = fvfmsy3yr,
+    curr_f = fvfmsy * g,
+    eqfvfmey = curr_f/f_mey
+    ) %>%
   select(-fvfmsy3yr)
-rm(up2010,up2011,up2012,up3yr)
+rm(up3yr)
 # END OPTIONAL
 
 # Add fconmsy column (for conservation concern scenario)
