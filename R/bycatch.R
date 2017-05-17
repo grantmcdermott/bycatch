@@ -89,7 +89,6 @@ upsides <-
   as_data_frame()
 # upsides <- read_csv(paste0("Data/upsides_", analysis_type, ".csv"), col_types = cols(regionfao = "c"))
 
-
 # ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
 # corr_factor <- c(1, 2)[1] ## Default is 1 (i.e. no correction factor).
 # upsides <- 

@@ -79,7 +79,9 @@ upsides <-
   mutate(
     fvfmsy = fvfmsy3yr,
     curr_f = fvfmsy * g,
-    eqfvfmey = curr_f/f_mey
+    eqfvfmey = curr_f/f_mey,
+    pctredfmsy = 100 * (1-(g/curr_f)),
+    pctredfmey = 100 * (1-(f_mey/curr_f))
     ) %>%
   select(-fvfmsy3yr)
 rm(up3yr)
