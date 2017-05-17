@@ -90,21 +90,22 @@ upsides <-
 # upsides <- read_csv(paste0("Data/upsides_", analysis_type, ".csv"), col_types = cols(regionfao = "c"))
 
 
-### OPTIONAL: add in correction factor for possible bias in C-MSY projections
-corr_factor <- 2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
-upsides <- 
-  upsides %>%
-  mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>% 
-  ## Adjust additionally affected variables in sequence
-  mutate(
-    fvfmsy = curr_f/g,
-    eqfvfmey = curr_f/f_mey
-    ) %>%
-  mutate(
-    pctredfmsy = 100 * (1 - (1/fvfmsy)),
-    pctredfmey = 100 * (1 - (1/eqfvfmey))
-    ) 
-### END OPTIONAL
+# ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
+# corr_factor <- c(1, 2)[1] ## Default is 1 (i.e. no correction factor).
+# upsides <- 
+#   upsides %>%
+#   mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>% 
+#   ## Adjust additionally affected variables in sequence
+#   mutate(
+#     fvfmsy = curr_f/g,
+#     eqfvfmey = curr_f/f_mey
+#     ) %>%
+#   mutate(
+#     pctredfmsy = 100 * (1 - (1/fvfmsy)),
+#     pctredfmey = 100 * (1 - (1/eqfvfmey)),
+#     pctredfmsycon = 100 * (1-(fconmsy/curr_f))
+#     ) 
+# ### END OPTIONAL
 
 ################################
 ########### ANALYSIS ###########
