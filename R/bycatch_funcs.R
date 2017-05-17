@@ -613,7 +613,7 @@ disb_func <-
                  # otherwise = NULL
                  otherwise = data_frame(pctredmsy=NA, pctredmey=NA, ycostmsy=NA, pcostmey=NA) ## To catch failed uniroot cases
                  ),
-               cl=detectCores()
+               cl=num_cores
                ) %>%
       bind_rows()
     

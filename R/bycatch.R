@@ -6,7 +6,6 @@ rm(list = ls())
 #####################################
 library(data.table) ## Mostly for super fast reading/writing of large csv files
 library(pbapply)
-# library(pbmcapply) ## Now assign parallel computation through pbapply (with cl option)
 library(parallel)
 library(R.utils)
 library(scales)
@@ -46,6 +45,9 @@ theme_update(
   panel.spacing = unit(2, "lines") ## Increase gap between facet panels
 )
 
+## Decide on number of cores for parallel computation
+num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if you are running additional processes on your computer
+
 ## Load functions
 source("R/bycatch_funcs.R")
 
@@ -72,7 +74,7 @@ sensrange25 <- c(0,1)[1] # 0 = off, 1 = on
 
 ## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
 ##   or just those currently with F > Fmsy or B < Bmsy)
-scenario <- c("All stocks", "Con. Concern")[2]
+scenario <- c("All stocks", "Con. Concern")[1]
 
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
