@@ -515,10 +515,11 @@ upsides_subset_func <-
     stocks_df <-
       stocks_df %>%
       filter(fmeyvfmsy > 0,
-             marginalcost > 0) %>%
+             marginalcost > 0,
+             fconmsy > 0) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
-      select(dbase, idorig,idoriglumped,pctredfmsy,pctredfmey,wgt,speciescat,speciescatname,fmeyvfmsy, ## GRM: ADDED dbase, speciescat/name,fmeyvfmsy
-             k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey) %>%
+      select(dbase, idorig,idoriglumped,pctredfmsy,pctredfmey,pctredfmey,pctredfmsycon,pctredfmeycon,wgt,speciescat,speciescatname,fmeyvfmsy, ## GRM: ADDED dbase, speciescat/name,fmeyvfmsy
+             k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey,fconmsy,fconmey) %>%
       mutate(trgcat = dt$target) %>%
       mutate(wt = dt$wt) %>%
       mutate(bycsp = dt$species) %>%
@@ -542,7 +543,8 @@ samp_func <-
 ## Input is a list of 'dt's' -> output from 'extract_func'
 single_worldstate_outputs <- 
   function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept25) {
-    
+   
+    if (scenario == "All stocks") {
     samp <- 
       lapply(dt2, function (x) samp_func(x, n2, reltdf)) %>%
       bind_rows() %>%
@@ -551,6 +553,16 @@ single_worldstate_outputs <-
         pctrmsywt = wgt * 100 * (1 - ((1 - (pctredfmsy/100))^alpha_exp)),
         pctrmeywt = wgt * 100 * (1 - ((1 - (pctredfmey/100))^alpha_exp))
         )
+    } else {
+      samp <- 
+        lapply(dt2, function (x) samp_func(x, n2, reltdf)) %>%
+        bind_rows() %>%
+        mutate(
+          wgt = wt * (1/n2),
+          pctrmsywt = wgt * 100 * (1 - ((1 - (pctredfmsycon/100))^alpha_exp)),
+          pctrmeywt = wgt * 100 * (1 - ((1 - (pctredfmeycon/100))^alpha_exp))
+        )
+    }
     
     mpctmsy <- sum(samp$pctrmsywt)
     mpctmey <- sum(samp$pctrmeywt)

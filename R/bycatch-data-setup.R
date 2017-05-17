@@ -22,25 +22,25 @@ names(upuncert) %<>% tolower
 
 # Load in upsides data (from Costello et al. 2016) and clean it.
 upsideslumped <- read_csv("Data/TBD_IF_NEEDED/ProjectionData.csv", col_types = cols(RegionFAO = "c")) # ProjectionData is by stock
+names(upsideslumped) %<>% tolower
 upsidesunlumped <- read_csv("Data/TBD_IF_NEEDED/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
+names(upsidesunlumped) %<>% tolower
 upsmalll <- 
   upsideslumped %>% 
-  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
-  filter(Year %in% c(2012)) %>%
+  select(year,idorig,commname,sciname,country,g,phi,k,msy,c,speciescat,speciescatname,regionfao,policy,fvfmsy,bvbmsy,catch,price) %>%
+  filter(year %in% c(2012)) %>%
   rename(marginalcost = c) %>%
   mutate(beta = 1.3)
 upsmallu <- 
   upsidesunlumped %>% 
-  select(Year,IdOrig,CommName,SciName,Country,g,phi,k,MSY,c,SpeciesCat,SpeciesCatName,RegionFAO,Policy,FvFmsy,BvBmsy,Catch,Price) %>%
-  filter(Year %in% c(2012)) %>%
+  select(year,idorig,commname,sciname,country,g,phi,k,msy,c,speciescat,speciescatname,regionfao,policy,fvfmsy,bvbmsy,catch,price) %>%
+  filter(year %in% c(2012)) %>%
   rename(marginalcost = c) %>%
   mutate(beta = 1.3)
-names(upsmallu) %<>% tolower
 upidslumped <- 
-  select(upsmalll,Year,IdOrig,CommName,marginalcost,Price,g,phi,k,beta) %>%
+  select(upsmalll,year,idorig,commname,marginalcost,price,g,phi,k,beta) %>%
   filter(Year %in% c(2012))
-names(upidslumped) %<>% tolower
-rm(upsmalll,upsidesunlumped,upsideslumped)
+rm(upsmalll,upsideslumped)
 
 # calculate 'b_oa', 'f_oa', remove marginalcost from upidslumped
 #         Costello et al. SI pg 8: MSY = ((g * k)/((phi + 1)^(1/phi)))
@@ -424,7 +424,7 @@ names(idlookup) %<>% tolower
 # load unlumped table
 upsides <- 
   upsmallu %>%
-  left_join(idlookup)
+  left_join(idlookup, by = 'idorig')
 rm(upsmallu)
 
 upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
@@ -438,8 +438,6 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
 
 
 # OPTIONAL: change Fs and Bs to 3-year geometric mean (2010-2012) in upsides stocks
-upsidesunlumped <- read_csv("Data/TBD_IF_NEEDED/UnlumpedProjectionData.csv", col_types = cols(RegionFAO = "c")) # UnlumpedProjectionData is by stock and country
-names(upsidesunlumped) %<>% tolower
 up2012 <- 
   upsidesunlumped %>% 
   filter(year %in% c(2012)) %>%
@@ -467,8 +465,23 @@ upsides <-
          curr_f = fvfmsy * g,
          eqfvfmey = curr_f/f_mey) %>%
   select(-fvfmsy3yr)
-rm(upsidesunlumped,up2010,up2011,up2012,up3yr)
+rm(up2010,up2011,up2012,up3yr)
 # END OPTIONAL
+
+# Add fconmsy column (for conservation concern scenario)
+upcc2050 <- 
+  upsidesunlumped %>%
+  filter(year %in% c(2050),
+         scenario == 'Con. Concern',
+         policy == 'Fmsy') %>%
+  select(idorig, fvfmsy,g) %>%
+  mutate(fconmsy = fvfmsy * g) %>% # takes mey for all cons. concern stocks, fconmsy for the others
+  select(-fvfmsy,-g)
+upsides <-
+  upsides %>%
+  left_join(upcc2050, by = 'idorig') %>%
+  mutate(pctredfmsycon = 100 * (1-(fconmsy/curr_f)))
+rm(upcc2050)
 
 # Add Totoaba row to upsides (for vaquita)
 totoab <- data_frame(idorig = "toto",
@@ -488,10 +501,12 @@ totoab <- data_frame(idorig = "toto",
                      eqfvfmey = 0.52631579,
                      fmeyvfmsy = 0.966133,
                      curr_f = 0.03,
-                     f_mey = 0.055069581
+                     f_mey = 0.055069581,
+                     fconmsy = 0.057
 ) %>%
   mutate(pctredfmsy = 100 * (1-(g/curr_f)),
-         pctredfmey = 100 * (1-(f_mey/curr_f)))
+         pctredfmey = 100 * (1-(f_mey/curr_f)),
+         pctredfmsycon = 100 * (1-(fconmsy/curr_f)))
 
 upsides <- bind_rows(upsides,totoab)
 
@@ -522,9 +537,14 @@ upsides <- left_join(upsides, dtup, by = 'idorig')
 rm(upsides2,dtup,mcup,idsup,upsides_kobe,totoab)
 ## end clean up
 
+## Add conservation concern MEY columns: fconmey = mey if it is a conservation concern stock, fconmsy otherwise
+upsides <- upsides %>%
+  mutate(fconmey = if_else((fconmsy/g) == 1, f_mey, fconmsy),
+         pctredfmeycon = 100 * (1-(fconmey/curr_f)))
+
 ## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
-# dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv") ## already loaded
-# names(dbaseid) %<>% tolower
+dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv") ## already loaded
+names(dbaseid) %<>% tolower
 upsides <-
   upsides %>%
   left_join(dbaseid %>% select(-lumpedid)) %>%
@@ -532,7 +552,7 @@ upsides <-
   mutate(dbase = ifelse(is.na(dbase), "FAO", dbase)) %>%
   mutate(dbase = ifelse(idorig=="toto", "Totoaba", dbase)) ## Totoaba was added manually (not part of upsides)
 
-# rm(dbaseid,idlookup)
+rm(dbaseid,idlookup,upsidesunlumped)
 
 # Write final input file
 write_csv(upsides, "Data/upsides_nouncert.csv")
