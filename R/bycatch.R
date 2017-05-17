@@ -10,7 +10,7 @@ library(pbapply)
 library(parallel)
 library(R.utils)
 library(scales)
-library(gridGraphics)
+library(grid)
 library(png)
 # library(maps)
 library(rworldmap) ## Better shape files
