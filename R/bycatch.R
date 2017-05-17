@@ -89,7 +89,7 @@ upsides <-
 
 
 ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
-corr_factor <- 2 # Dan's calculated median bias in fvfmsy from C-MSY in RAM stocks
+corr_factor <- 1 
 upsides <- 
   upsides %>%
   mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>% 
@@ -99,8 +99,9 @@ upsides <-
     eqfvfmey = curr_f/f_mey
     ) %>%
   mutate(
-    pctredfmsy = 100 * (1 - (1/fvfmsy)),
-    pctredfmey = 100 * (1 - (1/eqfvfmey))
+    pctredfmsy = 100 * (1 - (g/curr_f)),
+    pctredfmey = 100 * (1 - (f_mey/curr_f)),
+    pctredfmsycon = 100 * (1-(fconmsy/curr_f))
     ) 
 ### END OPTIONAL
 
