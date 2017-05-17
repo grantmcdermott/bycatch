@@ -80,12 +80,12 @@ scenario <- c("All stocks", "Con. Concern")[2]
 ## include NEI stocks), or 2) With uncertainty (have to exclude NEI stocks). The 
 ## main results of the paper use the former. The latter are used for sensitivity 
 ## analysis in the SM.
-uncert_type <- c("nouncert", "uncert")[1] ## Change as needed.
+analysis_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
 ## Now read in the data
 upsides <- 
-  fread(paste0("Data/upsides_", uncert_type, ".csv")) %>% 
+  fread(paste0("Data/upsides_", analysis_type, ".csv")) %>% 
   as_data_frame()
-# upsides <- read_csv(paste0("Data/upsides_", uncert_type, ".csv"), col_types = cols(regionfao = "c"))
+# upsides <- read_csv(paste0("Data/upsides_", analysis_type, ".csv"), col_types = cols(regionfao = "c"))
 
 
 ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
