@@ -1,13 +1,8 @@
 #rm(list = ls())
-# library(readr)
-# library(dplyr)
-# library(tidyr)
-# library(tibble)
-# library(ggplot2)
+library(magrittr)
 library(splitstackshape)
 library(tidyverse)
 library(stringr)
-library(magrittr)
 library(cowplot)
 library(pbapply)
 library(pbmcapply)
@@ -437,7 +432,7 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
          k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
 
-# OPTIONAL: change Fs and Bs to 3-year geometric mean (2010-2012) in upsides stocks
+# OPTIONAL: change Fs to 3-year geometric mean (2010-2012) in upsides stocks
 up2012 <- 
   upsidesunlumped %>% 
   filter(year %in% c(2012)) %>%
