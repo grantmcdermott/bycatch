@@ -597,11 +597,11 @@ disb_func <-
     pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1]
     pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1]
     pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1]
-
+    
     #########################################################################################################
     ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
     #########################################################################################################
-
+    
     dists <-
       pblapply(1:n1, 
                possibly(function(i) {
@@ -615,24 +615,22 @@ disb_func <-
                  otherwise = data_frame(pctredmsy=NA, pctredmey=NA, ycostmsy=NA, pcostmey=NA) ## To catch failed uniroot cases
                  ),
                cl=num_cores
-               ) %>%
-      bind_rows()
-    
+               )
     return(dists)
-  }
+    }
 
 ###############################################################################
 ## Final step: Convenience wrapper to apply over all target stocks affecting ##
 ## a single bycatch species. This is what we'll call in the actual analysis. ##
 ###############################################################################
 
-bycatch_func <- 
+bycatch_func <-
   function(z){
-    print(z)
+    message(paste0(paste0((bycatch_df %>% mutate(n=row_number()) %>% filter(species==z))$n), ". ", z))
     disb_func(extract_func(z), n1, n2) %>%
-      as_data_frame() %>%
+      bind_rows() %>%
       mutate(species = z)
-  }
+    }
 
 ## E.g. bycatch_func("Loggerhead_turtle")
 
