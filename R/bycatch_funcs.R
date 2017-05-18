@@ -150,7 +150,6 @@ redncost_giv_mp <- function(df, mp) {
     # Generate ids matching df row ids created above. 
     # These will be used to  merge the new column 'fmp' created below into df.
     ids <- append(ids, df$gen_id[i])
-    
     # Calculate fishing mortality, fmp, for each stock (i) in the sample, df, 
     # given the marginal profit, mp, given as input.
     fmp <- append(fmp, inv_marg_profit(mp,df$f_mey[i],df$price[i],
@@ -163,16 +162,15 @@ redncost_giv_mp <- function(df, mp) {
   dt <- data_frame(gen_id = ids, f_mp = fmp)
   dt <- left_join(df, dt, by = 'gen_id')
   
-  dt <- dt %>%
+  dt <- 
+    dt %>%
     # Create new column 'pctred_b' which specifies the % reduction in fishing
     # mortality for the bycatch stock resulting from the % reduction
     # for each target stock (relative to 2012) at f_mp.
     mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
-    
     # Create new column 'mey' which specifies the mey for
     # each target stock.
     mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
-    
     # Create new column 'pcost' which specifies the mey for
     # each target stock.
     mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
@@ -202,7 +200,8 @@ redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_m
   dt <- data_frame(gen_id = ids, f_my = fmy)
   dt <- left_join(df, dt, by = 'gen_id')
   
-  dt <- dt %>%
+  dt <- 
+    dt %>%
     mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
     mutate(msy = eqyieldf(g,g,k,phi)) %>%
     mutate(ycost = yieldcostf(f_my,g,k,phi))
@@ -217,7 +216,8 @@ redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_m
 #     calculate marginal costs (y and p).
 
 my_calc <- function(df, pctredb) {
-  dt <- df %>%
+  dt <- 
+    df %>%
     # Generate new column in df of maximum marginal yield (i.e. my at 0 fishing)
     mutate(maxmy = myieldf(0,g,k,phi))
   
@@ -230,10 +230,8 @@ my_calc <- function(df, pctredb) {
     # Check if the maximum marginal yield ('mxmy') corresponds 
     # to a still-insufficient reduction in bycatch.
     redncost_giv_my(dt, mxmy)$pctred < pctredb,
-    
     # If yes, then require the max marginal yield.
     output <- mxmy,
-    
     # If no, use 'imy' function to calculate required marginal yield
     output <- imy(pctredb)
   ) 
@@ -265,12 +263,12 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
   ifelse(
     # Check if stopping all fishing is enough for bycatch target.
     # If not, cost = 100 (percent of fishing yield)
-    pctredb > 100,
+    round(pctredb) >= 100, ## GRM: Changed from `pctredb > 100
     ycost <- 100,
     ifelse(
       # Check if there is a shortfall.
       # If not, cost = 0 (because MSY reduces bycatch enough to stop decline)
-      pctredb < meanpctredmsy,
+      round(pctredb) < round(meanpctredmsy), ## GRM: Added rounding
       ycost <- 0,
       
       # There is a shortfall, and it is attainable through additional target species F reductions.
@@ -282,7 +280,7 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
       # ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
       ycost <-
         tryCatch(
-          withTimeout(redncost_giv_my(df, my_calc(df, pctredb))$cost, timeout=10), 
+          withTimeout(redncost_giv_my(df, my_calc(df, pctredb))$cost, timeout=5), 
           TimeoutException=function(ex) NA
           )
     )
@@ -294,27 +292,24 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
   ifelse(
     # Check if stopping all fishing is enough for bycatch target.
     # If not, cost = 100 (percent of fishing profits)
-    pctredb > 100,
+    round(pctredb) >= 100, ## GRM: Changed from `pctredb > 100`
     pcost <- 100,
     ifelse(
       # Check if there is a shortfall.
       # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
-      pctredb < meanpctredmey + 1.2,
+      round(pctredb) < (meanpctredmey), ## GRM: Changed from `pctredb < meanpctredmey + 1.2` (Rounds to the nearest whole percent)
       pcost <- 0,
-      
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
-      
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
       #     given pct reduction needed for bycatch species.
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
       # pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
       pcost <-
         tryCatch(
-          withTimeout(redncost_giv_mp(df, mp_calc(df, pctredb))$cost, timeout=10), 
+          withTimeout(redncost_giv_mp(df, mp_calc(df, pctredb))$cost, timeout=5), 
           TimeoutException=function(ex) NA
           )
-      
     )
   )
   return(pcost)
@@ -514,12 +509,18 @@ upsides_subset_func <-
     
     stocks_df <-
       stocks_df %>%
-      filter(fmeyvfmsy > 0,
-             marginalcost > 0,
-             fconmsy > 0) %>%
+      filter(
+        curr_f > 0,
+        fmeyvfmsy > 0,
+        marginalcost > 0,
+        fconmsy > 0
+        ) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
-      select(dbase, idorig,idoriglumped,pctredfmsy,pctredfmey,pctredfmey,pctredfmsycon,pctredfmeycon,wgt,speciescat,speciescatname,fmeyvfmsy, ## GRM: ADDED dbase, speciescat/name,fmeyvfmsy
-             k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,curr_f,f_mey,fconmsy,fconmey) %>%
+      select(
+        dbase,idorig,idoriglumped,pctredfmsy,pctredfmey,pctredfmey,pctredfmsycon,pctredfmeycon,
+        wgt,speciescat,speciescatname,fmeyvfmsy,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,
+        curr_f,f_mey,fconmsy,fconmey
+        ) %>%
       mutate(trgcat = dt$target) %>%
       mutate(wt = dt$wt) %>%
       mutate(bycsp = dt$species) %>%
@@ -606,7 +607,7 @@ disb_func <-
                possibly(function(i) {
                  evalWithTimeout(
                    single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets, sensrange25), 
-                   timeout = 10, ## i.e. Time out after 10 seconds if can't resolve 
+                   timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
                    TimeoutException = function(ex) "TimedOut"
                    )
                  }, 
