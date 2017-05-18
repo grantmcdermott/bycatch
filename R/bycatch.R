@@ -78,10 +78,10 @@ scenario <- c("All stocks", "Con. Concern")[1]
 
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
-## First choose which version of the upsides data to use: 1) No uncertainty (can 
-## include NEI stocks), or 2) With uncertainty (have to exclude NEI stocks). The 
-## main results of the paper use the former. The latter are used for sensitivity 
-## analysis in the SM.
+## First choose which version of the upsides data to use: 1) Main (includes NEI 
+## stocks and uses a mean F over 2010-2012), 2) Excluding NEI stocks, 3) Use F
+## from 2012 only. The main results of the paper rely on (1). The latter two are 
+## used for sensitivity analysis in the SM.
 analysis_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
 ## Now read in the data
 upsides <- 
@@ -129,7 +129,7 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, alpha_str, ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, ".csv"))
 
 
 ####################################
@@ -137,7 +137,7 @@ write_csv(all_dt, paste0("Results/bycatch_results_", uncert_type, alpha_str, ".c
 ####################################
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
-all_dt <- read_csv("Results/bycatch_results_nouncert_alpha=1.csv")
+all_dt <- read_csv("Results/bycatch_results_main_alpha=1.csv")
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
@@ -296,11 +296,11 @@ fig1b <-
   geom_sf(data = countries, fill = "white", col="white") +
   geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
   scale_fill_viridis(
-    name = "Reduction in fishing effort (MEY vs. 2012)",
+    name = "Reduction in fishing effort (MEY vs. 2010-2012)",
     labels = percent
     )  +
   guides(
-    fill=guide_colourbar(barwidth=18.5, label.position="bottom", title.position="top")
+    fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
   ) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
@@ -526,7 +526,7 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_results_", uncert_type, alpha_str, "_summary.csv"))
+write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, "_summary.csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave("Figures/fig-3-mey.png", width=10*.6, height=13*.6)
@@ -611,11 +611,11 @@ fig_s1 <-
   geom_sf(data = countries, fill = "white", col="white") +
   geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
   scale_fill_viridis(
-    name = "Reduction in fishing effort (MEY vs. 2012)",
+    name = "Reduction in fishing effort (MEY vs. 2010-2012)",
     labels = percent
   )  +
   guides(
-    fill=guide_colourbar(barwidth=18.5, label.position="bottom", title.position="top")
+    fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
   ) +
   facet_wrap(~taxonomy, ncol=2) +
   theme(
@@ -641,6 +641,7 @@ fig_s2 <-
 fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
 fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
+dev.off()
 
 #################################################
 ##### Fig S.2 (Combined cost distributions) #####
