@@ -89,21 +89,27 @@ upsides <-
   as_data_frame()
 # upsides <- read_csv(paste0("Data/upsides_", analysis_type, ".csv"), col_types = cols(regionfao = "c"))
 
-# ### OPTIONAL: add in correction factor for possible bias in C-MSY projections
-# corr_factor <- c(1, 2)[1] ## Default is 1 (i.e. no correction factor).
-# upsides <- 
-#   upsides %>%
-#   mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>% 
-#   ## Adjust additionally affected variables in sequence
-#   mutate(
-#     fvfmsy = curr_f/g,
-#     eqfvfmey = curr_f/f_mey
-#     ) %>%
-#   mutate(
-#     pctredfmsy = 100 * (1 - (1/fvfmsy)),
-#     pctredfmey = 100 * (1 - (1/eqfvfmey)),
-#     pctredfmsycon = 100 * (1-(fconmsy/curr_f))
-#     ) 
+## Decide whether to add in a "correction factor" for possible upward bias in C-MSY projections
+## Default is 1 (i.e. no bias). Alternative is 2 (i.e. current F is twice as big as estimated by
+## the upsides model.)
+corr_factor <- c(1, 2)[1] ## Change as required 
+corr_string <- ""
+if(corr_factor==2){
+  corr_string <- "_fcorrected"
+  upsides <-
+    upsides %>%
+    mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%
+    ## Adjust additionally affected variables in sequence
+    mutate(
+      fvfmsy = curr_f/g,
+      eqfvfmey = curr_f/f_mey
+    ) %>%
+    mutate(
+      pctredfmsy = 100 * (1 - (1/fvfmsy)),
+      pctredfmey = 100 * (1 - (1/eqfvfmey)),
+      pctredfmsycon = 100 * (1-(fconmsy/curr_f))
+    )
+}
 # ### END OPTIONAL
 
 ################################
@@ -129,7 +135,7 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, ".csv"))
 
 
 ####################################
