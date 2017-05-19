@@ -532,17 +532,17 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, "_summary.csv"))
+write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, "_summary.csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave("Figures/fig-3-mey.png", width=10*.6, height=13*.6)
-fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_string, ".png"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", corr_string, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave("Figures/fig-3-msy.png", width=10*.6, height=13*.6)
-fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/fig-3-msy", corr_string, ".png"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", corr_string, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3msy)
 dev.off()
 
@@ -644,8 +644,8 @@ rm(fig_s1)
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
-fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave(paste0("Figures/fig-S2", corr_string, ".png"), width = 10, height = 13)
+fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", corr_string, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -655,9 +655,8 @@ dev.off()
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
-fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
-
+fig_s3 + ggsave(paste0("Figures/fig-S3", corr_string, ".png"), width = 10, height = 13)
+fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", corr_string, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s3)
 dev.off()
 
