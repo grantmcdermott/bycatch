@@ -91,7 +91,7 @@ mprofitf <-
 ##1. Given dataframe and marginal cost, return total cost
 
 #1.1 Define numerical inverse function
-inverse = function (f, lower = -100, upper = 100) {
+inverse = function (f, lower = 0, upper = 100) {
   function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]$root
 }
 # inverse <- possibly(inverse, NA_real)
@@ -108,10 +108,8 @@ inv_marg_profit <-
     ifelse(
       # check for corner
       mprofitf(0,price,marginalcost,g,k,phi,beta) < mp,
-      
       # corner
       output <- 0,
-      
       # interior
       output <- imp(mp)
     ) 
@@ -125,10 +123,8 @@ inv_marg_yield <-
     ifelse(
       # check for corner
       myieldf(0,g,k,phi) < my,
-      
       # corner
       output <- 0,
-      
       # interior
       output <- imy(my)
     ) 
@@ -140,30 +136,12 @@ inv_marg_yield <-
 #      (as a percentage of total MSY or MEY), given that marginal cost.
 
 redncost_giv_mp <- function(df, mp) {
-  # Add row ids to the input dataframe ('df')
-  df$gen_id <- 1:nrow(df)
-  
-  # Create empty lists
-  ids <- c()
-  fmp <- c()
-  for (i in 1:length(df$idorig)) {
-    # Generate ids matching df row ids created above. 
-    # These will be used to  merge the new column 'fmp' created below into df.
-    ids <- append(ids, df$gen_id[i])
-    # Calculate fishing mortality, fmp, for each stock (i) in the sample, df, 
-    # given the marginal profit, mp, given as input.
-    fmp <- append(fmp, inv_marg_profit(mp,df$f_mey[i],df$price[i],
-                                df$marginalcost[i],df$g[i],
-                                df$k[i],df$phi[i],df$beta[i]))
-  }
-  
-  # Merge the fmp's calculated above into the dataframe df, 
-  # in new column called 'f_mp'.
-  dt <- data_frame(gen_id = ids, f_mp = fmp)
-  dt <- left_join(df, dt, by = 'gen_id')
   
   dt <- 
-    dt %>%
+    df %>% 
+    group_by(1:n()) %>%
+    mutate(f_mp = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+    ungroup() %>%
     # Create new column 'pctred_b' which specifies the % reduction in fishing
     # mortality for the bycatch stock resulting from the % reduction
     # for each target stock (relative to 2012) at f_mp.
@@ -190,18 +168,12 @@ redncost_giv_mp <- function(df, mp) {
 }
 
 redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_mp' above
-  df$gen_id <- 1:nrow(df)
-  ids <- c()
-  fmy <- c()
-  for (i in 1:length(df$idorig)) {
-    ids <- append(ids, df$gen_id[i])
-    fmy <- append(fmy, inv_marg_yield(my,df$g[i],df$k[i],df$phi[i]))
-  }
-  dt <- data_frame(gen_id = ids, f_my = fmy)
-  dt <- left_join(df, dt, by = 'gen_id')
   
   dt <- 
-    dt %>%
+    df %>% 
+    group_by(1:n()) %>%
+    mutate(f_my = inv_marg_yield(my, g, k, phi)) %>%
+    ungroup() %>%
     mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
     mutate(msy = eqyieldf(g,g,k,phi)) %>%
     mutate(ycost = yieldcostf(f_my,g,k,phi))
