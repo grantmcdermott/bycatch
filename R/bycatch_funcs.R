@@ -267,21 +267,19 @@ cost_yield <- function(df, pctredb, meanpctredmsy) {
     ycost <- 100,
     ifelse(
       # Check if there is a shortfall.
-      # If not, cost = 0 (because MSY reduces bycatch enough to stop decline)
       round(pctredb) < round(meanpctredmsy), ## GRM: Added rounding
+      # If not, cost = 0 (because MSY reduces bycatch enough to stop decline)
       ycost <- 0,
-      
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
-      
       #1. Calculate marginal yield cost (with function 'my_calc'), 
       #     given pct reduction needed for bycatch species.
       #2. Calculate total yield cost, given marginal cost calculated in 1. 
       # ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
       ycost <-
         tryCatch(
-          withTimeout(redncost_giv_my(df, my_calc(df, pctredb))$cost, timeout=5), 
-          TimeoutException=function(ex) NA
+          redncost_giv_my(df, my_calc(df, pctredb))$cost,
+          error = function(e) as.double(NA)
           )
     )
   )
@@ -307,8 +305,8 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
       # pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
       pcost <-
         tryCatch(
-          withTimeout(redncost_giv_mp(df, mp_calc(df, pctredb))$cost, timeout=5), 
-          TimeoutException=function(ex) NA
+          redncost_giv_mp(df, mp_calc(df, pctredb))$cost, 
+          error = function(e) as.double(NA)
           )
     )
   )
@@ -565,8 +563,8 @@ single_worldstate_outputs <-
         )
     }
     
-    mpctmsy <- sum(samp$pctrmsywt)
-    mpctmey <- sum(samp$pctrmeywt)
+    mpctmsy <- sum(samp$pctrmsywt, na.rm = T) ## GRM: Added na.rm = T
+    mpctmey <- sum(samp$pctrmeywt, na.rm = T) ## GRM: Added na.rm = T
     
     if (sensrangept25 == 1) {
     pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
@@ -594,9 +592,10 @@ disb_func <-
       lapply(dt2, upsides_subset_func) %>%
       bind_rows()
     
-    pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1]
-    pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1]
-    pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1]
+    ## Required reduction parameters (i.e. What is the rate of population decline for this bycatch species?)
+    pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1] ## Point estimate
+    pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1] ## Lower bound
+    pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1] ## Upper bound
     
     #########################################################################################################
     ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
@@ -612,7 +611,7 @@ disb_func <-
                    )
                  }, 
                  # otherwise = NULL
-                 otherwise = data_frame(pctredmsy=NA, pctredmey=NA, ycostmsy=NA, pcostmey=NA) ## To catch failed uniroot cases
+                 otherwise = data_frame(pctredmsy=as.double(NA), pctredmey=as.double(NA), ycostmsy=as.double(NA), pcostmey=as.double(NA)) ## To catch failed uniroot cases
                  ),
                cl=num_cores
                )
