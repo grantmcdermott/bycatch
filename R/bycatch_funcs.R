@@ -827,7 +827,13 @@ tradeoffs_plot <-
     excld_species <- anti_join(distinct(summ_df, species), distinct(df, species))$species
     
     print(noquote(paste0("Note: The following (outlier) species has been excluded from the plot: ", excld_species)))
-
+    
+    ## Aesthetic parameters for consistent legend across scenarios
+    leg_df <- 
+      data_frame(clade = c("bird","cetacean","pinniped","turtle"), bycatch_cols=bycatch_cols[1:4], shp=21:24) %>%
+      right_join(df %>% ungroup %>% distinct(clade)) %>%
+      arrange(shp)
+    
     df %>%
       mutate(clade = stringr::str_to_title(clade)) %>%
       ggplot(aes(x = pctredbpt, y = q50, col = clade, group = species)) +
@@ -850,9 +856,9 @@ tradeoffs_plot <-
         inherit.aes = F,
         aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2, alpha=0.2 ## adding again (w/ low alpha to give effect behind points)
         ) +
-      scale_shape_manual(values = 21:24) +
-      scale_colour_manual(values = bycatch_cols) +
-      scale_fill_manual(values = bycatch_cols) +
+      scale_shape_manual(values = leg_df$shp) +
+      scale_colour_manual(values = leg_df$bycatch_cols) +
+      scale_fill_manual(values = leg_df$bycatch_cols) +
       scale_x_continuous(
         #expand = c(0, 0), 
         limits=c(0,1),
