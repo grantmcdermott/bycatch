@@ -532,7 +532,7 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, "_summary.csv"))
+write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, "_summary", corr_string, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_string, ".png"), width=10*.6, height=13*.6)
