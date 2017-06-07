@@ -93,8 +93,8 @@ upcc2050 <-
   filter(year %in% c(2050),
          scenario == 'Con. Concern',
          policy == 'Fmsy') %>%
-  select(idorig, fvfmsy,g) %>%
-  mutate(fconmsy = fvfmsy * g) %>% # takes mey for all cons. concern stocks, fconmsy for the others
+  select(idorig, fvfmsy, g) %>%
+  mutate(fconmsy = fvfmsy * g) %>% # takes msy for all cons. concern stocks, fconmsy for the others
   select(-fvfmsy,-g)
 upsides <-
   upsides %>%
