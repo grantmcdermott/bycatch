@@ -501,7 +501,8 @@ upsides_subset_func <-
         curr_f > 0,
         fmeyvfmsy > 0,
         marginalcost > 0,
-        fconmsy > 0
+        fconmsy > 0,
+        fconmey > 0
         ) %>%
       mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
       select(
