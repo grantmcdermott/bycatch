@@ -37,7 +37,7 @@ font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts
 ## Assign color scheme
 bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
                   "#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")
-## Make some adjustments to (now default) cowplot ggplot2 theme for figures
+## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
 theme_update(
   text = element_text(family = font_type),
   legend.title = element_blank(),
@@ -52,9 +52,9 @@ num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if yo
 source("R/bycatch_funcs.R")
 
 
-##############################
-########## LOAD DATA #########
-##############################
+#########################################################################
+########## LOAD DATA AND CHOOSE ANALYSIS TYPE / SENSITIVITY RUN #########
+#########################################################################
 
 ### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
@@ -70,7 +70,8 @@ alpha_exp <- c(1, 0.5, 2)[1]
 alpha_str <- gsub("\\.","",paste0("_alpha=",alpha_exp)) ## Convenience variable for reading and writing files
 
 ## Select whether cost analysis simulates over 25% sensitivity range in Fe and delta
-sensrange25 <- c(0,1)[1] # 0 = off, 1 = on
+sensrange25 <- c(0, 1)[1] # 0 = off, 1 = on
+sensrange_string <- ifelse(sensrange25==0, "", "_sensrange25")
 
 ## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
 ##   or just those currently with F > Fmsy or B < Bmsy)
@@ -110,14 +111,15 @@ if(corr_factor==2){
       pctredfmsycon = 100 * (1-(fconmsy/curr_f))
     )
 }
-# ### END OPTIONAL
+
 
 ################################
 ########### ANALYSIS ###########
 ################################
 
-#### WARNING: FULL ANALYSIS TAKES A *LONG* TIME TO RUN. SKIP TO FIGURES ####
-#### SECTION (LINE 105) TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS ####
+#### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 145)    
+#### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### MCMC sampling parameters
 
@@ -135,7 +137,7 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, sensrange_string, ".csv"))
 
 
 ####################################
@@ -532,7 +534,7 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_results_", analysis_type, alpha_str, "_summary", corr_string, ".csv"))
+write_csv(results_summary, paste0("Results/bycatch_summary_results_", analysis_type, alpha_str, "", corr_string, sensrange_string, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_string, ".png"), width=10*.6, height=13*.6)
