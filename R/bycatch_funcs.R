@@ -145,13 +145,24 @@ redncost_giv_mp <- function(df, mp) {
     # Create new column 'pctred_b' which specifies the % reduction in fishing
     # mortality for the bycatch stock resulting from the % reduction
     # for each target stock (relative to 2012) at f_mp.
-    mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
+    mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp)))
     # Create new column 'mey' which specifies the mey for
-    # each target stock.
-    mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
-    # Create new column 'pcost' which specifies the mey for
-    # each target stock.
-    mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
+    # each target stock. If scenario is "All stocks", then mey assumes Fmey for all target stocks. 
+    # If scenario is "Con. Concern", then mey assumes Fmey for all overfished stocks, and constant biomass for other stocks,
+    # following Costello et al. 2016.
+  if (scenario == "All stocks") {
+    dt <- dt %>%
+      mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
+      # Create new column 'pcost' which specifies the mey for
+      # each target stock.
+      mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
+  } else {
+    dt <- dt %>%
+      mutate(mey = eqprofitf(fconmey,price,marginalcost,g,k,phi,beta)) %>%
+      # Create new column 'pcost' which specifies the mey for
+      # each target stock.
+      mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
+    }
   
   # Create empty data frame to contain the results.
   output <- data_frame(pctred = 0, cost = 0)
@@ -174,9 +185,16 @@ redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_m
     group_by(1:n()) %>%
     mutate(f_my = inv_marg_yield(my, g, k, phi)) %>%
     ungroup() %>%
-    mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
-    mutate(msy = eqyieldf(g,g,k,phi)) %>%
-    mutate(ycost = yieldcostf(f_my,g,k,phi))
+    mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp)))
+  if (scenario == "All stocks") {
+    dt <- dt %>% 
+      mutate(msy = eqyieldf(g,g,k,phi)) %>%
+      mutate(ycost = yieldcostf(f_my,g,k,phi))
+  } else {
+    dt <- dt %>% 
+      mutate(msy = eqyieldf(fconmsy,g,k,phi)) %>%
+      mutate(ycost = yieldcostf(f_my,g,k,phi))
+  }
   
   output <- data_frame(pctred = 0, cost = 0)
   output$pctred <- sum(dt$pctred_b)
