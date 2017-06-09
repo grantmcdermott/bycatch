@@ -45,9 +45,9 @@ profitcostf <-
   }
 
 yieldcostf <- 
-  function(f,g,k,phi) {
+  function(f,fmsy,g,k,phi) {
     yc <- 
-      eqyieldf(g,g,k,phi) -
+      eqyieldf(fmsy,g,k,phi) -
       eqyieldf(f,g,k,phi)
     return(yc)
   }
@@ -136,32 +136,41 @@ inv_marg_yield <-
 #      (as a percentage of total MSY or MEY), given that marginal cost.
 
 redncost_giv_mp <- function(df, mp) {
-  
-  dt <- 
-    df %>% 
-    group_by(1:n()) %>%
-    mutate(f_mp = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
-    ungroup() %>%
-    # Create new column 'pctred_b' which specifies the % reduction in fishing
-    # mortality for the bycatch stock resulting from the % reduction
-    # for each target stock (relative to 2012) at f_mp.
-    mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp)))
-    # Create new column 'mey' which specifies the mey for
-    # each target stock. If scenario is "All stocks", then mey assumes Fmey for all target stocks. 
-    # If scenario is "Con. Concern", then mey assumes Fmey for all overfished stocks, and constant biomass for other stocks,
-    # following Costello et al. 2016.
-  if (scenario == "All stocks") {
-    dt <- dt %>%
+    
+  if (scenario == "All stocks") { # compare to MEY for all stocks for reduction and cost
+    dt <- 
+      df %>% 
+      group_by(1:n()) %>%
+      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mp'
+      mutate(f_mp = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      ungroup() %>%
+      # Create new column 'pctred_b' which specifies the % reduction in fishing
+      # mortality for the bycatch stock resulting from the % reduction
+      # for each target stock (relative to 2012) at f_mp.
+      mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
+      # Create new column 'mey' which specifies the mey for
+      # each target stock. Because scenario is "All stocks", mey assumes Fmey for all target stocks. 
       mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
-      # Create new column 'pcost' which specifies the mey for
+      # Create new column 'pcost' which specifies the lost profit relative to mey for
       # each target stock.
       mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
-  } else {
-    dt <- dt %>%
+  } else { # compare to Con. Concern (i.e. only Con. Concern stocks at MEY, no other stocks can fish harder)
+    dt <- 
+      df %>% 
+      group_by(1:n()) %>%
+      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mp'. 
+      mutate(f_mp1 = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      # If f_mp1 exceeds fconmey, set f_mp = fconmey, because non-con. concern stocks cannot be fished harder
+      # in this scenario.
+      mutate(f_mp = if_else(f_mp1 < fconmey, f_mp1, fconmey)) %>%
+      select(-f_mp1) %>%
+      ungroup() %>%
+      mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
+      # Create new column 'mey' which specifies the mey for
+      # each target stock. Because scenario is "Con. Concern", mey assumes Fmey for all overfished stocks, 
+      # and constant biomass for other stocks, following Costello et al. 2016.
       mutate(mey = eqprofitf(fconmey,price,marginalcost,g,k,phi,beta)) %>%
-      # Create new column 'pcost' which specifies the mey for
-      # each target stock.
-      mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
+      mutate(pcost = profitcostf(f_mp,price,marginalcost,fconmey,g,k,phi,beta))
     }
   
   # Create empty data frame to contain the results.
@@ -180,20 +189,26 @@ redncost_giv_mp <- function(df, mp) {
 
 redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_mp' above
   
-  dt <- 
-    df %>% 
-    group_by(1:n()) %>%
-    mutate(f_my = inv_marg_yield(my, g, k, phi)) %>%
-    ungroup() %>%
-    mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp)))
   if (scenario == "All stocks") {
-    dt <- dt %>% 
+    dt <- 
+      df %>% 
+      group_by(1:n()) %>%
+      mutate(f_my = inv_marg_yield(my, g, k, phi)) %>%
+      ungroup() %>%
+      mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
       mutate(msy = eqyieldf(g,g,k,phi)) %>%
-      mutate(ycost = yieldcostf(f_my,g,k,phi))
+      mutate(ycost = yieldcostf(f_my,g,g,k,phi))
   } else {
-    dt <- dt %>% 
+    dt <- 
+      df %>% 
+      group_by(1:n()) %>%
+      mutate(f_my1 = inv_marg_yield(my, g, k, phi)) %>%
+      mutate(f_my = if_else(f_my1 < fconmsy, f_my1, fconmsy)) %>%
+      select(-f_my1) %>%
+      ungroup() %>%
+      mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
       mutate(msy = eqyieldf(fconmsy,g,k,phi)) %>%
-      mutate(ycost = yieldcostf(f_my,g,k,phi))
+      mutate(ycost = yieldcostf(f_my,fconmsy,g,k,phi))
   }
   
   output <- data_frame(pctred = 0, cost = 0)

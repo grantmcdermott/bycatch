@@ -158,8 +158,10 @@ rm(upsides2,dtup,mcup,idsup,upsides_kobe,totoab)
 
 ## Add conservation concern MEY columns: fconmey = mey if it is a conservation concern stock, fconmsy otherwise
 upsides <- upsides %>%
-  mutate(fconmey = if_else((fconmsy/g) == 1, f_mey, fconmsy),
-         pctredfmeycon = 100 * (1-(fconmey/curr_f)))
+  mutate(fconmey1 = if_else((fconmsy/g) == 1, f_mey, fconmsy),
+         fconmey = if_else(fconmey1 > f_mey, f_mey, fconmey1), #MB: Added the correction so that fconmey is <= f_mey
+         pctredfmeycon = 100 * (1-(fconmey/curr_f))) %>%
+  select(-fconmey1)
 
 ## Add a database ID (i.e. if stock assessment source was FAO or RAM legacy)
 dbaseid <- read_csv("Data/TBD_IF_NEEDED/ram_stock_lkup.csv") ## already loaded
