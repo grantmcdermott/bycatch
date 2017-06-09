@@ -76,6 +76,7 @@ sensrange_string <- ifelse(sensrange25==0, "", "_sensrange25")
 ## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
 ##   or just those currently with F > Fmsy or B < Bmsy)
 scenario <- c("All stocks", "Con. Concern")[1]
+scenario_string <- ifelse(scenario=="All stocks", "", "_conservation")
 
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
@@ -137,7 +138,7 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, sensrange_string, ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, scenario_string, sensrange_string, ".csv"))
 
 
 ####################################
@@ -534,7 +535,7 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_summary_results_", analysis_type, alpha_str, "", corr_string, sensrange_string, ".csv"))
+write_csv(results_summary, paste0("Results/bycatch_summary_results_", analysis_type, alpha_str, "", corr_string, scenario_string, sensrange_string, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_string, ".png"), width=10*.6, height=13*.6)

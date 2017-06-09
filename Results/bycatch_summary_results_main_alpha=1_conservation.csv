@@ -1,0 +1,81 @@
+species,grp,clade,region,pctredbpt,pctredbl,pctredbu,key,q025,q50,q975,silhouette,lambda,delta,fe,redlist
+Australian sea lion,mammal,pinniped,Australia,20.8,12.5,34.6,pcostmey,0,0,0,pinniped,0.9946,-0.0054,0.026,EN
+Australian sea lion,mammal,pinniped,Australia,20.8,12.5,34.6,pctredmey,21.20316584518144,25.337343397351447,28.97867877317489,pinniped,0.9946,-0.0054,0.026,EN
+Australian sea lion,mammal,pinniped,Australia,20.8,12.5,34.6,pctredmsy,4.412619125354304,10.13836023786813,15.115744019272087,pinniped,0.9946,-0.0054,0.026,EN
+Australian sea lion,mammal,pinniped,Australia,20.8,12.5,34.6,ycostmsy,0.3163223693082728,0.7229152106718999,1.22978437597153,pinniped,0.9946,-0.0054,0.026,EN
+Hector's dolphin,mammal,cetacean,New Zealand,41.2,24.7,68.6,pcostmey,11.13081372931422,16.179792524846846,20.73034844689276,dolphin,0.986,-0.014,0.034,EN
+Hector's dolphin,mammal,cetacean,New Zealand,41.2,24.7,68.6,pctredmey,-40.79844309649825,-29.18134681043813,-18.250508873010176,dolphin,0.986,-0.014,0.034,EN
+Hector's dolphin,mammal,cetacean,New Zealand,41.2,24.7,68.6,pctredmsy,-43.336562636438266,-32.7811628547569,-22.454322186116432,dolphin,0.986,-0.014,0.034,EN
+Hector's dolphin,mammal,cetacean,New Zealand,41.2,24.7,68.6,ycostmsy,18.305425128229462,24.535641491771592,29.679176673497675,dolphin,0.986,-0.014,0.034,EN
+Indo-Pacific finless porpoise,mammal,cetacean,Indo-Pacific,20,12,33.3,pcostmey,0,0,0,porpoise,0.99,-0.01,0.05,VU
+Indo-Pacific finless porpoise,mammal,cetacean,Indo-Pacific,20,12,33.3,pctredmey,50.405418851984294,55.80048130527426,60.364935972748995,porpoise,0.99,-0.01,0.05,VU
+Indo-Pacific finless porpoise,mammal,cetacean,Indo-Pacific,20,12,33.3,pctredmsy,38.49586317437342,44.11837823292623,48.73773710017493,porpoise,0.99,-0.01,0.05,VU
+Indo-Pacific finless porpoise,mammal,cetacean,Indo-Pacific,20,12,33.3,ycostmsy,0,0,0,porpoise,0.99,-0.01,0.05,VU
+Indo-Pacific humpback dolphin,mammal,cetacean,Indo-Pacific,13,7.8,21.7,pcostmey,0,0,0,dolphin,0.994,-0.006,0.046,NT
+Indo-Pacific humpback dolphin,mammal,cetacean,Indo-Pacific,13,7.8,21.7,pctredmey,50.58709835264923,57.66204853464268,62.20705633889522,dolphin,0.994,-0.006,0.046,NT
+Indo-Pacific humpback dolphin,mammal,cetacean,Indo-Pacific,13,7.8,21.7,pctredmsy,38.01011351973516,45.71435329587086,51.03161481636216,dolphin,0.994,-0.006,0.046,NT
+Indo-Pacific humpback dolphin,mammal,cetacean,Indo-Pacific,13,7.8,21.7,ycostmsy,0,0,0,dolphin,0.994,-0.006,0.046,NT
+Leatherback turtle (E Pacific),turtle,turtle,E Pacific,46.1,27.7,76.8,pcostmey,0,0,0,turtle,0.846,-0.154,0.334,CR
+Leatherback turtle (E Pacific),turtle,turtle,E Pacific,46.1,27.7,76.8,pctredmey,67.67663245803959,72.07755187850738,74.15477007050104,turtle,0.846,-0.154,0.334,CR
+Leatherback turtle (E Pacific),turtle,turtle,E Pacific,46.1,27.7,76.8,pctredmsy,55.560574717198705,61.5870456694654,64.21760238425877,turtle,0.846,-0.154,0.334,CR
+Leatherback turtle (E Pacific),turtle,turtle,E Pacific,46.1,27.7,76.8,ycostmsy,0,0,0,turtle,0.846,-0.154,0.334,CR
+Leatherback turtle (SW Indian),turtle,turtle,SW Indian Ocean,9.1,5.5,15.2,pcostmey,0,0.1633594083585117,1.439186452964876,turtle,0.999,-0.001,0.011,CR
+Leatherback turtle (SW Indian),turtle,turtle,SW Indian Ocean,9.1,5.5,15.2,pctredmey,-10.252684488118847,2.8577841844669574,13.75449084870406,turtle,0.999,-0.001,0.011,CR
+Leatherback turtle (SW Indian),turtle,turtle,SW Indian Ocean,9.1,5.5,15.2,pctredmsy,-30.83440440890589,-19.299722206252678,-9.07208430703182,turtle,0.999,-0.001,0.011,CR
+Leatherback turtle (SW Indian),turtle,turtle,SW Indian Ocean,9.1,5.5,15.2,ycostmsy,0.9822603182599856,2.7049586573651188,5.092623855478435,turtle,0.999,-0.001,0.011,CR
+Leatherback turtle (W Pacific),turtle,turtle,W Pacific,57.5,34.5,95.8,pcostmey,0,0,0.030602179788967086,turtle,0.927,-0.073,0.127,CR
+Leatherback turtle (W Pacific),turtle,turtle,W Pacific,57.5,34.5,95.8,pctredmey,54.48915124314057,59.389786635352976,63.23183853402146,turtle,0.927,-0.073,0.127,CR
+Leatherback turtle (W Pacific),turtle,turtle,W Pacific,57.5,34.5,95.8,pctredmsy,40.10217180377544,46.230159172370776,50.968207793952196,turtle,0.927,-0.073,0.127,CR
+Leatherback turtle (W Pacific),turtle,turtle,W Pacific,57.5,34.5,95.8,ycostmsy,0.0652969746374602,0.27915714533368086,0.7978590794492515,turtle,0.927,-0.073,0.127,CR
+Loggerhead turtle (NW Atlantic),turtle,turtle,NW Atlantic,29.9,17.9,49.8,pcostmey,0,0,6.554561946338114e-4,turtle,0.98,-0.02,0.067,LC
+Loggerhead turtle (NW Atlantic),turtle,turtle,NW Atlantic,29.9,17.9,49.8,pctredmey,29.389248224780246,36.95180774016544,44.31467878909056,turtle,0.98,-0.02,0.067,LC
+Loggerhead turtle (NW Atlantic),turtle,turtle,NW Atlantic,29.9,17.9,49.8,pctredmsy,4.860482829326432,14.906300860201489,24.6161473284001,turtle,0.98,-0.02,0.067,LC
+Loggerhead turtle (NW Atlantic),turtle,turtle,NW Atlantic,29.9,17.9,49.8,ycostmsy,0.037919474442914124,0.41840085144012334,2.2103605661996517,turtle,0.98,-0.02,0.067,LC
+Loggerhead turtle (NW Indian),turtle,turtle,NW Indian Ocean,47.2,28.3,78.7,pcostmey,0,0,0,turtle,0.958,-0.042,0.089,CR
+Loggerhead turtle (NW Indian),turtle,turtle,NW Indian Ocean,47.2,28.3,78.7,pctredmey,50.720328997318234,56.476638341486996,60.92489176395507,turtle,0.958,-0.042,0.089,CR
+Loggerhead turtle (NW Indian),turtle,turtle,NW Indian Ocean,47.2,28.3,78.7,pctredmsy,40.953688913871694,46.748229493648104,51.209554182490784,turtle,0.958,-0.042,0.089,CR
+Loggerhead turtle (NW Indian),turtle,turtle,NW Indian Ocean,47.2,28.3,78.7,ycostmsy,0,3.783212014580977e-4,0.079592729061021,turtle,0.958,-0.042,0.089,CR
+Loggerhead turtle (S Pacific),turtle,turtle,S Pacific,43.4,26,72.3,pcostmey,0,0,0,turtle,0.964,-0.036,0.083,CR
+Loggerhead turtle (S Pacific),turtle,turtle,S Pacific,43.4,26,72.3,pctredmey,61.3683568388389,64.18932607887689,66.81008234009758,turtle,0.964,-0.036,0.083,CR
+Loggerhead turtle (S Pacific),turtle,turtle,S Pacific,43.4,26,72.3,pctredmsy,50.34708932152277,53.04905833678646,55.747311609469584,turtle,0.964,-0.036,0.083,CR
+Loggerhead turtle (S Pacific),turtle,turtle,S Pacific,43.4,26,72.3,ycostmsy,0,0,0,turtle,0.964,-0.036,0.083,CR
+Māui dolphin,mammal,cetacean,New Zealand,66.7,40,110.1,pcostmey,32.75304595469563,38.42375358164381,43.01576859673253,dolphin,0.96,-0.04,0.06,CR
+Māui dolphin,mammal,cetacean,New Zealand,66.7,40,110.1,pctredmey,-40.57389087242836,-29.295908304674953,-17.19347886862619,dolphin,0.96,-0.04,0.06,CR
+Māui dolphin,mammal,cetacean,New Zealand,66.7,40,110.1,pctredmsy,-43.14880980646325,-32.854553893071184,-21.726649696768483,dolphin,0.96,-0.04,0.06,CR
+Māui dolphin,mammal,cetacean,New Zealand,66.7,40,110.1,ycostmsy,42.29050005174517,48.06316717348628,52.578839992471046,dolphin,0.96,-0.04,0.06,CR
+Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pcostmey,0.016477823047322697,0.26250819223339505,1.9684277498720348,porpoise,0.943,-0.057,0.097,VU
+Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pctredmey,43.60914353300719,52.80377199608812,57.262074643904405,porpoise,0.943,-0.057,0.097,VU
+Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pctredmsy,26.742452825125028,39.782704628873056,44.43573481473292,porpoise,0.943,-0.057,0.097,VU
+Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,ycostmsy,1.4196290504104778,2.7854350144825375,6.05112747140077,porpoise,0.943,-0.057,0.097,VU
+NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pcostmey,63.89782605194381,66.1094862860923,67.92570701465621,pinniped,0.96,-0.04,0.067,CR
+NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmey,-151.069331773873,-135.04644786099075,-124.05706813381633,pinniped,0.96,-0.04,0.067,CR
+NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmsy,-155.13946955403856,-138.8521886056791,-128.00059795858624,pinniped,0.96,-0.04,0.067,CR
+NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,ycostmsy,71.85225219531517,74.2075963317141,76.09628995939683,pinniped,0.96,-0.04,0.067,CR
+Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pcostmey,0,0,0,turtle,0.97,-0.03,0.078,VU
+Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pctredmey,60.03356261328872,62.95718951859916,65.40901518926543,turtle,0.97,-0.03,0.078,VU
+Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pctredmsy,44.174352811833145,48.74976731226289,52.50653006506202,turtle,0.97,-0.03,0.078,VU
+Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,ycostmsy,0,0,0,turtle,0.97,-0.03,0.078,VU
+Olive ridley turtle (W Indian),turtle,turtle,W Indian Ocean,128.6,77.1,214.3,pcostmey,100,100,100,turtle,0.82,-0.18,0.14,VU
+Olive ridley turtle (W Indian),turtle,turtle,W Indian Ocean,128.6,77.1,214.3,pctredmey,47.886213007312904,55.84065120391759,62.44195371523017,turtle,0.82,-0.18,0.14,VU
+Olive ridley turtle (W Indian),turtle,turtle,W Indian Ocean,128.6,77.1,214.3,pctredmsy,36.35419090605545,44.381826317140835,51.75487593015985,turtle,0.82,-0.18,0.14,VU
+Olive ridley turtle (W Indian),turtle,turtle,W Indian Ocean,128.6,77.1,214.3,ycostmsy,100,100,100,turtle,0.82,-0.18,0.14,VU
+Sooty shearwater,bird,bird,"Atlantic, Pacific, S Indian Ocean, S Ocean",600,360,1e3,pcostmey,100,100,100,bird,0.982,-0.018,0.003,NT
+Sooty shearwater,bird,bird,"Atlantic, Pacific, S Indian Ocean, S Ocean",600,360,1e3,pctredmey,36.7975970714594,41.49355272032976,46.05848461424673,bird,0.982,-0.018,0.003,NT
+Sooty shearwater,bird,bird,"Atlantic, Pacific, S Indian Ocean, S Ocean",600,360,1e3,pctredmsy,14.036628235651227,20.08703596616483,25.52638672647351,bird,0.982,-0.018,0.003,NT
+Sooty shearwater,bird,bird,"Atlantic, Pacific, S Indian Ocean, S Ocean",600,360,1e3,ycostmsy,100,100,100,bird,0.982,-0.018,0.003,NT
+Taiwanese humpback dolphin,mammal,cetacean,NW Pacific,38.5,23.1,64.1,pcostmey,0,0,0,dolphin,0.975,-0.025,0.065,CR
+Taiwanese humpback dolphin,mammal,cetacean,NW Pacific,38.5,23.1,64.1,pctredmey,48.31002908252755,53.109972203747276,57.133992986754606,dolphin,0.975,-0.025,0.065,CR
+Taiwanese humpback dolphin,mammal,cetacean,NW Pacific,38.5,23.1,64.1,pctredmsy,35.77942327146997,41.22058307843631,44.829532793186125,dolphin,0.975,-0.025,0.065,CR
+Taiwanese humpback dolphin,mammal,cetacean,NW Pacific,38.5,23.1,64.1,ycostmsy,0,0,0.009007873837223653,dolphin,0.975,-0.025,0.065,CR
+Tristan albatross,bird,bird,S Atlantic,90.6,54.4,151,pcostmey,66.26689136005724,68.944514592737,71.36750941348572,bird,0.971,-0.029,0.032,CR
+Tristan albatross,bird,bird,S Atlantic,90.6,54.4,151,pctredmey,26.374122352952433,29.996594135551728,33.5491914401708,bird,0.971,-0.029,0.032,CR
+Tristan albatross,bird,bird,S Atlantic,90.6,54.4,151,pctredmsy,-4.900114949741703,0.0032693895223036007,5.051134109149338,bird,0.971,-0.029,0.032,CR
+Tristan albatross,bird,bird,S Atlantic,90.6,54.4,151,ycostmsy,70.4307300171671,72.3551979474944,74.18025768903556,bird,0.971,-0.029,0.032,CR
+Vaquita porpoise,mammal,cetacean,Gulf of California - Mexico,89.5,53.7,149.1,pcostmey,83.38855139212235,84.07685412769501,84.74276496226024,porpoise,0.66,-0.34,0.38,CR
+Vaquita porpoise,mammal,cetacean,Gulf of California - Mexico,89.5,53.7,149.1,pctredmey,-29.44953705561007,-27.585169288972253,-26.719667136521302,porpoise,0.66,-0.34,0.38,CR
+Vaquita porpoise,mammal,cetacean,Gulf of California - Mexico,89.5,53.7,149.1,pctredmsy,-37.235335392916575,-34.64547532501862,-33.56824439081739,porpoise,0.66,-0.34,0.38,CR
+Vaquita porpoise,mammal,cetacean,Gulf of California - Mexico,89.5,53.7,149.1,ycostmsy,8.127396933629678,9.726406266584782,12.114650303391196,porpoise,0.66,-0.34,0.38,CR
+White-chinned petrel,bird,bird,"S Pacific, S Atlantic, S Indian, S Ocean",27.7,16.6,46.1,pcostmey,0,0,0,bird,0.964,-0.036,0.13,VU
+White-chinned petrel,bird,bird,"S Pacific, S Atlantic, S Indian, S Ocean",27.7,16.6,46.1,pctredmey,36.062928969707315,41.3096493232718,45.59974903766766,bird,0.964,-0.036,0.13,VU
+White-chinned petrel,bird,bird,"S Pacific, S Atlantic, S Indian, S Ocean",27.7,16.6,46.1,pctredmsy,15.382676117130494,21.726363771981575,27.10626524535086,bird,0.964,-0.036,0.13,VU
+White-chinned petrel,bird,bird,"S Pacific, S Atlantic, S Indian, S Ocean",27.7,16.6,46.1,ycostmsy,0.004864403661425522,0.2228820244803585,0.9437546311852907,bird,0.964,-0.036,0.13,VU
