@@ -330,7 +330,7 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
 ################################################################################################
 
 ## Function to randomly adjust bycatch weights within +/- 25% uniform range.
-## Only relevant to "weights" analysis type / sensitivity run.
+## Only relevant to "weights" sensitivity run.
 wt_func <-
   function(wts) {
     prbs <- runif(length(wts), 0.75, 1.25)

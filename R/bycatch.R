@@ -70,11 +70,11 @@ alpha_exp <- c(1, 0.5, 2)[1]
 alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
 
 ## Select whether analysis simulates over 25% sensitivity range in Fe and delta
-sensrange25 <- c(0, 1)[0] # 0 = off, 1 = on
+sensrange25 <- c(0, 1)[1] # 0 = off, 1 = on
 sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
 
 ## Select whether cost analysis simulates over 25% sensitivity range in bycatch weights
-weights_sens <- c(0, 1)[0] # 0 = off, 1 = on
+weights_sens <- c(0, 1)[1] # 0 = off, 1 = on
 weights_str <- ifelse(weights_sens==0, "", "_weights")
 
 ## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
