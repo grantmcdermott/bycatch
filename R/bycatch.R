@@ -67,16 +67,20 @@ all_species <- bycatch_df$species
 ## in) target stocks. Default is 1. Other options used in sensitivity analysis.
 ## See equation (S14). 
 alpha_exp <- c(1, 0.5, 2)[1] 
-alpha_str <- gsub("\\.","",paste0("_alpha=",alpha_exp)) ## Convenience variable for reading and writing files
+alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
 
-## Select whether cost analysis simulates over 25% sensitivity range in Fe and delta
-sensrange25 <- c(0, 1)[1] # 0 = off, 1 = on
-sensrange_string <- ifelse(sensrange25==0, "", "_sensrange25")
+## Select whether analysis simulates over 25% sensitivity range in Fe and delta
+sensrange25 <- c(0, 1)[0] # 0 = off, 1 = on
+sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
+
+## Select whether cost analysis simulates over 25% sensitivity range in bycatch weights
+weights_sens <- c(0, 1)[0] # 0 = off, 1 = on
+weights_str <- ifelse(weights_sens==0, "", "_weights")
 
 ## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
 ##   or just those currently with F > Fmsy or B < Bmsy)
 scenario <- c("All stocks", "Con. Concern")[1]
-scenario_string <- ifelse(scenario=="All stocks", "", "_conservation")
+scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
 
 ### Load target stock data, derived from the "upsides" model of Costello et al. 
 ### (PNAS, 2016).
@@ -84,20 +88,21 @@ scenario_string <- ifelse(scenario=="All stocks", "", "_conservation")
 ## stocks and uses a mean F over 2010-2012), 2) Excluding NEI stocks, 3) Use F
 ## from 2012 only. The main results of the paper rely on (1). The latter two are 
 ## used for sensitivity analysis in the SM.
-analysis_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
+upsides_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
+upsides_str <- ifelse(upsides_type=="main", "", upsides_type)
 ## Now read in the data
 upsides <- 
-  fread(paste0("Data/upsides_", analysis_type, ".csv")) %>% 
+  fread(paste0("Data/upsides_", upsides_str, ".csv")) %>% 
   as_data_frame()
-# upsides <- read_csv(paste0("Data/upsides_", analysis_type, ".csv"), col_types = cols(regionfao = "c"))
+# upsides <- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
 
 ## Decide whether to add in a "correction factor" for possible upward bias in C-MSY projections
 ## Default is 1 (i.e. no bias). Alternative is 2 (i.e. current F is twice as big as estimated by
 ## the upsides model.)
 corr_factor <- c(1, 2)[1] ## Change as required 
-corr_string <- ""
+corr_str <- ""
 if(corr_factor==2){
-  corr_string <- "_fcorrected"
+  corr_str <- "_fcorrected"
   upsides <-
     upsides %>%
     mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%
@@ -119,7 +124,7 @@ if(corr_factor==2){
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 145)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 150)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### MCMC sampling parameters
@@ -138,7 +143,9 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", analysis_type, alpha_str, corr_string, scenario_string, sensrange_string, ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results_", 
+                         upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str,
+                         ".csv"))
 
 
 ####################################
@@ -535,17 +542,20 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_summary_results_", analysis_type, alpha_str, "", corr_string, scenario_string, sensrange_string, ".csv"))
+write_csv(results_summary, 
+          paste0("Results/bycatch_summary_results_", 
+                 upsides_str, alpha_str, "", corr_str, scenario_str, sensrange_str, weights_str,
+                 ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_string, ".png"), width=10*.6, height=13*.6)
-fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", corr_string, ".pdf"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_str, ".png"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", corr_str, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave(paste0("Figures/fig-3-msy", corr_string, ".png"), width=10*.6, height=13*.6)
-fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", corr_string, ".pdf"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/fig-3-msy", corr_str, ".png"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", corr_str, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3msy)
 dev.off()
 
@@ -647,8 +657,8 @@ rm(fig_s1)
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave(paste0("Figures/fig-S2", corr_string, ".png"), width = 10, height = 13)
-fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", corr_string, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave(paste0("Figures/fig-S2", corr_str, ".png"), width = 10, height = 13)
+fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", corr_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -658,8 +668,8 @@ dev.off()
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave(paste0("Figures/fig-S3", corr_string, ".png"), width = 10, height = 13)
-fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", corr_string, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s3 + ggsave(paste0("Figures/fig-S3", corr_str, ".png"), width = 10, height = 13)
+fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", corr_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s3)
 dev.off()
 
