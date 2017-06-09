@@ -92,7 +92,7 @@ upsides_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
 upsides_str <- ifelse(upsides_type=="main", "", upsides_type)
 ## Now read in the data
 upsides <- 
-  fread(paste0("Data/upsides_", upsides_str, ".csv")) %>% 
+  fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
   as_data_frame()
 # upsides <- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
 
