@@ -329,16 +329,37 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
 ## Step 1: Extract relevant list from target species data frame (needed for disb_func below) ###
 ################################################################################################
 
+## Function to randomly adjust bycatch weights within +/- 25% uniform range.
+## Only relevant to "weights" analysis type / sensitivity run.
+wt_func <-
+  function(wts) {
+    prbs <- runif(length(wts), 0.75, 1.25)
+    new_wts <- wts * prbs / sum(wts)
+    new_wts_normalised <- new_wts / sum(new_wts)
+    return(new_wts_normalised)
+  }
+
 extract_func <-
   function(s){
+    ## weights adjustment
+    if(weights_sens==1){
+      target_df <-
+        target_df %>%
+        distinct(species, target, type, wt) %>%
+        group_by(species) %>%
+        mutate(wt = wt_func(wt)) %>%
+        ungroup %>%
+        right_join(target_df %>% select(-wt))
+      }
+    ## end weights adjustment
     lapply(target_df %>% 
              filter(species == s) %>%
              split(.$target), 
            function(y){
              lapply(y, function(x) unique(x))
-           }
+             }
     ) 
-  }
+    }
 
 ###########################################################
 ## Step 2: Subset upsides data to relevant target stocks ##
