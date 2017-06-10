@@ -89,7 +89,7 @@ scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
 ## from 2012 only. The main results of the paper rely on (1). The latter two are 
 ## used for sensitivity analysis in the SM.
 upsides_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
-upsides_str <- ifelse(upsides_type=="main", "", upsides_type)
+upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
 ## Now read in the data
 upsides <- 
   fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
@@ -118,13 +118,15 @@ if(corr_factor==2){
     )
 }
 
+## Convenience variable for output file name suffix
+suff_str <- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str)
 
 ################################
 ########### ANALYSIS ###########
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 150)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 151)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### MCMC sampling parameters
@@ -143,9 +145,7 @@ n2 <- 100
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
 ## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results_", 
-                         upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str,
-                         ".csv"))
+write_csv(all_dt, paste0("Results/bycatch_results", suff_str, ".csv"))
 
 
 ####################################
@@ -153,7 +153,7 @@ write_csv(all_dt, paste0("Results/bycatch_results_",
 ####################################
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
-all_dt <- read_csv("Results/bycatch_results_main_alpha=1.csv")
+all_dt <- read_csv("Results/bycatch_results.csv")
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
@@ -542,20 +542,17 @@ dev.off()
 ###############################
 
 results_summary <- summ_func(all_dt)
-write_csv(results_summary, 
-          paste0("Results/bycatch_summary_results_", 
-                 upsides_str, alpha_str, "", corr_str, scenario_str, sensrange_str, weights_str,
-                 ".csv"))
+write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave(paste0("Figures/fig-3-mey", corr_str, ".png"), width=10*.6, height=13*.6)
-fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", corr_str, ".pdf"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/fig-3-mey", suff_str, ".png"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", suff_str, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave(paste0("Figures/fig-3-msy", corr_str, ".png"), width=10*.6, height=13*.6)
-fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", corr_str, ".pdf"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/fig-3-msy", suff_str, ".png"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", suff_str, ".pdf"), width=10*.6, height=13*.6)
 rm(fig_3msy)
 dev.off()
 
@@ -657,8 +654,8 @@ rm(fig_s1)
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave(paste0("Figures/fig-S2", corr_str, ".png"), width = 10, height = 13)
-fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", corr_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave(paste0("Figures/fig-S2", suff_str, ".png"), width = 10, height = 13)
+fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", suff_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -668,8 +665,8 @@ dev.off()
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave(paste0("Figures/fig-S3", corr_str, ".png"), width = 10, height = 13)
-fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", corr_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s3 + ggsave(paste0("Figures/fig-S3", suff_str, ".png"), width = 10, height = 13)
+fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", suff_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s3)
 dev.off()
 

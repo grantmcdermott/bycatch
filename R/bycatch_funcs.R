@@ -329,29 +329,8 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
 ## Step 1: Extract relevant list from target species data frame (needed for disb_func below) ###
 ################################################################################################
 
-## Function to randomly adjust bycatch weights within +/- 25% uniform range.
-## Only relevant to "weights" sensitivity run.
-wt_func <-
-  function(wts) {
-    prbs <- runif(length(wts), 0.75, 1.25)
-    new_wts <- wts * prbs / sum(wts)
-    new_wts_normalised <- new_wts / sum(new_wts)
-    return(new_wts_normalised)
-  }
-
 extract_func <-
   function(s){
-    ## weights adjustment
-    if(weights_sens==1){
-      target_df <-
-        target_df %>%
-        distinct(species, target, type, wt) %>%
-        group_by(species) %>%
-        mutate(wt = wt_func(wt)) %>%
-        ungroup %>%
-        right_join(target_df %>% select(-wt))
-      }
-    ## end weights adjustment
     lapply(target_df %>% 
              filter(species == s) %>%
              split(.$target), 
@@ -540,16 +519,16 @@ upsides_subset_func <-
         fconmsy > 0,
         fconmey > 0
         ) %>%
-      mutate(wgt = marginalcost * ((curr_f)^beta)) %>%
+      mutate(sampling_wgt = marginalcost * ((curr_f)^beta)) %>%
       select(
         dbase,idorig,idoriglumped,pctredfmsy,pctredfmey,pctredfmey,pctredfmsycon,pctredfmeycon,
-        wgt,speciescat,speciescatname,fmeyvfmsy,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,
+        sampling_wgt,speciescat,speciescatname,fmeyvfmsy,k,fvfmsy,g,beta,phi,price,marginalcost,eqfvfmey,
         curr_f,f_mey,fconmsy,fconmey
         ) %>%
       mutate(trgcat = dt$target) %>%
       mutate(wt = dt$wt) %>%
       mutate(bycsp = dt$species) %>%
-      mutate(wgt = wgt/sum(wgt, na.rm = T))
+      mutate(sampling_wgt = sampling_wgt/sum(sampling_wgt, na.rm = T))
     
     return(stocks_df)
   }
@@ -558,46 +537,79 @@ upsides_subset_func <-
 ## Step 3: Produce a data frame of the sample distributions and costs ##
 ########################################################################
 
+## Function for sampling within a particular target stock category (e.g. demersal).
+## Sampling is weighted according to the marginal costs of that stock (defined in 
+## 'stocks_df' above).
 samp_func <- 
   function(dt, n2, reltdf) {
     smple <- reltdf %>%
       filter(trgcat == dt$target) %>%
-      sample_n(n2, replace = T, weight = wgt)
+      sample_n(n2, replace = T, weight = sampling_wgt)
     return(smple)
+  }
+
+## Function to randomly adjust bycatch weights within +/- 25% uniform range.
+## Only relevant to "weights" sensitivity run.
+wt_func <-
+  function(wts) {
+    prbs <- runif(length(wts), 0.75, 1.25)
+    new_wts <- wts * prbs / sum(wts)
+    new_wts_normalised <- new_wts / sum(new_wts)
+    return(new_wts_normalised)
   }
 
 ## Input is a list of 'dt's' -> output from 'extract_func'
 single_worldstate_outputs <- 
   function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept25) {
-   
-    if (scenario == "All stocks") {
+    
+    ## Sample within each of the relevant target categories (demersal, shrimp, etc.) 
+    ## and the combine into a common data frame.
     samp <- 
       lapply(dt2, function (x) samp_func(x, n2, reltdf)) %>%
-      bind_rows() %>%
+      bind_rows()
+    
+    ## weights adjustment
+    if(weights_sens==1){
+      samp <-
+        samp %>%
+        distinct(trgcat, wt) %>%
+        mutate(wt = wt_func(wt)) %>%
+        right_join(samp %>% select(-wt))
+    }
+    ## end weights adjustment
+    
+    ## The impact of each stocks is then weighted according to bycatch estimates 
+    ## for its overall target category (taken from the literature)
+    samp <- 
+      samp %>%
+      mutate(wgt = wt * (1/n2))
+    
+   ## Conservation concern scenario adjustments
+    if (scenario == "All stocks") { ## i.e. scenario != "Con. concern"
+    samp <- 
+      samp %>%
       mutate(
-        wgt = wt * (1/n2),
         pctrmsywt = wgt * 100 * (1 - ((1 - (pctredfmsy/100))^alpha_exp)),
         pctrmeywt = wgt * 100 * (1 - ((1 - (pctredfmey/100))^alpha_exp))
         )
-    } else {
+    } else { ## i.e. scenario == "Con. concern"
       samp <- 
-        lapply(dt2, function (x) samp_func(x, n2, reltdf)) %>%
-        bind_rows() %>%
+        samp %>%
         mutate(
-          wgt = wt * (1/n2),
           pctrmsywt = wgt * 100 * (1 - ((1 - (pctredfmsycon/100))^alpha_exp)),
           pctrmeywt = wgt * 100 * (1 - ((1 - (pctredfmeycon/100))^alpha_exp))
         )
     }
+    ## End conservation concern scenario adjustments
     
     mpctmsy <- sum(samp$pctrmsywt, na.rm = T) ## GRM: Added na.rm = T
     mpctmey <- sum(samp$pctrmeywt, na.rm = T) ## GRM: Added na.rm = T
     
     if (sensrangept25 == 1) {
-    pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
-    } else {
+      pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
+      } else {
       pctb <- pctredb
-    }
+      }
     stwld <- 
       data_frame(
         pctredmsy = mpctmsy, 
@@ -608,7 +620,7 @@ single_worldstate_outputs <-
     return(stwld)
   }
 
-## Input is list of 'dt's'
+## Input is list of 'dt's' -> output from 'extract_func'
 disb_func <-
   function(dt2, n1, n2){
     
