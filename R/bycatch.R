@@ -562,7 +562,7 @@ dev.off()
 #############################################
 
 #############################################################
-##### Fig S.1 (Upsides by FAO region & taxonomic group) #####
+##### Fig S1 (Upsides by FAO region & taxonomic group) #####
 #############################################################
 
 ## Read in taxonomy CSV for faceting categories
@@ -649,7 +649,7 @@ fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
 rm(fig_s1)
 
 ##############################################################
-##### Fig S.2 (Combined bycatch reduction distributions) #####
+##### Fig S2 (Combined bycatch reduction distributions) #####
 ##############################################################
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
@@ -660,7 +660,7 @@ rm(fig_s2)
 dev.off()
 
 #################################################
-##### Fig S.2 (Combined cost distributions) #####
+##### Fig S3 (Combined cost distributions) #####
 #################################################
 fig_s3 <- 
   cost_plot(all_dt) +
@@ -690,22 +690,58 @@ fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 4, height = 4)
 rm(fig_s4)
 dev.off()
 
-########################################
-#### Fig. S5 (Sensitivity analysis) ####
-########################################
+################################################
+#### Figs. S5 and S6 (Sensitivity analysis) ####
+################################################
 
-## Fig. S5 (A): Main results. No uncertainty, alpha = 1
-df_s5a <- summ_func(all_dt)
-fig_s5a <- tradeoffs_plot(df_s5a, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-## Fig. S5 (B): With uncertainty, alpha = 1
-df_s5b <- read_csv("Results/bycatch_results_uncert_alpha=1.csv", col_types = "ddddc") %>% summ_func()
-fig_s5b <- tradeoffs_plot(df_s5b, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-## Fig. S5 (C): No uncertainty, alpha = 0.5
-df_s5c <- read_csv("Results/bycatch_results_nouncert_alpha=05.csv") %>% summ_func()
-fig_s5c <- tradeoffs_plot(df_s5c, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-## Fig. S5 (D): No uncertainty, alpha = 2
-df_s5d <- read_csv("Results/bycatch_results_nouncert_alpha=2.csv") %>% summ_func()
-fig_s5d <- tradeoffs_plot(df_s5d, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+## Sensitivity plots (possible analyses to include)
+
+# 1. Main run: base year is 2010-2012 (geom. mean) 
+#              alpha = 1
+#              no uncertainty in Fe or delta
+#              all stocks at MEY
+df_sens1 <- read_csv("Results/bycatch_results.csv") %>% summ_func()
+
+# 2. Estimated current F cut in half for all Catch-MSY stocks (to estimate effects of possible bias)
+df_sens2 <- read_csv("Results/bycatch_results_fcorrected.csv") %>% summ_func()
+
+# 3. Only conservation concern stocks (as defined by Costello et al. 2016)
+#              rebuilt to MEY. 
+df_sens3 <- read_csv("Results/bycatch_results_conservation.csv") %>% summ_func()
+
+# 4. Main run with alpha = 0.5
+df_sens4 <- read_csv("Results/bycatch_results_main_alpha=05.csv") %>% summ_func()
+
+# 5. Main run with alpha = 2
+df_sens5 <- read_csv("Results/bycatch_results_alpha=2.csv") %>% summ_func()
+
+# 6. Main run with 'nei' stocks removed
+df_sens6 <- read_csv("Results/bycatch_results_nonei.csv") %>% summ_func()
+
+# 7. Main run with a 25% sensitivity range on Fe and delta
+df_sens7 <- read_csv("Results/bycatch_results_sensrange25.csv") %>% summ_func()
+
+# 8. Main run with a 25% sensitivity range on weights for target stock groups 
+#              (e.g. demersals)
+df_sens8 <- read_csv("Results/bycatch_results_weights.csv") %>% summ_func()
+
+# 9. Main run with 2012 only as the base year (rather than 2010-2012)
+df_sens9 <- read_csv("Results/bycatch_results_2012only.csv") %>% summ_func()
+
+# Fig. S5: Comparing runs with changes to substantive assumptions
+#   A = 1, B = 2, C = 3, D = 4, E = 5
+fig_s5a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
+fig_s5b <- tradeoffs_plot(df_sens2, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s5c <- tradeoffs_plot(df_sens3, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s5d <- tradeoffs_plot(df_sens4, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s5e <- tradeoffs_plot(df_sens5, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+
+# Fig. S6: Comparing runs with changes to uncertainty assumptions
+#   A = 1, B = 7, C = 8, D = 9
+fig_s6a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
+fig_s6b <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6c <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6d <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
 #### Composite Fig. S5 ####
 
@@ -716,12 +752,13 @@ fig_s5a <- fig_s5a + theme(legend.position = "none")
 fig_s5 <-
   ggdraw() +
   # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s5a, 0, 0.05, 0.25, 0.95) +
-  draw_plot(fig_s5b, 0.27, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s5c, 0.52, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s5d, 0.77, 0.05, 0.23, 0.95) +
+  draw_plot(fig_s5a, 0, 0.05, 0.19, 0.95) +
+  draw_plot(fig_s5b, 0.22, 0.05, 0.17, 0.95) +
+  draw_plot(fig_s5c, 0.42, 0.05, 0.17, 0.95) +
+  draw_plot(fig_s5d, 0.62, 0.05, 0.17, 0.95) +
+  draw_plot(fig_s5e, 0.82, 0.05, 0.17, 0.95) +
   draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.26, 0.51, 0.76), c(1, 1, 1, 1), size = 15)
+  draw_plot_label(c("A", "B", "C", "D", "E"), c(0.02, 0.21, 0.41, 0.61, 0.81), c(1, 1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S5.png", fig_s5,
           base_height = 7,
@@ -732,9 +769,151 @@ save_plot("Figures/PDFs/fig-S5.pdf", fig_s5,
           base_aspect_ratio = 2
           )
 
-rm(fig_s5, fig_s5a, fig_s5b, fig_s5c, fig_s5d)
+rm(fig_s5, fig_s5a, fig_s5b, fig_s5c, fig_s5d, fig_s5e)
 dev.off()
 
+#### Composite Fig. S6 ####
+
+## Extract common legend from panel 5A and then remove
+legend_s6 <- g_legend(fig_s6a) 
+fig_s6a <- fig_s6a + theme(legend.position = "none")
+### Now, draw the figure
+fig_s6 <-
+  ggdraw() +
+  # draw_plot(figureName, xpos, ypos, width, height) +
+  draw_plot(fig_s6a, 0, 0.05, 0.25, 0.95) +
+  draw_plot(fig_s6b, 0.27, 0.05, 0.23, 0.95) +
+  draw_plot(fig_s6c, 0.52, 0.05, 0.23, 0.95) +
+  draw_plot(fig_s6d, 0.77, 0.05, 0.23, 0.95) +
+  draw_plot(legend_s5, 0, 0, 1, 0.05) +
+  draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.26, 0.51, 0.76), c(1, 1, 1, 1), size = 15)
+
+save_plot("Figures/fig-S6.png", fig_s6,
+          base_height = 7,
+          base_aspect_ratio = 2
+)
+save_plot("Figures/PDFs/fig-S6.pdf", fig_s6,
+          base_height = 7,
+          base_aspect_ratio = 2
+)
+
+rm(fig_s6, fig_s6a, fig_s6b, fig_s6c, fig_s6d)
+dev.off()
+
+##########################################################
+#### Replicas of Figs. S2 and S3 for sensitivity runs ####
+##########################################################
+# 1. Main run: base year is 2010-2012 (geom. mean) 
+#              alpha = 1
+#              no uncertainty in Fe or delta
+#              all stocks at MEY
+
+## Figs. S2 and S3 already made for main run ##
+
+# 2. Estimated current F cut in half for all Catch-MSY stocks (to estimate effects of possible bias)
+alldt_sens2 <- read_csv("Results/bycatch_results_fcorrected.csv")
+fig_2s2 <- 
+  bycatchdist_plot(alldt_sens2) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_2s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-fcorrected.png"), width = 10, height = 13)
+fig_2s3 <- 
+  cost_plot(alldt_sens2) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_2s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-fcorrected.png"), width = 10, height = 13)
+rm(fig_2s2, fig_2s3, alldt_sens2)
+dev.off()
+
+# 3. Only conservation concern stocks (as defined by Costello et al. 2016)
+#              rebuilt to MEY. 
+alldt_sens3 <- read_csv("Results/bycatch_results_conservation.csv")
+fig_3s2 <- 
+  bycatchdist_plot(alldt_sens3) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_3s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-conservation.png"), width = 10, height = 13)
+fig_3s3 <- 
+  cost_plot(alldt_sens3) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_3s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-conservation.png"), width = 10, height = 13)
+rm(fig_3s2, fig_3s3, alldt_sens3)
+dev.off()
+# 4. Main run with alpha = 0.5
+alldt_sens4 <- read_csv("Results/bycatch_results_main_alpha=05.csv")
+fig_4s2 <- 
+  bycatchdist_plot(alldt_sens4) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_4s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-alpha=05.png"), width = 10, height = 13)
+fig_4s3 <- 
+  cost_plot(alldt_sens4) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_4s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-alpha=05.png"), width = 10, height = 13)
+rm(fig_4s2, fig_4s3, alldt_sens4)
+dev.off()
+
+# 5. Main run with alpha = 2
+alldt_sens5 <- read_csv("Results/bycatch_results_alpha=2.csv")
+fig_5s2 <- 
+  bycatchdist_plot(alldt_sens5) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_5s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-alpha=2.png"), width = 10, height = 13)
+fig_5s3 <- 
+  cost_plot(alldt_sens5) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_5s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-alpha=2.png"), width = 10, height = 13)
+rm(fig_5s2, fig_5s3, alldt_sens5)
+dev.off()
+
+# 6. Main run with 'nei' stocks removed
+alldt_sens6 <- read_csv("Results/bycatch_results_nonei.csv")
+fig_6s2 <- 
+  bycatchdist_plot(alldt_sens6) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_6s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-nonei.png"), width = 10, height = 13)
+fig_6s3 <- 
+  cost_plot(alldt_sens6) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_6s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-nonei.png"), width = 10, height = 13)
+rm(fig_6s2, fig_6s3, alldt_sens6)
+dev.off()
+
+# 7. Main run with a 25% sensitivity range on Fe and delta
+alldt_sens7 <- read_csv("Results/bycatch_results_sensrange25.csv")
+fig_7s2 <- 
+  bycatchdist_plot(alldt_sens7) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_7s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-sensrange25.png"), width = 10, height = 13)
+fig_7s3 <- 
+  cost_plot(alldt_sens7) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_7s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-sensrange25.png"), width = 10, height = 13)
+rm(fig_7s2, fig_7s3, alldt_sens7)
+dev.off()
+
+# 8. Main run with a 25% sensitivity range on weights for target stock groups 
+#              (e.g. demersals)
+alldt_sens8 <- read_csv("Results/bycatch_results_weights.csv")
+fig_8s2 <- 
+  bycatchdist_plot(alldt_sens8) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_8s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-weights.png"), width = 10, height = 13)
+fig_8s3 <- 
+  cost_plot(alldt_sens8) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_8s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-weights.png"), width = 10, height = 13)
+rm(fig_8s2, fig_8s3, alldt_sens8)
+dev.off()
+
+# 9. Main run with 2012 only as the base year (rather than 2010-2012)
+alldt_sens9 <- read_csv("Results/bycatch_results_2012only.csv")
+fig_9s2 <- 
+  bycatchdist_plot(alldt_sens9) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") 
+fig_9s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-2012only.png"), width = 10, height = 13)
+fig_9s3 <- 
+  cost_plot(alldt_sens9) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_9s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-2012only.png"), width = 10, height = 13)
+rm(fig_9s2, fig_9s3, alldt_sens9)
+dev.off()
 
 #### List of species categories ####
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
