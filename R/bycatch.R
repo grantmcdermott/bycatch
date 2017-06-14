@@ -654,8 +654,8 @@ rm(fig_s1)
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave(paste0("Figures/fig-S2", suff_str, ".png"), width = 10, height = 13)
-fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2", suff_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave(paste0("Figures/fig-S2.png"), width = 10, height = 13)
+fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2.pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -665,8 +665,8 @@ dev.off()
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave(paste0("Figures/fig-S3", suff_str, ".png"), width = 10, height = 13)
-fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3", suff_str, ".pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s3 + ggsave(paste0("Figures/fig-S3.png"), width = 10, height = 13)
+fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3.pdf"), width = 10, height = 13, device = cairo_pdf)
 rm(fig_s3)
 dev.off()
 
