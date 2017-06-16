@@ -311,10 +311,15 @@ fig1b <-
   ggplot() + 
   geom_sf(data = countries, fill = "white", col="white") +
   geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
-  scale_fill_viridis(
+  scale_fill_gradientn(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-    labels = percent
-    )  +
+    colours = rev(brewer_pal(palette = "Spectral")(11)), #trans = "reverse",
+    labels = percent, limits=c(min(fao_sf$avpctmey)/100, 1)
+    ) +
+  # scale_fill_viridis(
+  #   name = "Reduction in fishing effort (MEY vs. 2010-2012)",
+  #   labels = percent
+  #   )  +
   guides(
     fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
   ) +
