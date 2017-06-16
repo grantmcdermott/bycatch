@@ -852,14 +852,14 @@ tradeoffs_plot <-
       summ_df %>%
       mutate_if(is.double, funs(./100)) %>%
       filter(grepl(scenario, key, ignore.case=T)) %>%
-      filter(q50>=0) %>% 
+      #filter(q50>=-1) %>% 
       filter(pctredbpt<=1) %>%
       mutate(pctredbu_dash = pctredbu) %>% ## This and next two lines for visualization (see geom_errorbarh)
       mutate(pctredbu = ifelse(pctredbu<=1, pctredbu, 1)) %>%
       mutate(pctredbl_dash = pctredbu) %>%
-      mutate(q025_dash = q025) %>% ## This and next two lines for visualization (see geom_errorbar)
-      mutate(q025 = ifelse(q025>=0, q025, 0)) %>%
-      mutate(q975_dash = q025) %>%
+      # mutate(q025_dash = q025) %>% ## This and next two lines for visualization (see geom_errorbar)
+      # mutate(q025 = ifelse(q025>=0, q025, 0)) %>%
+      # mutate(q975_dash = q025) %>%
       filter(n()==2) ## Make sure we only keep cases that can be depicted in both facets
     df$key <- factor(df$key, levels = c(lvl0_a, lvl0_b), labels = c(lvl1_a, lvl1_b))
     
@@ -883,7 +883,7 @@ tradeoffs_plot <-
         ) +
       geom_errorbarh(aes(xmin = pctredbl_dash, xmax = pctredbu_dash, col = clade), height = 0, linetype = "21", alpha = 0.7) +
       geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = clade), height = 0, alpha = 0.7) +
-      geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = clade), width = 0, linetype = "21", alpha = 0.7) +
+      # geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = clade), width = 0, linetype = "21", alpha = 0.7) +
       geom_errorbar(aes(ymin = q025, ymax = q975, col = clade), width = 0, alpha = 0.7) +
       # geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
       # geom_point(stroke = 0.25, size = 3, shape = 1) +
@@ -894,19 +894,17 @@ tradeoffs_plot <-
         data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
         inherit.aes = F,
         aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2, alpha=0.2 ## adding again (w/ low alpha to give effect behind points)
-        ) +
+      ) +
       scale_shape_manual(values = leg_df$shp) +
       scale_colour_manual(values = leg_df$bycatch_cols) +
       scale_fill_manual(values = leg_df$bycatch_cols) +
       scale_x_continuous(
-        #expand = c(0, 0), 
         limits=c(0,1),
         labels=percent,
         oob = rescale_none
         ) +
       scale_y_continuous(
-        #limits=c(NA,1),
-        limits=c(0,1),
+        limits=c(NA,1),
         labels=percent,
         oob = rescale_none
         ) +
