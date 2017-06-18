@@ -488,10 +488,10 @@ fig2c <-
   theme(strip.text = element_text(size = 14))
 
 #### Fig 2.D (Bycatch reduction disb) ####
-fig2d <- bycatchdist_plot(all_dt %>% filter(species==sp_type)) 
+fig2d <- bycatchdist_plot(all_dt %>% filter(species==sp_type), "MEY") 
 
 #### Fig 2.E (Cost disb) ####
-fig2e <- cost_plot(all_dt %>% filter(species==sp_type))
+fig2e <- cost_plot(all_dt %>% filter(species==sp_type), "MEY")
 
 #### Composite Fig. 2 ####
 
@@ -502,17 +502,28 @@ legend_fig2 <- g_legend(fig2d)
 fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2e <- fig2e + theme(strip.text.x = element_blank(), legend.position = "none")
 
-### Now, draw the figure
+### Now, draw the figure (without legend)
 fig2 <-
   ggdraw() +
-  # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig2a, 0.025, 0.7, 0.475, 0.3) +
-  draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
-  draw_plot(fig2c, 0, 0.375, 1, 0.3) +
-  draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
-  draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
-  draw_plot(legend_fig2, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
+  # draw_plot(fig, xpos,  ypos, width, height) +
+  draw_plot(fig2a, 0.025, 0.67, 0.475, 0.33) +
+  draw_plot(fig2b, 0.55,  0.67, 0.45,  0.33) +
+  draw_plot(fig2c, 0,     0.34, 1,     0.33) +
+  draw_plot(fig2d, 0,     0,    0.475, 0.33) +
+  draw_plot(fig2e, 0.525, 0,    0.475, 0.33) +
+  draw_plot_label(c("A", "B", "C", "D", "E"), c(0, 0.525, 0, 0, 0.525), c(1, 1, 0.66, 0.33, 0.33), size = 15)
+
+## With legend (only use if including MSY in plots)
+# fig2 <-
+#   ggdraw() +
+#   # draw_plot(figureName, xpos, ypos, width, height) +
+#   draw_plot(fig2a, 0.025, 0.7, 0.475, 0.3) +
+#   draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
+#   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
+#   draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
+#   draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
+#   draw_plot(legend_fig2, 0, 0, 1, 0.05) +
+#   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
 
 ### Alternatively, draw the figure, but include a global map inset for panel A
 # fig2 <-

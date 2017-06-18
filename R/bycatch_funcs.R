@@ -696,32 +696,45 @@ g_legend <-
 ##################################################################
 
 bycatchdist_plot <-
-  function(bdist){
+  function(bdist, series=NULL){
     
-    df <- 
+    df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
       select(-ycostmsy, -pcostmey) %>%
       mutate_if(is.double, funs(. / 100)) 
     
-    df %>%
-      rename(MSY = pctredmsy,
-             MEY = pctredmey) %>%
+    df2 <-
+      df1 %>%
+      rename(
+        MSY = pctredmsy,
+        MEY = pctredmey
+        ) %>%
       select(MSY:species) %>%
       gather(key, pctred, -species) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY"))) %>% 
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+    
+    if(!is.null(series)) df2 <- filter(df2, key==series)
+    
+    df2 %>% 
       ggplot() +
-      geom_rect(data = filter(df, row_number() == 1),
-                aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
-                alpha = .25) +
+      geom_rect(
+        data = filter(df1, row_number() == 1),
+        aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
+        alpha = .25
+        ) +
       # geom_line(stat = "density") + ## lines only
       geom_density(aes(x = pctred, y = ..scaled.., col = key, fill = key), alpha = .5) +
-      geom_vline(data = filter(df, row_number() == 1),
-                 aes(xintercept = pctredbpt), lty = 2) +
+      geom_vline(
+        data = filter(df1, row_number() == 1),
+        aes(xintercept = pctredbpt), lty = 2
+        ) +
       labs(x = "Reduction in mortality", y = "Density") + 
       scale_x_continuous(labels = percent) + 
-      scale_color_brewer(palette = "Set1") +
-      scale_fill_brewer(palette = "Set1") +
+      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
+      # scale_fill_brewer(palette = "Set1") + ## Ditto
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -730,27 +743,40 @@ bycatchdist_plot <-
 ### Plot that asks: How much will it cost to stop decline? ###
 ##############################################################
 cost_plot <-
-  function(bdist){
+  function(bdist, series=NULL){
     
-    df <- 
+    df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
       select(-pctredmsy, -pctredmey) %>%
       mutate_if(is.double, funs(. / 100)) 
     
-    df %>%
+    df2 <-
+      df1 %>%
       rename(MSY = ycostmsy,MEY = pcostmey) %>%
       select(MSY:species) %>%
       gather(key, pctcost, -species) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY"))) %>% 
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+    
+    if(!is.null(series)) df2 <- filter(df2, key==series)
+    
+    if(!is.null(series)){
+      x_lab <-  paste0("Cost (fraction of ", series,")")
+    }else{
+      x_lab <- "Cost (fraction of MSY or MEY)"
+    }
+    
+    df2 %>% 
       ggplot() +
       # geom_line(stat = "density") + ## lines only
       geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.5) +
-      labs(x = "Cost (fraction of MSY or MEY)", y = "Density") + 
+      labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
-      scale_color_brewer(palette = "Set1") +
-      scale_fill_brewer(palette = "Set1") +
+      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
+      # scale_fill_brewer(palette = "Set1") + ## Ditto
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -790,16 +816,18 @@ samples_plot <-
       mutate(target_lab = paste0("atop(", target_description, paste0(",~'('*", wt_Fe*100,"*'%'~of~italic(F)[e]*')')"))) %>%
       group_by(trgcat) %>%
       gather(key, pctred, c(MSY, MEY)) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY"))) %>%
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) %>% 
       mutate(pctred = pctred/100)
     
     bd %>% 
+      filter(key=="MEY") %>% ## MEY filter added
       ggplot(aes(x = pctred, y = wt_usd, col = key)) +
       geom_point(alpha=0.5, size = 3) +
-      scale_color_brewer(palette = "Set1") +
+      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
       scale_y_log10(labels = trans_format("log10", math_format(10^.x))) +
-      labs(x = "Reduction in mortality", y = "2012 Effort (USD)") +
+      labs(x = "Reduction in mortality", y = "Effort (USD)") +
       facet_grid( ~ forcats::fct_reorder(target_lab, wt_Fe, .desc = T), 
                   labeller = label_parsed) +
       theme(
