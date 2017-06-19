@@ -938,7 +938,7 @@ tradeoffs_plot <-
         ) +
       coord_fixed() +
       labs(
-        x = "Reduction in mortality \nneeded to halt decline",
+        x = "Reduction in mortality \nneeded to halt decline (%T)",
         y = NULL
         ) +
       facet_wrap(~key, nrow=2, scales = "free_y", strip.position="left") +

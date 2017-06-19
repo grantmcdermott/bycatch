@@ -511,7 +511,10 @@ fig2 <-
   draw_plot(fig2c, 0,     0.34, 1,     0.33) +
   draw_plot(fig2d, 0,     0,    0.475, 0.33) +
   draw_plot(fig2e, 0.525, 0,    0.475, 0.33) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), c(0, 0.525, 0, 0, 0.525), c(1, 1, 0.66, 0.33, 0.33), size = 15)
+  draw_plot_label(c("A", "B", "C", "D", "E"), 
+                  c(0, 0.525, 0, 0, 0.525), 
+                  c(1, 1, 0.66, 0.33, 0.33), 
+                  size = 15)
 
 ## With legend (only use if including MSY in plots)
 # fig2 <-
@@ -561,14 +564,14 @@ results_summary <- summ_func(all_dt)
 write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave(paste0("Figures/fig-3-mey", suff_str, ".png"), width=10*.6, height=13*.6)
-fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey", suff_str, ".pdf"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/fig-3-mey.png"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey.pdf"), width=10*.6, height=13*.6)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave(paste0("Figures/fig-3-msy", suff_str, ".png"), width=10*.6, height=13*.6)
-fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy", suff_str, ".pdf"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/fig-3-msy.png"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy.pdf"), width=10*.6, height=13*.6)
 rm(fig_3msy)
 dev.off()
 
@@ -768,13 +771,15 @@ fig_s5a <- fig_s5a + theme(legend.position = "none")
 fig_s5 <-
   ggdraw() +
   # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s5a, 0, 0.05, 0.19, 0.95) +
-  draw_plot(fig_s5b, 0.22, 0.05, 0.17, 0.95) +
-  draw_plot(fig_s5c, 0.42, 0.05, 0.17, 0.95) +
-  draw_plot(fig_s5d, 0.62, 0.05, 0.17, 0.95) +
-  draw_plot(fig_s5e, 0.82, 0.05, 0.17, 0.95) +
+  draw_plot(fig_s5a, 0, 0.05, 0.2175, 0.95) +
+  draw_plot(fig_s5b, 0.2275, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s5c, 0.4175, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s5d, 0.6125, 0.05, 0.175, 0.95) +
+  draw_plot(fig_s5e, 0.7925, 0.05, 0.1875, 0.95) +
   draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), c(0.02, 0.21, 0.41, 0.61, 0.81), c(1, 1, 1, 1, 1), size = 15)
+  draw_plot_label(c("A", "B", "C", "D", "E"), 
+                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
+                  c(1, 1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S5.png", fig_s5,
           base_height = 7,
@@ -799,10 +804,12 @@ fig_s6 <-
   # draw_plot(figureName, xpos, ypos, width, height) +
   draw_plot(fig_s6a, 0, 0.05, 0.25, 0.95) +
   draw_plot(fig_s6b, 0.27, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s6c, 0.52, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s6d, 0.77, 0.05, 0.23, 0.95) +
+  draw_plot(fig_s6c, 0.51, 0.05, 0.23, 0.95) +
+  draw_plot(fig_s6d, 0.75, 0.05, 0.23, 0.95) +
   draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D"), c(0.02, 0.26, 0.51, 0.76), c(1, 1, 1, 1), size = 15)
+  draw_plot_label(c("A", "B", "C", "D"), 
+                  c(0.02, 0.26, 0.5, 0.74), 
+                  c(1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S6.png", fig_s6,
           base_height = 7,
