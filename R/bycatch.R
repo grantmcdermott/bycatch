@@ -758,9 +758,10 @@ fig_s5e <- tradeoffs_plot(df_sens5, "MEY") + theme(legend.position = "none", str
 # Fig. S6: Comparing runs with changes to uncertainty assumptions
 #   A = 1, B = 7, C = 8, D = 9
 fig_s6a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-fig_s6b <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6c <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6d <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6b <- tradeoffs_plot(df_sens6, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6c <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6d <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6e <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
 #### Composite Fig. S5 ####
 
@@ -802,14 +803,15 @@ fig_s6a <- fig_s6a + theme(legend.position = "none")
 fig_s6 <-
   ggdraw() +
   # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s6a, 0, 0.05, 0.25, 0.95) +
-  draw_plot(fig_s6b, 0.27, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s6c, 0.51, 0.05, 0.23, 0.95) +
-  draw_plot(fig_s6d, 0.75, 0.05, 0.23, 0.95) +
-  draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D"), 
-                  c(0.02, 0.26, 0.5, 0.74), 
-                  c(1, 1, 1, 1), size = 15)
+  draw_plot(fig_s6a, 0, 0.05, 0.2175, 0.95) +
+  draw_plot(fig_s6b, 0.2275, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s6c, 0.4175, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s6d, 0.6125, 0.05, 0.175, 0.95) +
+  draw_plot(fig_s6e, 0.7925, 0.05, 0.1875, 0.95) +
+  draw_plot(legend_s6, 0, 0, 1, 0.05) +
+  draw_plot_label(c("A", "B", "C", "D", "E"), 
+                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
+                  c(1, 1, 1, 1, 1), size = 15)
 
 save_plot("Figures/fig-S6.png", fig_s6,
           base_height = 7,
