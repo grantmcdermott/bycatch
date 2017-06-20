@@ -769,7 +769,7 @@ cost_plot <-
     df2 %>% 
       ggplot() +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.5) +
+      geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
