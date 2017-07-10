@@ -781,6 +781,54 @@ cost_plot <-
       theme(legend.position = "bottom") 
   } 
 
+###################################################################################
+### Plot that asks: How much would selectivity need to improve to stop decline? ###
+###################################################################################
+selectivity_plot <-
+  function(bdist, series=NULL){
+    
+    df1 <- 
+      left_join(bdist, bycatch_df) %>% 
+      group_by(species) %>%
+      mutate(delta_mey = delta + (fe * (pctredmey/100)),
+             delta_msy = delta + (fe * (pctredmsy/100))) %>% # calculate growth rate after rebuilding
+      mutate(selectivity_pct_mey1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
+             selectivity_pct_mey = if_else(selectivity_pct_mey1 > 100, 100, selectivity_pct_mey1),
+             selectivity_pct_msy1 = if_else(delta_msy >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_msy)))),
+             selectivity_pct_msy = if_else(selectivity_pct_msy1 > 100, 100, selectivity_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
+      select(-pctredmsy, -pctredmey, -pcostmey, -ycostmsy, -delta_mey, -delta_msy, -selectivity_pct_mey1, -selectivity_pct_msy1) %>%
+      mutate_if(is.double, funs(. / 100)) 
+    
+    df2 <-
+      df1 %>%
+      rename(MSY = selectivity_pct_msy, MEY = selectivity_pct_mey) %>%
+      select(MSY, MEY, species) %>%
+      gather(key, selectivity_pct, -species) %>%
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+    
+    if(!is.null(series)) df2 <- filter(df2, key==series)
+    
+    if(!is.null(series)){
+      x_lab <-  paste0("Selectivity improvement needed at ", series,"(% reduction in mortality)")
+    }else{
+      x_lab <- "Selectivity improvement needed at MEY or MSY (% reduction in mortality)"
+    }
+    
+    df2 %>% 
+      ggplot() +
+      # geom_line(stat = "density") + ## lines only
+      geom_density(aes(x = selectivity_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      labs(x = x_lab, y = "Density") + 
+      # xlim(0, 100) +
+      scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
+      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
+      # scale_fill_brewer(palette = "Set1") + ## Ditto
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      facet_wrap(~species) +
+      theme(legend.position = "bottom") 
+  } 
+
 
 #################################################################################
 ### Fig. 2 Logic of analysis, as illustrated by NW Atlantic loggerhead turtle ###
