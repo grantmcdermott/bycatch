@@ -781,6 +781,54 @@ cost_plot <-
       theme(legend.position = "bottom") 
   } 
 
+###################################################################################
+### Plot that asks: How much would selectivity need to improve to stop decline? ###
+###################################################################################
+selectivity_plot <-
+  function(bdist, series=NULL){
+    
+    df1 <- 
+      left_join(bdist, bycatch_df) %>% 
+      group_by(species) %>%
+      mutate(delta_mey = delta + (fe * (pctredmey/100)),
+             delta_msy = delta + (fe * (pctredmsy/100))) %>% # calculate growth rate after rebuilding
+      mutate(selectivity_pct_mey1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
+             selectivity_pct_mey = if_else(selectivity_pct_mey1 > 100, 100, selectivity_pct_mey1),
+             selectivity_pct_msy1 = if_else(delta_msy >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_msy)))),
+             selectivity_pct_msy = if_else(selectivity_pct_msy1 > 100, 100, selectivity_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
+      select(-pctredmsy, -pctredmey, -pcostmey, -ycostmsy, -delta_mey, -delta_msy, -selectivity_pct_mey1, -selectivity_pct_msy1) %>%
+      mutate_if(is.double, funs(. / 100)) 
+    
+    df2 <-
+      df1 %>%
+      rename(MSY = selectivity_pct_msy, MEY = selectivity_pct_mey) %>%
+      select(MSY, MEY, species) %>%
+      gather(key, selectivity_pct, -species) %>%
+      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+    
+    if(!is.null(series)) df2 <- filter(df2, key==series)
+    
+    if(!is.null(series)){
+      x_lab <-  paste0("Selectivity improvement needed at ", series,"(% reduction in mortality)")
+    }else{
+      x_lab <- "Selectivity improvement needed at MEY or MSY (% reduction in mortality)"
+    }
+    
+    df2 %>% 
+      ggplot() +
+      # geom_line(stat = "density") + ## lines only
+      geom_density(aes(x = selectivity_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      labs(x = x_lab, y = "Density") + 
+      # xlim(0, 100) +
+      scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
+      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
+      # scale_fill_brewer(palette = "Set1") + ## Ditto
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      facet_wrap(~species) +
+      theme(legend.position = "bottom") 
+  } 
+
 
 #################################################################################
 ### Fig. 2 Logic of analysis, as illustrated by NW Atlantic loggerhead turtle ###
@@ -865,122 +913,80 @@ tradeoffs_plot <-
   function(summ_df, scenario) {
     
     if(toupper(scenario)=="MEY"){
-      lvl0_a <- "pctredmey"
-      lvl0_b <- "pcostmey"
-      lvl1_a <- "Projected reduction in \nmortality (MEY scenario)"
-      lvl1_b <- "Projected profit cost \n(as fraction of MEY)"
+      df1_filter <- "pctredmey"
+      df2_filter <- "pcostmey"
     }else{
-      lvl0_a <- "pctredmsy"
-      lvl0_b <- "ycostmsy"
-      lvl1_a <- "Projected reduction in \nmortality (MSY scenario)"
-      lvl1_b <- "Projected profit cost \n(as fraction of MSY)"
+      df1_filter <- "pctredmsy"
+      df2_filter <- "ycostmsy"
     }
     
-    df <- 
+    # Make dataframe and calculate new growth rate at mey (median), and selectivity change needed
+    df1 <- 
       summ_df %>%
-      mutate_if(is.double, funs(./100)) %>%
-      filter(grepl(scenario, key, ignore.case=T)) %>%
-      #filter(q50>=-1) %>% 
-      filter(pctredbpt<=1) %>%
-      mutate(pctredbu_dash = pctredbu) %>% ## This and next two lines for visualization (see geom_errorbarh)
-      mutate(pctredbu = ifelse(pctredbu<=1, pctredbu, 1)) %>%
-      mutate(pctredbl_dash = pctredbu) %>%
-      # mutate(q025_dash = q025) %>% ## This and next two lines for visualization (see geom_errorbar)
-      # mutate(q025 = ifelse(q025>=0, q025, 0)) %>%
-      # mutate(q975_dash = q025) %>%
-      filter(n()==2) ## Make sure we only keep cases that can be depicted in both facets
-    df$key <- factor(df$key, levels = c(lvl0_a, lvl0_b), labels = c(lvl1_a, lvl1_b))
+      ## Get pctredmey rows from results_summary
+      filter(key == df1_filter) %>% 
+      ## Calculate growth rate post rebuilding
+      mutate(delta_post = delta + (fe * (q50/100))) %>% 
+      ## Calculate required selectivity change (% reduction in Fe at MEY or MSY)
+      mutate(
+        selectivity_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
+        selectivity_req = if_else(selectivity_req1>1, 1, selectivity_req1)
+        ) %>% 
+      mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
+      select(species, grp, clade, delta, delta_post, selectivity_req) 
     
-    excld_species <- anti_join(distinct(summ_df, species), distinct(df, species))$species
+    # Add median cost estimate
+    df2 <- 
+      summ_df %>%
+      filter(key == df2_filter) %>% 
+      mutate(cost = q50/100) %>%
+      select(species, cost) 
     
-    print(noquote(paste0("Note: The following (outlier) species has been excluded from the plot: ", excld_species)))
-    
-    ## Aesthetic parameters for consistent legend across scenarios
-    leg_df <- 
-      data_frame(clade = c("bird","cetacean","pinniped","turtle"), bycatch_cols=bycatch_cols[1:4], shp=21:24) %>%
-      right_join(df %>% ungroup %>% distinct(clade)) %>%
-      arrange(shp)
+    df <- left_join(df1, df2, by = "species") %>% ungroup()
     
     df %>%
-      mutate(clade = stringr::str_to_title(clade)) %>%
-      ggplot(aes(x = pctredbpt, y = q50, col = clade, group = species)) +
+      mutate(species = factor(species)) %>%
+      mutate(species = fct_reorder(species, delta, .desc=TRUE)) %>% 
+      ggplot(aes(y=species)) +
+      geom_point(
+        aes(x=delta_post, size=cost, col=selectivity_req), 
+        alpha=0.7
+        ) +
+      geom_point(
+        data = filter(df, cost>=1),
+        aes(x=delta_post, size=cost), 
+        col="grey", 
+        show.legend = F
+        ) + 
+      geom_point(
+        aes(x=delta), 
+        size=3, stroke=1, shape=21, col="red"
+        ) +
       geom_segment(
-        data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
-        inherit.aes = F,
-        aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2
+        aes(yend=species, x=delta, xend=delta_post),
+        arrow = arrow(length = unit(.25, "lines"))
         ) +
-      geom_errorbarh(aes(xmin = pctredbl_dash, xmax = pctredbu_dash, col = clade), height = 0, linetype = "21", alpha = 0.7) +
-      geom_errorbarh(aes(xmin = pctredbl, xmax = pctredbu, col = clade), height = 0, alpha = 0.7) +
-      # geom_errorbar(aes(ymin = q025_dash, ymax = q975_dash, col = clade), width = 0, linetype = "21", alpha = 0.7) +
-      geom_errorbar(aes(ymin = q025, ymax = q975, col = clade), width = 0, alpha = 0.7) +
-      # geom_point(stroke = 0.25, size = 3, alpha = 0.7) +
-      # geom_point(stroke = 0.25, size = 3, shape = 1) +
-      geom_point(aes(shape=clade), fill="white", size = 3.5, stroke = 0) + ## to "white out" the error bar at the points
-      geom_point(aes(shape=clade, fill = clade), alpha=0.7, size = 3.5, stroke = 0) +
-      # geom_point(aes(shape=clade), size = 3.25, stroke = 0.25) + ## uncomment if want the points to have outlines
-      geom_segment(
-        data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
-        inherit.aes = F,
-        aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2, alpha=0.2 ## adding again (w/ low alpha to give effect behind points)
-      ) +
-      scale_shape_manual(values = leg_df$shp) +
-      scale_colour_manual(values = leg_df$bycatch_cols) +
-      scale_fill_manual(values = leg_df$bycatch_cols) +
-      scale_x_continuous(
-        limits=c(0,1),
-        labels=percent,
-        oob = rescale_none
+      geom_vline(xintercept = 0, lty=2) +
+      scale_size_continuous(
+        name=paste0("Cost (fraction\nof ", toupper(scenario), ")"),
+        # name=bquote(atop("Cost (fraction", toupper(scenario)*")")),
+        labels=percent, range=c(2,8)
         ) +
-      scale_y_continuous(
-        limits=c(NA,1),
-        labels=percent,
-        oob = rescale_none
+      scale_color_viridis(
+        name=bquote(atop("Req. selectivity", "(change in"~italic(F)[e]*")")), 
+        trans="reverse", direction=-1, 
+        option="plasma", labels=percent
         ) +
-      coord_fixed() +
-      labs(
-        x = "Reduction in mortality \nneeded to halt decline (%T)",
-        y = NULL
+      guides(
+        size = guide_legend(order = 1),
+        col = guide_colourbar(order = 2)
         ) +
-      facet_wrap(~key, nrow=2, scales = "free_y", strip.position="left") +
+      # coord_fixed(ratio = .025) +
+      labs(x = expression(Rate~of~population~decline~(Delta))) +
+      facet_grid(clade~., scales = "free", space = "free", switch = "both") +
       theme(
-        axis.title.x = element_text(size=14),
-        strip.text = element_text(size=14),
-        strip.placement = "outside"
-      )
+        legend.title = element_text(),
+        axis.title.y=element_blank(), 
+        strip.placement = "outside" ## Alongside `switch="both"` in facet_grid() call above
+        ) 
   }
-
-## If want to show all data (incl. start of inset plot), put the following
-## code into the above function
-# df %>%
-#   ggplot(aes(x = pctredbpt, y = q50)) +
-#   geom_segment(
-#     data = data.frame(x1=0, x2=1, y1=0, y2=1, key=lvl1_a),
-#     aes(x = x1, y = y1, xend = x2, yend = y2), col="black", lty=2
-#   ) +
-#   geom_point(aes(col = clade, fill = clade), alpha = 0.7, stroke = 0.25, size = 3) +
-#   geom_point(aes(col = clade, fill = clade), shape = 1, stroke = 0.25, size = 3) +
-#   # scale_color_brewer(palette = "Set1") +
-#   scale_colour_manual(values = bycatch_cols) +
-#   geom_errorbar(aes(ymax = q975, ymin = q025, col = clade), width = 0) +
-#   geom_errorbarh(aes(xmax = pctredbu, xmin = pctredbl, col = clade), height = 0) +
-#   geom_rect(
-#     inherit.aes = FALSE,
-#     aes(xmin=-0.01, xmax=1.01, ymin=-0.01, ymax=1.01),
-#     col="red", fill=NA
-#   ) +
-#   scale_x_continuous(#expand = c(0, 0),
-#     labels=percent,
-#     oob = rescale_none) +
-#   scale_y_continuous(
-#     labels=percent,
-#     oob = rescale_none) +
-#   labs(
-#     x = "Reduction in mortality \nneeded to halt decline",
-#     y = NULL
-#   ) +
-#   facet_wrap(~key, nrow=2, scales = "free_y", strip.position="left") +
-#   theme(
-#     axis.title.x = element_text(size=14),
-#     strip.text = element_text(size=14),
-#     strip.placement = "outside"
-#   )

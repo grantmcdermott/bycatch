@@ -16,6 +16,7 @@ library(rworldmap) ## Better shape files
 library(sf)
 library(rgeos)
 library(tidyverse) ## NOTE: Using dev. version of ggplot2 for geom_sf() devtools::install_github("tidyverse/ggplot2")
+library(forcats)
 library(cowplot)
 library(ggthemes)
 library(RColorBrewer)
@@ -183,7 +184,7 @@ fig1a <-
   ggplot(aes(x = delta, y = fe)) + 
   geom_raster(aes(fill = z), interpolate = T) +
   scale_fill_gradientn(
-    name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")), 
+    name = expression('%'~italic(T)),
     colours = brewer_pal(palette = "Spectral")(11), 
     trans = "reverse",
     labels = percent
@@ -564,14 +565,14 @@ results_summary <- summ_func(all_dt)
 write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave(paste0("Figures/fig-3-mey.png"), width=10*.6, height=13*.6)
-fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey.pdf"), width=10*.6, height=13*.6)
+fig_3mey + ggsave(paste0("Figures/fig-3-mey.png"), width=8, height=8)
+fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey.pdf"), width=8, height=8, device = cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave(paste0("Figures/fig-3-msy.png"), width=10*.6, height=13*.6)
-fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy.pdf"), width=10*.6, height=13*.6)
+fig_3msy + ggsave(paste0("Figures/fig-3-msy.png"), width=8, height=8)
+fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy.pdf"), width=8, height=8, device = cairo_pdf)
 rm(fig_3msy)
 dev.off()
 
@@ -689,10 +690,21 @@ fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3.pdf"), width = 10, height = 13, devi
 rm(fig_s3)
 dev.off()
 
+##############################################################
+##### Fig S4 (Combined selectivity change distributions) #####
+##############################################################
+fig_s4 <- 
+  selectivity_plot(all_dt) +
+  facet_wrap(~species, ncol = 3, scales = "free_x")
+fig_s4 + ggsave(paste0("Figures/fig-S4.png"), width = 10, height = 13)
+fig_s4 + ggsave(paste0("Figures/PDFs/fig-S4.pdf"), width = 10, height = 13, device = cairo_pdf)
+rm(fig_s4)
+dev.off()
+
 #################################################
-#### Fig. S4 (theoretical alpha sensitivity) ####
+#### Fig. S5 (theoretical alpha sensitivity) ####
 #################################################
-fig_s4 <-
+fig_s5 <-
   ggplot(data_frame(x = c(0, 5)), aes(x = x)) +
   stat_function(fun = function(x) (1 - (0.5^x))) +
   geom_vline(aes(xintercept = 1), lty = 2) +
@@ -704,13 +716,13 @@ fig_s4 <-
     x = expression(alpha), 
     y = "Reduction in bycatch mortality"
   ) 
-fig_s4 + ggsave("Figures/fig-S4.png", width = 4, height = 4)
-fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 4, height = 4)
-rm(fig_s4)
+fig_s5 + ggsave("Figures/fig-S5.png", width = 4, height = 4)
+fig_s5 + ggsave("Figures/PDFs/fig-S5.pdf", width = 4, height = 4)
+rm(fig_s5)
 dev.off()
 
 ################################################
-#### Figs. S5 and S6 (Sensitivity analysis) ####
+#### Figs. S6 and S7 (Sensitivity analysis) ####
 ################################################
 
 ## Sensitivity plots (possible analyses to include)
@@ -747,52 +759,21 @@ df_sens8 <- read_csv("Results/bycatch_results_weights.csv") %>% summ_func()
 # 9. Main run with 2012 only as the base year (rather than 2010-2012)
 df_sens9 <- read_csv("Results/bycatch_results_2012only.csv") %>% summ_func()
 
-# Fig. S5: Comparing runs with changes to substantive assumptions
+# Fig. S6: Comparing runs with changes to substantive assumptions
 #   A = 1, B = 2, C = 3, D = 4, E = 5
-fig_s5a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-fig_s5b <- tradeoffs_plot(df_sens2, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s5c <- tradeoffs_plot(df_sens3, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s5d <- tradeoffs_plot(df_sens4, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s5e <- tradeoffs_plot(df_sens5, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-
-# Fig. S6: Comparing runs with changes to uncertainty assumptions
-#   A = 1, B = 7, C = 8, D = 9
 fig_s6a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-fig_s6b <- tradeoffs_plot(df_sens6, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6c <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6d <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6e <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6b <- tradeoffs_plot(df_sens2, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6c <- tradeoffs_plot(df_sens3, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6d <- tradeoffs_plot(df_sens4, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s6e <- tradeoffs_plot(df_sens5, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
-#### Composite Fig. S5 ####
-
-## Extract common legend from panel 5A and then remove
-legend_s5 <- g_legend(fig_s5a) 
-fig_s5a <- fig_s5a + theme(legend.position = "none")
-### Now, draw the figure
-fig_s5 <-
-  ggdraw() +
-  # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s5a, 0, 0.05, 0.2175, 0.95) +
-  draw_plot(fig_s5b, 0.2275, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s5c, 0.4175, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s5d, 0.6125, 0.05, 0.175, 0.95) +
-  draw_plot(fig_s5e, 0.7925, 0.05, 0.1875, 0.95) +
-  draw_plot(legend_s5, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), 
-                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
-                  c(1, 1, 1, 1, 1), size = 15)
-
-save_plot("Figures/fig-S5.png", fig_s5,
-          base_height = 7,
-          base_aspect_ratio = 2
-          )
-save_plot("Figures/PDFs/fig-S5.pdf", fig_s5,
-          base_height = 7,
-          base_aspect_ratio = 2
-          )
-
-rm(fig_s5, fig_s5a, fig_s5b, fig_s5c, fig_s5d, fig_s5e)
-dev.off()
+# Fig. S7: Comparing runs with changes to uncertainty assumptions
+#   A = 1, B = 7, C = 8, D = 9
+fig_s7a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
+fig_s7b <- tradeoffs_plot(df_sens6, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s7c <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s7d <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+fig_s7e <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
 #### Composite Fig. S6 ####
 
@@ -816,13 +797,44 @@ fig_s6 <-
 save_plot("Figures/fig-S6.png", fig_s6,
           base_height = 7,
           base_aspect_ratio = 2
-)
+          )
 save_plot("Figures/PDFs/fig-S6.pdf", fig_s6,
+          base_height = 7,
+          base_aspect_ratio = 2
+          )
+
+rm(fig_s6, fig_s6a, fig_s6b, fig_s6c, fig_s6d, fig_s6e)
+dev.off()
+
+#### Composite Fig. S7 ####
+
+## Extract common legend from panel 5A and then remove
+legend_s7 <- g_legend(fig_s7a) 
+fig_s7a <- fig_s7a + theme(legend.position = "none")
+### Now, draw the figure
+fig_s7 <-
+  ggdraw() +
+  # draw_plot(figureName, xpos, ypos, width, height) +
+  draw_plot(fig_s7a, 0, 0.05, 0.2175, 0.95) +
+  draw_plot(fig_s7b, 0.2275, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s7c, 0.4175, 0.05, 0.18, 0.95) +
+  draw_plot(fig_s7d, 0.6125, 0.05, 0.175, 0.95) +
+  draw_plot(fig_s7e, 0.7925, 0.05, 0.1875, 0.95) +
+  draw_plot(legend_s7, 0, 0, 1, 0.05) +
+  draw_plot_label(c("A", "B", "C", "D", "E"), 
+                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
+                  c(1, 1, 1, 1, 1), size = 15)
+
+save_plot("Figures/fig-S7.png", fig_s7,
+          base_height = 7,
+          base_aspect_ratio = 2
+)
+save_plot("Figures/PDFs/fig-S7.pdf", fig_s7,
           base_height = 7,
           base_aspect_ratio = 2
 )
 
-rm(fig_s6, fig_s6a, fig_s6b, fig_s6c, fig_s6d)
+rm(fig_s7, fig_s7a, fig_s7b, fig_s7c, fig_s7d)
 dev.off()
 
 ##########################################################
