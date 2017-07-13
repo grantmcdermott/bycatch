@@ -47,10 +47,10 @@ Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pcostme
 Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pctredmey,43.60914353300719,52.80377199608812,57.262074643904405,porpoise,0.943,-0.057,0.097,VU
 Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,pctredmsy,26.742452825125028,39.782704628873056,44.43573481473292,porpoise,0.943,-0.057,0.097,VU
 Narrow-ridged finless porpoise,mammal,cetacean,NW Pacific,58.7,35.2,97.9,ycostmsy,1.4196290504104778,2.7854350144825375,6.05112747140077,porpoise,0.943,-0.057,0.097,VU
-NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pcostmey,63.89782605194381,66.1094862860923,67.92570701465621,pinniped,0.96,-0.04,0.067,CR
-NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmey,-151.069331773873,-135.04644786099075,-124.05706813381633,pinniped,0.96,-0.04,0.067,CR
-NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmsy,-155.13946955403856,-138.8521886056791,-128.00059795858624,pinniped,0.96,-0.04,0.067,CR
-NZ sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,ycostmsy,71.85225219531517,74.2075963317141,76.09628995939683,pinniped,0.96,-0.04,0.067,CR
+New Zealand sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pcostmey,63.89782605194381,66.1094862860923,67.92570701465621,pinniped,0.96,-0.04,0.067,CR
+New Zealand sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmey,-151.069331773873,-135.04644786099075,-124.05706813381633,pinniped,0.96,-0.04,0.067,CR
+New Zealand sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,pctredmsy,-155.13946955403856,-138.8521886056791,-128.00059795858624,pinniped,0.96,-0.04,0.067,CR
+New Zealand sea lion,mammal,pinniped,New Zealand,59.7,35.8,99.5,ycostmsy,71.85225219531517,74.2075963317141,76.09628995939683,pinniped,0.96,-0.04,0.067,CR
 Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pcostmey,0,0,0,turtle,0.97,-0.03,0.078,VU
 Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pctredmey,60.03356261328872,62.95718951859916,65.40901518926543,turtle,0.97,-0.03,0.078,VU
 Olive ridley turtle (NE Indian),turtle,turtle,NE Indian Ocean,38.5,23.1,64.1,pctredmsy,44.174352811833145,48.74976731226289,52.50653006506202,turtle,0.97,-0.03,0.078,VU
