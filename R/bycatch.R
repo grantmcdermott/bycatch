@@ -576,6 +576,26 @@ fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy.pdf"), width=8, height=8, devic
 rm(fig_3msy)
 dev.off()
 
+## Chris's and Steve's suggested version:
+# Make dataframe and calculate new growth rate at mey (median), and selectivity change needed
+fig3v2df1 <- results_summary %>%
+  filter(key == 'pctredmey') %>% # get pctredmey rows from results_summary
+  mutate(delta_mey = delta + (fe * (q50/100))) %>% # calculate growth rate after rebuilding
+  mutate(selectivity_pct_needed1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
+         selectivity_pct_needed = if_else(selectivity_pct_needed1 > 100, 100, selectivity_pct_needed1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
+  select(species, grp, clade, silhouette, delta, delta_mey, selectivity_pct_needed) # select species identifier columns and before/after growth rates
+
+# Add median cost estimate
+fig3v2df2 <- results_summary %>%
+  filter(key == 'pcostmey') %>% # get pcostmey rows from results_summary
+  rename(cost = q50) %>%
+  select(species, cost) 
+
+fig3v2df <- left_join(fig3v2df1, fig3v2df2, by = 'species')
+write_csv(fig3v2df, "Bycatch_Fig3_dataframe_Jul2017.csv")
+rm(fig3v2df1, fig3v2df2)
+
+# Build figure
 
 #############################################
 ########### SUPPLEMENTARY FIGURES ########### 
