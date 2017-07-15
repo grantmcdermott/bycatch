@@ -923,7 +923,7 @@ tradeoffs_plot <-
     # Make dataframe and calculate new growth rate at mey (median), and selectivity change needed
     df1 <- 
       summ_df %>%
-      ## Get pctredmey rows from results_summary
+      ## Get pctredmey/pctredmsy rows from results_summary
       filter(key == df1_filter) %>% 
       ## Calculate growth rate post rebuilding
       mutate(delta_post = delta + (fe * (q50/100))) %>% 
@@ -933,20 +933,22 @@ tradeoffs_plot <-
         selectivity_req = if_else(selectivity_req1>1, 1, selectivity_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, selectivity_req) 
+      select(species, grp, clade, delta, delta_post, selectivity_req, contains("sens")) 
     
     # Add median cost estimate
     df2 <- 
       summ_df %>%
       filter(key == df2_filter) %>% 
       mutate(cost = q50/100) %>%
-      select(species, cost) 
+      select(species, cost, contains("sens")) 
     
-    df <- left_join(df1, df2, by = "species") %>% ungroup()
+    df <- 
+      left_join(df1, df2) %>% 
+      ungroup() %>%
+      mutate(species = factor(species)) %>%
+      mutate(species = fct_reorder(species, delta, .desc=TRUE)) 
     
     df %>%
-      mutate(species = factor(species)) %>%
-      mutate(species = fct_reorder(species, delta, .desc=TRUE)) %>% 
       ggplot(aes(y=species)) +
       geom_point(
         aes(x=delta_post, size=cost, col=selectivity_req), 

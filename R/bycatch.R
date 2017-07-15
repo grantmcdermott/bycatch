@@ -667,6 +667,7 @@ fig_s1 <-
 fig_s1 + ggsave("Figures/fig-S1.png", width = 7, height = 7)
 fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
 rm(fig_s1)
+dev.off()
 
 ##############################################################
 ##### Fig S2 (Combined bycatch reduction distributions) #####
@@ -759,82 +760,52 @@ df_sens8 <- read_csv("Results/bycatch_results_weights.csv") %>% summ_func()
 # 9. Main run with 2012 only as the base year (rather than 2010-2012)
 df_sens9 <- read_csv("Results/bycatch_results_2012only.csv") %>% summ_func()
 
-# Fig. S6: Comparing runs with changes to substantive assumptions
-#   A = 1, B = 2, C = 3, D = 4, E = 5
-fig_s6a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-fig_s6b <- tradeoffs_plot(df_sens2, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6c <- tradeoffs_plot(df_sens3, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6d <- tradeoffs_plot(df_sens4, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s6e <- tradeoffs_plot(df_sens5, "MEY") + theme(legend.position = "none", strip.text = element_blank())
 
-# Fig. S7: Comparing runs with changes to uncertainty assumptions
-#   A = 1, B = 7, C = 8, D = 9
-fig_s7a <- tradeoffs_plot(df_sens1, "MEY") + theme(legend.position = "bottom", legend.text = element_text(size = 15))
-fig_s7b <- tradeoffs_plot(df_sens6, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s7c <- tradeoffs_plot(df_sens7, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s7d <- tradeoffs_plot(df_sens8, "MEY") + theme(legend.position = "none", strip.text = element_blank())
-fig_s7e <- tradeoffs_plot(df_sens9, "MEY") + theme(legend.position = "none", strip.text = element_blank())
+#### Fig. S6 (main run plus sensitivity analyses 2-5) ####
 
-#### Composite Fig. S6 ####
-
-## Extract common legend from panel 5A and then remove
-legend_s6 <- g_legend(fig_s6a) 
-fig_s6a <- fig_s6a + theme(legend.position = "none")
-### Now, draw the figure
 fig_s6 <-
-  ggdraw() +
-  # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s6a, 0, 0.05, 0.2175, 0.95) +
-  draw_plot(fig_s6b, 0.2275, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s6c, 0.4175, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s6d, 0.6125, 0.05, 0.175, 0.95) +
-  draw_plot(fig_s6e, 0.7925, 0.05, 0.1875, 0.95) +
-  draw_plot(legend_s6, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), 
-                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
-                  c(1, 1, 1, 1, 1), size = 15)
+  bind_rows(
+    df_sens1 %>% mutate(sens = "A"),
+    df_sens2 %>% mutate(sens = "B"),
+    df_sens3 %>% mutate(sens = "C"),
+    df_sens4 %>% mutate(sens = "D"),
+    df_sens5 %>% mutate(sens = "E")
+    ) %>%
+  tradeoffs_plot("MEY") +
+  scale_x_continuous(expand = c(0.075, 0)) +
+  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
+  theme(
+    strip.text.x = element_text(face="bold", size = 16, hjust=0),
+    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
+    panel.spacing = unit(1, "lines")
+    )
 
-save_plot("Figures/fig-S6.png", fig_s6,
-          base_height = 7,
-          base_aspect_ratio = 2
-          )
-save_plot("Figures/PDFs/fig-S6.pdf", fig_s6,
-          base_height = 7,
-          base_aspect_ratio = 2
-          )
+fig_s6 + ggsave("Figures/fig-S6.png", width=16, height=8)
+fig_s6 + ggsave("Figures/PDFs/fig-S6.png", width=16, height=8, device=cairo_pdf)
 
-rm(fig_s6, fig_s6a, fig_s6b, fig_s6c, fig_s6d, fig_s6e)
-dev.off()
+#### Fig. S7 (main run plus sensitivity analyses 6-9) ####
 
-#### Composite Fig. S7 ####
-
-## Extract common legend from panel 5A and then remove
-legend_s7 <- g_legend(fig_s7a) 
-fig_s7a <- fig_s7a + theme(legend.position = "none")
-### Now, draw the figure
 fig_s7 <-
-  ggdraw() +
-  # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig_s7a, 0, 0.05, 0.2175, 0.95) +
-  draw_plot(fig_s7b, 0.2275, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s7c, 0.4175, 0.05, 0.18, 0.95) +
-  draw_plot(fig_s7d, 0.6125, 0.05, 0.175, 0.95) +
-  draw_plot(fig_s7e, 0.7925, 0.05, 0.1875, 0.95) +
-  draw_plot(legend_s7, 0, 0, 1, 0.05) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), 
-                  c(0.02, 0.22, 0.41, 0.6, 0.79), 
-                  c(1, 1, 1, 1, 1), size = 15)
+  bind_rows(
+    df_sens1 %>% mutate(sens = "A"),
+    df_sens6 %>% mutate(sens = "B"),
+    df_sens7 %>% mutate(sens = "C"),
+    df_sens8 %>% mutate(sens = "D"),
+    df_sens9 %>% mutate(sens = "E")
+    ) %>% 
+  tradeoffs_plot("MEY") +
+  scale_x_continuous(expand = c(0.075, 0)) +
+  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
+  theme(
+    strip.text.x = element_text(face="bold", size = 16, hjust=0),
+    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
+    panel.spacing = unit(1, "lines")
+    )
 
-save_plot("Figures/fig-S7.png", fig_s7,
-          base_height = 7,
-          base_aspect_ratio = 2
-)
-save_plot("Figures/PDFs/fig-S7.pdf", fig_s7,
-          base_height = 7,
-          base_aspect_ratio = 2
-)
+fig_s7 + ggsave("Figures/fig-S7.png", width=16, height=8)
+fig_s7 + ggsave("Figures/PDFs/fig-S7.png", width=16, height=8, device=cairo_pdf)
 
-rm(fig_s7, fig_s7a, fig_s7b, fig_s7c, fig_s7d)
+rm(fig_s7, fig_s6)
 dev.off()
 
 ##########################################################
