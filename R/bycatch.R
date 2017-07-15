@@ -742,7 +742,7 @@ df_sens2 <- read_csv("Results/bycatch_results_fcorrected.csv") %>% summ_func()
 df_sens3 <- read_csv("Results/bycatch_results_conservation.csv") %>% summ_func()
 
 # 4. Main run with alpha = 0.5
-df_sens4 <- read_csv("Results/bycatch_results_main_alpha=05.csv") %>% summ_func()
+df_sens4 <- read_csv("Results/bycatch_results_alpha=05.csv") %>% summ_func()
 
 # 5. Main run with alpha = 2
 df_sens5 <- read_csv("Results/bycatch_results_alpha=2.csv") %>% summ_func()
@@ -811,117 +811,28 @@ dev.off()
 ##########################################################
 #### Replicas of Figs. S2 and S3 for sensitivity runs ####
 ##########################################################
-# 1. Main run: base year is 2010-2012 (geom. mean) 
-#              alpha = 1
-#              no uncertainty in Fe or delta
-#              all stocks at MEY
 
-## Figs. S2 and S3 already made for main run ##
+## Figs. S2 and S3 already made for main run (1) ##
+## Remaining sensitivty runs 2-9 as described above
+sensitivity_runs <- 
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange25", "weights", "2012only")
 
-# 2. Estimated current F cut in half for all Catch-MSY stocks (to estimate effects of possible bias)
-alldt_sens2 <- read_csv("Results/bycatch_results_fcorrected.csv")
-fig_2s2 <- 
-  bycatchdist_plot(alldt_sens2) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_2s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-fcorrected.png"), width = 10, height = 13)
-fig_2s3 <- 
-  cost_plot(alldt_sens2) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_2s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-fcorrected.png"), width = 10, height = 13)
-rm(fig_2s2, fig_2s3, alldt_sens2)
-dev.off()
-
-# 3. Only conservation concern stocks (as defined by Costello et al. 2016)
-#              rebuilt to MEY. 
-alldt_sens3 <- read_csv("Results/bycatch_results_conservation.csv")
-fig_3s2 <- 
-  bycatchdist_plot(alldt_sens3) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_3s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-conservation.png"), width = 10, height = 13)
-fig_3s3 <- 
-  cost_plot(alldt_sens3) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_3s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-conservation.png"), width = 10, height = 13)
-rm(fig_3s2, fig_3s3, alldt_sens3)
-dev.off()
-# 4. Main run with alpha = 0.5
-alldt_sens4 <- read_csv("Results/bycatch_results_main_alpha=05.csv")
-fig_4s2 <- 
-  bycatchdist_plot(alldt_sens4) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_4s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-alpha=05.png"), width = 10, height = 13)
-fig_4s3 <- 
-  cost_plot(alldt_sens4) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_4s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-alpha=05.png"), width = 10, height = 13)
-rm(fig_4s2, fig_4s3, alldt_sens4)
-dev.off()
-
-# 5. Main run with alpha = 2
-alldt_sens5 <- read_csv("Results/bycatch_results_alpha=2.csv")
-fig_5s2 <- 
-  bycatchdist_plot(alldt_sens5) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_5s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-alpha=2.png"), width = 10, height = 13)
-fig_5s3 <- 
-  cost_plot(alldt_sens5) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_5s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-alpha=2.png"), width = 10, height = 13)
-rm(fig_5s2, fig_5s3, alldt_sens5)
-dev.off()
-
-# 6. Main run with 'nei' stocks removed
-alldt_sens6 <- read_csv("Results/bycatch_results_nonei.csv")
-fig_6s2 <- 
-  bycatchdist_plot(alldt_sens6) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_6s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-nonei.png"), width = 10, height = 13)
-fig_6s3 <- 
-  cost_plot(alldt_sens6) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_6s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-nonei.png"), width = 10, height = 13)
-rm(fig_6s2, fig_6s3, alldt_sens6)
-dev.off()
-
-# 7. Main run with a 25% sensitivity range on Fe and delta
-alldt_sens7 <- read_csv("Results/bycatch_results_sensrange25.csv")
-fig_7s2 <- 
-  bycatchdist_plot(alldt_sens7) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_7s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-sensrange25.png"), width = 10, height = 13)
-fig_7s3 <- 
-  cost_plot(alldt_sens7) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_7s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-sensrange25.png"), width = 10, height = 13)
-rm(fig_7s2, fig_7s3, alldt_sens7)
-dev.off()
-
-# 8. Main run with a 25% sensitivity range on weights for target stock groups 
-#              (e.g. demersals)
-alldt_sens8 <- read_csv("Results/bycatch_results_weights.csv")
-fig_8s2 <- 
-  bycatchdist_plot(alldt_sens8) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_8s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-weights.png"), width = 10, height = 13)
-fig_8s3 <- 
-  cost_plot(alldt_sens8) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_8s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-weights.png"), width = 10, height = 13)
-rm(fig_8s2, fig_8s3, alldt_sens8)
-dev.off()
-
-# 9. Main run with 2012 only as the base year (rather than 2010-2012)
-alldt_sens9 <- read_csv("Results/bycatch_results_2012only.csv")
-fig_9s2 <- 
-  bycatchdist_plot(alldt_sens9) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_9s2 + ggsave(paste0("Figures/SensitivityS2S3/fig-S2-2012only.png"), width = 10, height = 13)
-fig_9s3 <- 
-  cost_plot(alldt_sens9) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_9s3 + ggsave(paste0("Figures/SensitivityS2S3/fig-S3-2012only.png"), width = 10, height = 13)
-rm(fig_9s2, fig_9s3, alldt_sens9)
-dev.off()
+## Plot the figures over all sensitivity runs
+lapply(
+  sensitivity_runs, function(s){
+    s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"))
+    
+    bycatchdist_plot(s_df) +
+      facet_wrap(~species, ncol = 3, scales = "free_x") + 
+      ggsave(paste0("Figures/SensitivityS2S3/fig-S2-", s, ".png"), width = 10, height = 13)
+    
+    cost_plot(s_df) +
+      facet_wrap(~species, ncol = 3, scales = "free_x") +
+    ggsave(paste0("Figures/SensitivityS2S3/fig-S3-", s, ".png"), width = 10, height = 13)
+    
+    Sys.sleep(4)
+  }
+)
 
 #### List of species categories ####
 # list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
