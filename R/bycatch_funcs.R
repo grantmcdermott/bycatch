@@ -4,7 +4,8 @@
 ##################################################################
 ##################################################################
 
-# Using literal interpretations of eqn 8 in Costello et al. SI
+# Equilibrium profit, as a function of f
+# Based on eqn 8 in Costello et al. 2016 (PNAS; ref. 2) SI
 eqprofitf <- 
   function(f,price,marginalcost,g,k,phi,beta) {
     ymsy <- ((g * k)/((phi + 1)^(1/phi)))
@@ -15,7 +16,7 @@ eqprofitf <-
     return(eqp)
   }
 
-# In terms of f:
+# Equilibrium yield, as a function of f
 eqyieldf <- 
   function(f,g,k,phi) {
     eqy <- 
@@ -24,18 +25,8 @@ eqyieldf <-
     return(eqy)
   }
 
-# Old version
-# eqprofitf <- 
-#   function(f,price,marginalcost,g,k,phi,beta) {
-#     eqp <-
-#       (price * f *
-#          eqyieldf(f,g,k,phi)) - 
-#       (marginalcost * ((f)^beta))
-#     return(eqp)
-#   }
 
-
-# Cost of f, relative to fmey (profit) or msy (yield):
+# Equilibrium profit cost of fishing at f, relative to MEY:
 profitcostf <- 
   function(f,price,marginalcost,fmey,g,k,phi,beta) {
     pc <-
@@ -44,6 +35,7 @@ profitcostf <-
     return(pc)
   }
 
+# Equilibrium yield cost of fishing at f, relative to MSY:
 yieldcostf <- 
   function(f,fmsy,g,k,phi) {
     yc <- 
@@ -52,7 +44,7 @@ yieldcostf <-
     return(yc)
   }
 
-# Marginal profit/yield, in terms of f:
+# Marginal equilibrium yield, as a function of f:
 myieldf <- 
   function(f,g,k,phi) {
     my <- 
@@ -62,7 +54,7 @@ myieldf <-
     return(my)
   }
 
-# Using literal interpretations of eqn 8 in Costello et al. SI
+# Marginal equilibrium profit, as a function of f:
 mprofitf <- 
   function(f,price,marginalcost,g,k,phi,beta) {
     mp <-
@@ -72,23 +64,15 @@ mprofitf <-
     return(mp)
   }
 
-# Old version
-# mprofitf <- 
-#   function(f,price,marginalcost,g,k,phi,beta) {
-#     mp <-
-#       (-beta * (f^(beta - 1)) * marginalcost) +
-#       (price * myieldf(f,g,k,phi))
-#     return(mp)
-#   }
 
+###############################
+###############################
+### Cost analysis functions ###
+###############################
+###############################
 
-#######################################
-#######################################
-### Chris' analytical cost analysis ###
-#######################################
-#######################################
-
-##1. Given dataframe and marginal cost, return total cost
+##1. Given dataframe of sampled target stocks, and marginal cost of bycatch reduction 
+#          (denoted 'mpb' for profit, 'myb' for yield), return total cost.
 
 #1.1 Define numerical inverse function
 inverse = function (f, lower = 0, upper = 100) {
@@ -97,7 +81,8 @@ inverse = function (f, lower = 0, upper = 100) {
 # inverse <- possibly(inverse, NA_real)
 
 #1.2 Inverse marginal cost (in eq. yield or profit) of reducing f for one target stock:
-#     Input is marginal cost of reducing f (denoted 'mp', equal to marginal profit from increasing f ('my' for yield))
+#     Input is marginal cost of reducing f (denoted 'mp', equal to marginal profit from increasing f, 
+#           denoted pi'(Fij) in SM text ('my' is analog for yield)).
 #     Output is f that gives you that marginal cost (i.e. the inverse of the eq. marginal profit function)
 #     If f cannot be found, 0 is returned (because it implies that fishing must have shut down on stock of interest)
 
@@ -131,41 +116,43 @@ inv_marg_yield <-
     return(output)
   }
 
-#1.3 Function that takes the sample dataframe of target stocks, and a marginal yield or profit, 
+#1.3 Function that takes the sample dataframe of target stocks (df), 
+#      and a marginal yield or profit of bycatch reduction (mpb or myb), 
 #      and computes the pct reduction for the bycatch species, and the total cost 
 #      (as a percentage of total MSY or MEY), given that marginal cost.
 
-redncost_giv_mp <- function(df, mpb) { # here, mpb is the marginal profit cost of bycatch
+redncost_giv_mpb <- function(df, mpb) { # here, mpb is the marginal profit cost of bycatch reduction.
     
   if (scenario == "All stocks") { # compare to MEY for all stocks for reduction and cost
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mpb'
-      mutate(f_mp = inv_marg_profit(0.01 * wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      # Calculate fishing mortality for each stock (f_mpb) that corresponds to the marginal profit cost, 'mpb'
+      # wgt * mpb = mp (from eq. S9 in the SM, where wgt = wj/n2)
+      mutate(f_mpb = inv_marg_profit(wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
       ungroup() %>%
       # Create new column 'pctred_b' which specifies the % reduction in fishing
       # mortality for the bycatch stock resulting from the % reduction
-      # for each target stock (relative to 2012) at f_mp.
-      mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
+      # for each target stock (relative to base year) at f_mpb.
+      mutate(pctred_b = wgt * 100 * (1 - ((f_mpb/curr_f)^alpha_exp))) %>%
       # Create new column 'mey' which specifies the mey for
       # each target stock. Because scenario is "All stocks", mey assumes Fmey for all target stocks. 
       mutate(mey = eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)) %>%
       # Create new column 'pcost' which specifies the lost profit relative to mey for
       # each target stock.
-      mutate(pcost = profitcostf(f_mp,price,marginalcost,f_mey,g,k,phi,beta))
+      mutate(pcost = profitcostf(f_mpb,price,marginalcost,f_mey,g,k,phi,beta))
   } else { # compare to Con. Concern (i.e. only Con. Concern stocks at MEY, no other stocks can fish harder)
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mpb'. 
-      mutate(f_mp1 = inv_marg_profit(0.01 * wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
-      # If f_mp1 exceeds fconmey, set f_mp = fconmey, because non-con. concern stocks cannot be fished harder
+      # Calculate fishing mortality for each stock that corresponds to the marginal profit cost, 'mpb'. 
+      mutate(f_mpb1 = inv_marg_profit(wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      # If f_mpb1 exceeds fconmey, set f_mpb = fconmey, because non-con. concern stocks cannot be fished harder
       # in this scenario.
-      mutate(f_mp = if_else(f_mp1 < fconmey, f_mp1, fconmey)) %>%
-      select(-f_mp1) %>%
+      mutate(f_mpb = if_else(f_mpb1 < fconmey, f_mpb1, fconmey)) %>%
+      select(-f_mpb1) %>%
       ungroup() %>%
-      mutate(pctred_b = wgt * 100 * (1 - ((f_mp/curr_f)^alpha_exp))) %>%
+      mutate(pctred_b = wgt * 100 * (1 - ((f_mpb/curr_f)^alpha_exp))) %>%
       # Create new column 'mey' which specifies the mey for
       # each target stock. Because scenario is "Con. Concern", mey assumes Fmey for all overfished stocks, 
       # and constant biomass for other stocks, following Costello et al. 2016.
@@ -176,24 +163,24 @@ redncost_giv_mp <- function(df, mpb) { # here, mpb is the marginal profit cost o
   # Create empty data frame to contain the results.
   output <- data_frame(pctred = 0, cost = 0)
   
-  # % reduction in mortality for bycatch species (pctred), given marginal profit (mp),
+  # % reduction in mortality for bycatch species (pctred), given marginal profit cost, (mpb),
   # is the sum of pctred_b across all target stocks in df.
   output$pctred <- sum(dt$pctred_b)
   
-  # 'cost' is the difference between the total profit at the f's having marginal cost, mp,
+  # 'cost' is the difference between the total profit at the f's having marginal profit cost, mpb,
   # (and therefore required for % bycatch reduction 'pctred') and mey, as a fraction of mey,
   # cumulatively across all target stocks in df.
   output$cost <- 100 * (sum(dt$pcost)/sum(dt$mey))
   return(output)
 }
 
-redncost_giv_my <- function(df, myb) { # function is analogous to 'redncost_giv_mp' above
+redncost_giv_myb <- function(df, myb) { # function is analogous to 'redncost_giv_mp' above
   
   if (scenario == "All stocks") {
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      mutate(f_my = inv_marg_yield(0.01 * wgt * myb, g, k, phi)) %>%
+      mutate(f_my = inv_marg_yield(wgt * myb, g, k, phi)) %>%
       ungroup() %>%
       mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
       mutate(msy = eqyieldf(g,g,k,phi)) %>%
@@ -202,7 +189,7 @@ redncost_giv_my <- function(df, myb) { # function is analogous to 'redncost_giv_
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      mutate(f_my1 = inv_marg_yield(0.01 * wgt * myb, g, k, phi)) %>%
+      mutate(f_my1 = inv_marg_yield(wgt * myb, g, k, phi)) %>%
       mutate(f_my = if_else(f_my1 < fconmsy, f_my1, fconmsy)) %>%
       select(-f_my1) %>%
       ungroup() %>%
@@ -217,73 +204,73 @@ redncost_giv_my <- function(df, myb) { # function is analogous to 'redncost_giv_
   return(output)
 }
 
-##2. Given dataframe ('df') and pctredpt (the bycatch reduction target, called 'pctredb' in the function), 
-#     calculate marginal costs (y and p).
+##2. Given dataframe of sampled target stocks ('df') 
+#     and pctredpt (the bycatch reduction target, called 'pctredb' in the function), 
+#     calculate marginal profit costs (y and p).
 
-my_calc <- function(df, pctredb) {
+myb_calc <- function(df, pctredb) {
   dt <- 
     df %>%
-    # Generate new column in df of maximum marginal yield (i.e. my at 0 fishing)
-    mutate(maxmy = myieldf(0,g,k,phi))
+    # Generate new column in df of maximum marginal yield cost (i.e. myb at 0 fishing)
+    mutate(maxmyb = myieldf(0,g,k,phi)/wgt)
   
-  # store largest 'maxmy' among stocks in df as 'mxmy'
-  mxmy <- max(100 * (dt$maxmy/dt$wgt))
+  # store largest possible 'maxmyb' among stocks in df as 'mxmyb'
+  mxmyb <- max(dt$maxmyb)
   
-  # Create 'imy' function which calculates the marginal yield, given pctredb
-  imy <- inverse(function (my) redncost_giv_my(dt, my)$pctred, 0, mxmy)
+  # Create 'imy' function which calculates the marginal yield cost, given pctredb
+  imyb <- inverse(function (myb) redncost_giv_myb(dt, myb)$pctred, 0, mxmyb)
   ifelse(
-    # Check if the maximum marginal yield ('mxmy') corresponds 
+    # Check if the maximum marginal yield cost ('mxmy') corresponds 
     # to a still-insufficient reduction in bycatch.
-    redncost_giv_my(dt, mxmy)$pctred < pctredb,
+    redncost_giv_myb(dt, mxmyb)$pctred < pctredb,
     # If yes, then require the max marginal yield.
-    output <- mxmy,
-    # If no, use 'imy' function to calculate required marginal yield
-    output <- imy(pctredb)
+    output <- mxmyb,
+    # If no, use 'imyb' function to calculate required marginal yield
+    output <- imyb(pctredb)
   ) 
   return(output)
 }
 
-mp_calc <- function(df, pctredb) { # function is analogous to 'my_calc' above
+mpb_calc <- function(df, pctredb) { # function is analogous to 'myb_calc' above
   dt <- df %>%
-    mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
-  mxmp <- max(100 * (dt$maxmp/dt$wgt))
-  imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 1, mxmp)
+    mutate(maxmpb = mprofitf(0,price,marginalcost,g,k,phi,beta)/wgt)
+  mxmpb <- max(dt$maxmpb)
+  impb <- inverse(function (mpb) redncost_giv_mpb(dt, mpb)$pctred, 1, mxmpb)
   ifelse(
-    redncost_giv_mp(dt, mxmp)$pctred < pctredb,
-    output <- mxmp,
-    output <- imp(pctredb)
+    redncost_giv_mpb(dt, mxmpb)$pctred < pctredb,
+    output <- mxmpb,
+    output <- impb(pctredb)
   ) 
   return(output)
 }
 
-##3 Main function: Takes as input a dataframe of relevant stocks 
+##3 Main function: Takes as input a dataframe of sampled stocks 
 #                  and relevent columns from these, as well as total reduction needed
 #                  for bycatch species, and percent reduction from MSY/MEY
 #                  Returns 0 if there is no shortfall. 
 #                  Returns 100 if pctredpt > 100 (i.e. if stopping all fishing isn't enough to stop decline). 
-#                  Returns yield/profit cost as fraction of total MEY/MSY profit/yield otherwise.
+#                  Returns profit (yield) cost as fraction of total MEY profit (MSY yield) otherwise.
 
 cost_yield <- function(df, pctredb, meanpctredmsy) {
   
   ifelse(
     # Check if stopping all fishing is enough for bycatch target.
     # If not, cost = 100 (percent of fishing yield)
-    round(pctredb) >= 100, ## GRM: Changed from `pctredb > 100
+    round(pctredb) >= 100, 
     ycost <- 100,
     ifelse(
       # Check if there is a shortfall.
-      round(pctredb) < round(meanpctredmsy), ## GRM: Added rounding
+      round(pctredb) < round(meanpctredmsy), 
       # If not, cost = 0 (because MSY reduces bycatch enough to stop decline)
       ycost <- 0,
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       #1. Calculate marginal yield cost (with function 'my_calc'), 
       #     given pct reduction needed for bycatch species.
-      #2. Calculate total yield cost, given marginal cost calculated in 1. 
-      # ycost <- redncost_giv_my(df, my_calc(df, pctredb))$cost
+      #2. Calculate total yield cost, given marginal cost calculated in 1.
       ycost <-
         tryCatch(
-          redncost_giv_my(df, my_calc(df, pctredb))$cost,
+          redncost_giv_myb(df, myb_calc(df, pctredb))$cost,
           error = function(e) as.double(NA)
           )
     )
@@ -295,22 +282,21 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
   ifelse(
     # Check if stopping all fishing is enough for bycatch target.
     # If not, cost = 100 (percent of fishing profits)
-    round(pctredb) >= 100, ## GRM: Changed from `pctredb > 100`
+    round(pctredb) >= 100, 
     pcost <- 100,
     ifelse(
       # Check if there is a shortfall.
       # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
-      round(pctredb) < (meanpctredmey), ## GRM: Changed from `pctredb < meanpctredmey + 1.2` (Rounds to the nearest whole percent)
+      round(pctredb) < (meanpctredmey), 
       pcost <- 0,
       # There is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
       #     given pct reduction needed for bycatch species.
       #2. Calculate total profit cost, given marginal cost calculated in 1. 
-      # pcost <- redncost_giv_mp(df, mp_calc(df, pctredb))$cost
       pcost <-
         tryCatch(
-          redncost_giv_mp(df, mp_calc(df, pctredb))$cost, 
+          redncost_giv_mpb(df, mpb_calc(df, pctredb))$cost, 
           error = function(e) as.double(NA)
           )
     )
