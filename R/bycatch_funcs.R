@@ -135,14 +135,14 @@ inv_marg_yield <-
 #      and computes the pct reduction for the bycatch species, and the total cost 
 #      (as a percentage of total MSY or MEY), given that marginal cost.
 
-redncost_giv_mp <- function(df, mp) {
+redncost_giv_mp <- function(df, mpb) { # here, mpb is the marginal profit cost of bycatch
     
   if (scenario == "All stocks") { # compare to MEY for all stocks for reduction and cost
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mp'
-      mutate(f_mp = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mpb'
+      mutate(f_mp = inv_marg_profit(0.01 * wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
       ungroup() %>%
       # Create new column 'pctred_b' which specifies the % reduction in fishing
       # mortality for the bycatch stock resulting from the % reduction
@@ -158,8 +158,8 @@ redncost_giv_mp <- function(df, mp) {
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mp'. 
-      mutate(f_mp1 = inv_marg_profit(mp, f_mey, price, marginalcost, g, k, phi, beta)) %>%
+      # Calculate fishing mortality for each stock that corresponds to the marginal profit 'mpb'. 
+      mutate(f_mp1 = inv_marg_profit(0.01 * wgt * mpb, f_mey, price, marginalcost, g, k, phi, beta)) %>%
       # If f_mp1 exceeds fconmey, set f_mp = fconmey, because non-con. concern stocks cannot be fished harder
       # in this scenario.
       mutate(f_mp = if_else(f_mp1 < fconmey, f_mp1, fconmey)) %>%
@@ -187,13 +187,13 @@ redncost_giv_mp <- function(df, mp) {
   return(output)
 }
 
-redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_mp' above
+redncost_giv_my <- function(df, myb) { # function is analogous to 'redncost_giv_mp' above
   
   if (scenario == "All stocks") {
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      mutate(f_my = inv_marg_yield(my, g, k, phi)) %>%
+      mutate(f_my = inv_marg_yield(0.01 * wgt * myb, g, k, phi)) %>%
       ungroup() %>%
       mutate(pctred_b = wgt * 100 * (1 - ((f_my/curr_f)^alpha_exp))) %>%
       mutate(msy = eqyieldf(g,g,k,phi)) %>%
@@ -202,7 +202,7 @@ redncost_giv_my <- function(df, my) { # function is analogous to 'redncost_giv_m
     dt <- 
       df %>% 
       group_by(1:n()) %>%
-      mutate(f_my1 = inv_marg_yield(my, g, k, phi)) %>%
+      mutate(f_my1 = inv_marg_yield(0.01 * wgt * myb, g, k, phi)) %>%
       mutate(f_my = if_else(f_my1 < fconmsy, f_my1, fconmsy)) %>%
       select(-f_my1) %>%
       ungroup() %>%
@@ -227,7 +227,7 @@ my_calc <- function(df, pctredb) {
     mutate(maxmy = myieldf(0,g,k,phi))
   
   # store largest 'maxmy' among stocks in df as 'mxmy'
-  mxmy <- max(dt$maxmy)
+  mxmy <- max(100 * (dt$maxmy/dt$wgt))
   
   # Create 'imy' function which calculates the marginal yield, given pctredb
   imy <- inverse(function (my) redncost_giv_my(dt, my)$pctred, 0, mxmy)
@@ -246,7 +246,7 @@ my_calc <- function(df, pctredb) {
 mp_calc <- function(df, pctredb) { # function is analogous to 'my_calc' above
   dt <- df %>%
     mutate(maxmp = mprofitf(0,price,marginalcost,g,k,phi,beta))
-  mxmp <- max(dt$maxmp)
+  mxmp <- max(100 * (dt$maxmp/dt$wgt))
   imp <- inverse(function (mp) redncost_giv_mp(dt, mp)$pctred, 1, mxmp)
   ifelse(
     redncost_giv_mp(dt, mxmp)$pctred < pctredb,
