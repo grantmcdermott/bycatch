@@ -127,7 +127,7 @@ suff_str <- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 151)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 152)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### MCMC sampling parameters
@@ -239,9 +239,7 @@ fig1a <-
 
 overall_red <- 
   upsides %>%
-  ### GRM: Added speciescat vars
   group_by(idoriglumped, regionfao, speciescat, speciescatname) %>%
-  ### GRM: ADDED ", na.rm=T" to all of these
   summarise(
     margc = mean(marginalcost, na.rm=T), 
     bet = mean(beta, na.rm=T),
@@ -251,7 +249,6 @@ overall_red <-
     pctmey = mean(pctredfmey, na.rm=T),
     pctmsy = mean(pctredfmsy, na.rm=T)
   ) %>%
-  ### GRM: ADDED
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, fvfmey),
     fvfmsy = ifelse(fvfmsy==-Inf, NA, fvfmsy),
@@ -271,26 +268,18 @@ overall_red <-
     wtpctmsy = wt * pctmsy
   ) 
 
-# avpctmey <- sum(overall_red$wtpctmey, na.rm = T)
-# avpctmsy <- sum(overall_red$wtpctmsy, na.rm = T)
-# avpctmey <- 100 * (1 - (sum(overall_red$cstmey, na.rm = T)/sum(overall_red$cstcurr, na.rm = T)))
-# avpctmsy <- 100 * (1 - (sum(overall_red$cstmsy, na.rm = T)/sum(overall_red$cstcurr, na.rm = T)))
 
-## GRM: ADDING BELOW
 fao_red <-
   overall_red %>% 
   select(-c(idoriglumped, speciescat, speciescatname)) %>%
   separate_rows(regionfao) %>%
   group_by(regionfao) %>%
-  # summarise_all(funs(mean(., na.rm=T))) %>%
-  summarise_all(funs(sum(., na.rm=T))) %>% ## CHANGED TO SUMS
-  ### GRM: ADDED (RELATIVE CHANGE SINCE 2012?)
+  summarise_all(funs(sum(., na.rm=T))) %>% 
   group_by(regionfao) %>%
   mutate(
     avpctmey = 100 * (1 - (cstmey/cstcurr)),
     avpctmsy = 100 * (1 - (cstmsy/cstcurr))
   ) %>%
-  ### GRM: ADDED
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
     fvfmsy = ifelse(fvfmsy==-Inf, NA, pctmey),
@@ -529,19 +518,6 @@ fig2 <-
 #   draw_plot(legend_fig2, 0, 0, 1, 0.05) +
 #   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
 
-### Alternatively, draw the figure, but include a global map inset for panel A
-# fig2 <-
-#   ggdraw() +
-#   # draw_plot(figureName, xpos, ypos, width, height) +
-#   draw_plot(fig2a, 0, 0.7, 0.475, 0.3) +
-#   draw_plot(fig2a_inset, 0.275, 0.725, 0.175, 0.175) +
-#   draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
-#   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
-#   draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
-#   draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
-#   draw_plot(legend, 0, 0, 1, 0.05) +
-#   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
-
 # fig2
 
 save_plot("Figures/fig-2.png", fig2,
@@ -596,15 +572,12 @@ fao_tax_red <-
   select(-c(idoriglumped, speciescatname)) %>%
   separate_rows(regionfao) %>%
   group_by(regionfao, taxonomy) %>% 
-  # summarise_all(funs(mean(., na.rm=T))) %>%
-  summarise_all(funs(sum(., na.rm=T))) %>% ## CHANGED TO SUMS
-  ### GRM: ADDED (RELATIVE CHANGE SINCE 2012?)
+  summarise_all(funs(sum(., na.rm=T))) %>% 
   group_by(taxonomy, regionfao) %>%
   mutate(
     avpctmey = 100 * (1 - (cstmey/cstcurr)),
     avpctmsy = 100 * (1 - (cstmsy/cstcurr))
   ) %>%
-  ### GRM: ADDED
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
     fvfmsy = ifelse(fvfmsy==-Inf, NA, pctmey),
@@ -675,8 +648,8 @@ dev.off()
 fig_s2 <- 
   bycatchdist_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave(paste0("Figures/fig-S2.png"), width = 10, height = 13)
-fig_s2 + ggsave(paste0("Figures/PDFs/fig-S2.pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
+fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -686,8 +659,8 @@ dev.off()
 fig_s3 <- 
   cost_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave(paste0("Figures/fig-S3.png"), width = 10, height = 13)
-fig_s3 + ggsave(paste0("Figures/PDFs/fig-S3.pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
+fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
 rm(fig_s3)
 dev.off()
 
@@ -697,8 +670,8 @@ dev.off()
 fig_s4 <- 
   selectivity_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s4 + ggsave(paste0("Figures/fig-S4.png"), width = 10, height = 13)
-fig_s4 + ggsave(paste0("Figures/PDFs/fig-S4.pdf"), width = 10, height = 13, device = cairo_pdf)
+fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
+fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)
 rm(fig_s4)
 dev.off()
 
