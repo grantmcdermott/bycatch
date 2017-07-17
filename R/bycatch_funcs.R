@@ -747,9 +747,9 @@ cost_plot <-
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
     if(!is.null(series)){
-      x_lab <-  paste0("Cost (fraction of ", series,")")
+      x_lab <-  paste0("Cost (percent of ", series,")")
     }else{
-      x_lab <- "Cost (fraction of MSY or MEY)"
+      x_lab <- "Cost (percent of MSY or MEY)"
     }
     
     df2 %>% 
@@ -794,11 +794,7 @@ selectivity_plot <-
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
-    if(!is.null(series)){
-      x_lab <-  paste0("Selectivity improvement needed at ", series,"(% reduction in mortality)")
-    }else{
-      x_lab <- "Selectivity improvement needed at MEY or MSY (% reduction in mortality)"
-    }
+    x_lab <- "Req. targeting improvement"
     
     df2 %>% 
       ggplot() +
@@ -891,7 +887,8 @@ summ_func <-
         q975 = quantile(value, .975, na.rm = T)
       ) %>%
       left_join(bycatch_df, by = 'species') %>%
-      select(species, grp, clade, region, contains("pctred"), everything())
+      select(species, grp, clade, region, contains("pctred"), everything()) %>%
+      ungroup()
   }
 
 
@@ -919,14 +916,14 @@ tradeoffs_plot <-
         selectivity_req = if_else(selectivity_req1>1, 1, selectivity_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, selectivity_req)#, contains("sens")) 
+      select(species, grp, clade, delta, delta_post, selectivity_req, contains("sens")) 
     
     # Add median cost estimate
     df2 <- 
       summ_df %>%
       filter(key == df2_filter) %>% 
       mutate(cost = q50/100) %>%
-      select(species, cost)#, contains("sens")) 
+      select(species, cost, contains("sens")) 
     
     df <- 
       left_join(df1, df2) %>% 
@@ -950,19 +947,17 @@ tradeoffs_plot <-
         aes(x=delta), 
         size=3, stroke=1, shape=21, col="red"
         ) +
+      geom_vline(xintercept = 0, lty=2) +
       geom_segment(
         aes(yend=species, x=delta, xend=delta_post),
         arrow = arrow(length = unit(.25, "lines"))
         ) +
-      geom_vline(xintercept = 0, lty=2) +
       scale_size_continuous(
-        name=paste0("Cost (%\nof ", toupper(scenario), ")"),
-        # name=bquote(atop("Cost (fraction", toupper(scenario)*")")),
-        labels=percent, range=c(2,8)
+        name=paste0("Cost (percent\nof ", toupper(scenario), ")"),
+        labels=percent, range=c(2,9)
         ) +
       scale_color_viridis(
-        name=paste0("Req. selectivity\nimprovement"),
-        #name=bquote(atop("Req. selectivity","improvement")), 
+        name=paste0("Req. targeting\nimprovement"),
         trans="reverse", direction=-1, 
         option="plasma", labels=percent
         ) +

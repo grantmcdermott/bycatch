@@ -127,7 +127,7 @@ suff_str <- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 152)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 156)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### MCMC sampling parameters
@@ -145,9 +145,13 @@ n2 <- 100
 ## long you have to wait, with one progress shown per bycatch species. In other 
 ## words, you'll see 20 progress bars in total if you run the full sample.
 all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
+
 ## Write results for convenient later use
 write_csv(all_dt, paste0("Results/bycatch_results", suff_str, ".csv"))
 
+## Get summary results and write those to disk too
+results_summary <- summ_func(all_dt)
+write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
 
 ####################################
 ########### MAIN FIGURES ########### 
@@ -155,6 +159,7 @@ write_csv(all_dt, paste0("Results/bycatch_results", suff_str, ".csv"))
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
 all_dt <- read_csv("Results/bycatch_results.csv")
+results_summary <- read_csv("Results/bycatch_summary_results.csv")
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
@@ -537,9 +542,6 @@ dev.off()
 ### Fig. 3 (Tradeoff plots) ###
 ###############################
 
-results_summary <- summ_func(all_dt)
-write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
-
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
 fig_3mey + ggsave(paste0("Figures/fig-3-mey.png"), width=8, height=8)
 fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey.pdf"), width=8, height=8, device = cairo_pdf)
@@ -754,7 +756,9 @@ fig_s6 <-
     )
 
 fig_s6 + ggsave("Figures/fig-S6.png", width=16, height=8)
-fig_s6 + ggsave("Figures/PDFs/fig-S6.png", width=16, height=8, device=cairo_pdf)
+fig_s6 + ggsave("Figures/PDFs/fig-S6.pdf", width=16, height=8, device=cairo_pdf)
+
+rm(fig_s6); dev.off()
 
 #### Fig. S7 (main run plus sensitivity analyses 6-9) ####
 
@@ -776,10 +780,11 @@ fig_s7 <-
     )
 
 fig_s7 + ggsave("Figures/fig-S7.png", width=16, height=8)
-fig_s7 + ggsave("Figures/PDFs/fig-S7.png", width=16, height=8, device=cairo_pdf)
+fig_s7 + ggsave("Figures/PDFs/fig-S7.pdf", width=16, height=8, device=cairo_pdf)
 
-rm(fig_s7, fig_s6)
-dev.off()
+rm(fig_s7); dev.off()
+
+
 
 ##########################################################
 #### Replicas of Figs. S2 and S3 for sensitivity runs ####
