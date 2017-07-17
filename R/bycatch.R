@@ -194,7 +194,7 @@ fig1a <-
     fill="#F2F2F2FF", col="#F2F2F2FF", lwd=1.5
     ) +
   labs(
-    x = expression(Rate~of~population~decline~(Delta)),
+    x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
   ) +
   theme(legend.title = element_text())
@@ -442,7 +442,7 @@ fig2b <-
     fill="#F2F2F2FF", col="#F2F2F2FF", lwd=0.75
     ) +
   labs(
-    x = expression(Rate~of~population~decline~(Delta)),
+    x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
   ) +
   theme(legend.title = element_text())
