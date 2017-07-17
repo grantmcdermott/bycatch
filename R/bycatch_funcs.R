@@ -919,14 +919,14 @@ tradeoffs_plot <-
         selectivity_req = if_else(selectivity_req1>1, 1, selectivity_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, selectivity_req, contains("sens")) 
+      select(species, grp, clade, delta, delta_post, selectivity_req)#, contains("sens")) 
     
     # Add median cost estimate
     df2 <- 
       summ_df %>%
       filter(key == df2_filter) %>% 
       mutate(cost = q50/100) %>%
-      select(species, cost, contains("sens")) 
+      select(species, cost)#, contains("sens")) 
     
     df <- 
       left_join(df1, df2) %>% 
@@ -956,12 +956,13 @@ tradeoffs_plot <-
         ) +
       geom_vline(xintercept = 0, lty=2) +
       scale_size_continuous(
-        name=paste0("Cost (fraction\nof ", toupper(scenario), ")"),
+        name=paste0("Cost (%\nof ", toupper(scenario), ")"),
         # name=bquote(atop("Cost (fraction", toupper(scenario)*")")),
         labels=percent, range=c(2,8)
         ) +
       scale_color_viridis(
-        name=bquote(atop("Req. selectivity", "(change in"~italic(F)[e]*")")), 
+        name=paste0("Req. selectivity\nimprovement"),
+        #name=bquote(atop("Req. selectivity","improvement")), 
         trans="reverse", direction=-1, 
         option="plasma", labels=percent
         ) +
@@ -970,7 +971,7 @@ tradeoffs_plot <-
         col = guide_colourbar(order = 2)
         ) +
       # coord_fixed(ratio = .025) +
-      labs(x = expression(Rate~of~population~decline~(Delta))) +
+      labs(x = expression(Rate~of~population~change~(Delta))) +
       facet_grid(clade~., scales = "free", space = "free", switch = "both") +
       theme(
         legend.title = element_text(),
