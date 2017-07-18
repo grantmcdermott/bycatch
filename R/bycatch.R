@@ -437,7 +437,7 @@ fig2b <-
   ggplot(aes(delta, fe, fill = z)) +
   geom_raster(interpolate = T) +
   scale_fill_gradientn(
-    name = expression(Delta/~italic(F)[e]),#bquote(atop("Reduction in"~italic(F)[e], "to halt decline ")),
+    name = expression('%'~italic(T)),
     colours = brewer_pal(palette = "Spectral")(11),
     trans = "reverse",
     labels = percent
