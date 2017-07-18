@@ -48,7 +48,7 @@ upsides <- left_join(upsides, upsides_kobe, by = 'idoriglumped') %>%
          pctredfmey = 100 * (1 - (1/eqfvfmey))) %>%
   rename(fmeyvfmsy = eqfmeyvfmsy) %>%
   select(idorig,idoriglumped,commname,sciname,country,speciescat,speciescatname,regionfao,
-         k,fvfmsy,bvbmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
+         k,fvfmsy,g,beta,phi,price,eqfvfmey,fmeyvfmsy,curr_f,f_mey,pctredfmsy,pctredfmey)
 
 
 ## 3-YEAR MOVING AVERAGES FOR F (skip if using 2012 only as base year)
@@ -89,15 +89,10 @@ rm(up3yr)
 
 # Add conservation concern scenario columns: fconmsy, fconmey
 upsides <- upsides %>%
-  mutate(bmsy = k * ((1/(1 + phi))^(1/phi)),
-         curr_b = bvbmsy * bmsy, # calculate bvbmey, which is needed to calculate fconmey below
-         bmey = (k * ((1-((f_mey * phi)/(g * (phi + 1))))^(1/phi))), 
-         bvbmey = curr_b/bmey,
-         fconmsy = if_else((fvfmsy < 1) & (bvbmsy > 1), curr_f, g), # calculate fconmsy
-         fconmey = if_else((eqfvfmey < 1) & (bvbmey > 1), curr_f, f_mey), # calculate fconmey
+  mutate(fconmsy = if_else((fvfmsy < 1), curr_f, g), # calculate fconmsy
+         fconmey = if_else((eqfvfmey < 1), curr_f, f_mey), # calculate fconmey
          pctredfmsycon = 100 * (1-(fconmsy/curr_f)),
-         pctredfmeycon = 100 * (1-(fconmey/curr_f))) %>%
-  select(-bvbmsy, -bvbmey, -curr_b, -bmey, -bmsy)
+         pctredfmeycon = 100 * (1-(fconmey/curr_f)))
 
 # Add Totoaba row to upsides (for vaquita)
 totoab <- data_frame(idorig = "toto",
@@ -118,11 +113,13 @@ totoab <- data_frame(idorig = "toto",
                      fmeyvfmsy = 0.966133,
                      curr_f = 0.03,
                      f_mey = 0.055069581,
-                     fconmsy = 0.057
+                     fconmsy = 0.03,
+                     fconmey = 0.03
 ) %>%
   mutate(pctredfmsy = 100 * (1-(g/curr_f)),
          pctredfmey = 100 * (1-(f_mey/curr_f)),
-         pctredfmsycon = 100 * (1-(fconmsy/curr_f)))
+         pctredfmsycon = 100 * (1-(fconmsy/curr_f)),
+         pctredfmeycon = 100 * (1-(fconmey/curr_f)))
 
 upsides <- bind_rows(upsides,totoab)
 
