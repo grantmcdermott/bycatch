@@ -768,9 +768,9 @@ cost_plot <-
   } 
 
 ###################################################################################
-### Plot that asks: How much would selectivity need to improve to stop decline? ###
+### Plot that asks: How much would targeting need to improve to stop decline? ###
 ###################################################################################
-selectivity_plot <-
+targeting_plot <-
   function(bdist, series=NULL){
     
     df1 <- 
@@ -778,18 +778,18 @@ selectivity_plot <-
       group_by(species) %>%
       mutate(delta_mey = delta + (fe * (pctredmey/100)),
              delta_msy = delta + (fe * (pctredmsy/100))) %>% # calculate growth rate after rebuilding
-      mutate(selectivity_pct_mey1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
-             selectivity_pct_mey = if_else(selectivity_pct_mey1 > 100, 100, selectivity_pct_mey1),
-             selectivity_pct_msy1 = if_else(delta_msy >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_msy)))),
-             selectivity_pct_msy = if_else(selectivity_pct_msy1 > 100, 100, selectivity_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
-      select(-pctredmsy, -pctredmey, -pcostmey, -ycostmsy, -delta_mey, -delta_msy, -selectivity_pct_mey1, -selectivity_pct_msy1) %>%
+      mutate(targeting_pct_mey1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
+             targeting_pct_mey = if_else(targeting_pct_mey1 > 100, 100, targeting_pct_mey1),
+             targeting_pct_msy1 = if_else(delta_msy >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_msy)))),
+             targeting_pct_msy = if_else(targeting_pct_msy1 > 100, 100, targeting_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
+      select(-pctredmsy, -pctredmey, -pcostmey, -ycostmsy, -delta_mey, -delta_msy, -targeting_pct_mey1, -targeting_pct_msy1) %>%
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
       df1 %>%
-      rename(MSY = selectivity_pct_msy, MEY = selectivity_pct_mey) %>%
+      rename(MSY = targeting_pct_msy, MEY = targeting_pct_mey) %>%
       select(MSY, MEY, species) %>%
-      gather(key, selectivity_pct, -species) %>%
+      gather(key, targeting_pct, -species) %>%
       mutate(key = factor(key, levels = c("MSY", "MEY"))) 
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
@@ -799,7 +799,7 @@ selectivity_plot <-
     df2 %>% 
       ggplot() +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = selectivity_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      geom_density(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
@@ -912,11 +912,11 @@ tradeoffs_plot <-
       mutate(delta_post = delta + (fe * (q50/100))) %>% 
       ## Calculate required selectivity change (% reduction in Fe at MEY or MSY)
       mutate(
-        selectivity_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
-        selectivity_req = if_else(selectivity_req1>1, 1, selectivity_req1)
+        targeting_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
+        targeting_req = if_else(targeting_req1>1, 1, targeting_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, selectivity_req, contains("sens")) 
+      select(species, grp, clade, delta, delta_post, targeting_req, contains("sens")) 
     
     # Add median cost estimate
     df2 <- 
@@ -934,7 +934,7 @@ tradeoffs_plot <-
     df %>%
       ggplot(aes(y=species)) +
       geom_point(
-        aes(x=delta_post, size=cost, col=selectivity_req), 
+        aes(x=delta_post, size=cost, col=targeting_req), 
         alpha=0.7
         ) +
       geom_point(

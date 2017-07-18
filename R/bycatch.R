@@ -488,6 +488,9 @@ fig2d <- bycatchdist_plot(all_dt %>% filter(species==sp_type), "MEY")
 #### Fig 2.E (Cost disb) ####
 fig2e <- cost_plot(all_dt %>% filter(species==sp_type), "MEY")
 
+#### Fig 2.F (Targeting disb) ####
+fig2f <- targeting_plot(all_dt %>% filter(species==sp_type), "MEY")
+
 #### Composite Fig. 2 ####
 
 ## Extract legend
@@ -496,6 +499,7 @@ legend_fig2 <- g_legend(fig2d)
 ### Tweak plots before putting theme together in composite figure
 fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2e <- fig2e + theme(strip.text.x = element_blank(), legend.position = "none")
+fig2f <- fig2f + theme(strip.text.x = element_blank(), legend.position = "none")
 
 ### Now, draw the figure (without legend)
 fig2 <-
@@ -504,24 +508,13 @@ fig2 <-
   draw_plot(fig2a, 0.025, 0.67, 0.475, 0.33) +
   draw_plot(fig2b, 0.55,  0.67, 0.45,  0.33) +
   draw_plot(fig2c, 0,     0.34, 1,     0.33) +
-  draw_plot(fig2d, 0,     0,    0.475, 0.33) +
-  draw_plot(fig2e, 0.525, 0,    0.475, 0.33) +
-  draw_plot_label(c("A", "B", "C", "D", "E"), 
-                  c(0, 0.525, 0, 0, 0.525), 
-                  c(1, 1, 0.66, 0.33, 0.33), 
+  draw_plot(fig2d, 0,     0,    0.33,  0.33) +
+  draw_plot(fig2e, 0.33,  0,    0.33,  0.33) +
+  draw_plot(fig2f, 0.66,  0,    0.33,  0.33) +
+  draw_plot_label(c("A", "B", "C", "D", "E", "F"), 
+                  c(0, 0.525, 0, 0, 0.33, 0.66), 
+                  c(1, 1, 0.66, 0.33, 0.33, 0.33), 
                   size = 15)
-
-## With legend (only use if including MSY in plots)
-# fig2 <-
-#   ggdraw() +
-#   # draw_plot(figureName, xpos, ypos, width, height) +
-#   draw_plot(fig2a, 0.025, 0.7, 0.475, 0.3) +
-#   draw_plot(fig2b, 0.55, 0.7, 0.45, 0.3) +
-#   draw_plot(fig2c, 0, 0.375, 1, 0.3) +
-#   draw_plot(fig2d, 0, 0.05, 0.475, 0.3) +
-#   draw_plot(fig2e, 0.525, 0.05, 0.475, 0.3) +
-#   draw_plot(legend_fig2, 0, 0, 1, 0.05) +
-#   draw_plot_label(c("A", "B", "C", "D", "E", ""), c(0, 0.525, 0, 0, 0.525, 0), c(1, 1, 0.675, 0.35, 0.35, 0), size = 15)
 
 # fig2
 
@@ -667,10 +660,10 @@ rm(fig_s3)
 dev.off()
 
 ##############################################################
-##### Fig S4 (Combined selectivity change distributions) #####
+##### Fig S4 (Combined targeting change distributions) #####
 ##############################################################
 fig_s4 <- 
-  selectivity_plot(all_dt) +
+  targeting_plot(all_dt) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
 fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
 fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)
