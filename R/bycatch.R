@@ -707,44 +707,44 @@ dev.off()
 #              alpha = 1
 #              no uncertainty in Fe or delta
 #              all stocks at MEY
-df_sens1 <- read_csv("Results/bycatch_results.csv") %>% summ_func()
+df_run1 <- read_csv("Results/bycatch_summary_results.csv")
 
 # 2. Estimated current F cut in half for all Catch-MSY stocks (to estimate effects of possible bias)
-df_sens2 <- read_csv("Results/bycatch_results_fcorrected.csv") %>% summ_func()
+df_run2 <- read_csv("Results/bycatch_summary_results_fcorrected.csv")
 
 # 3. Only conservation concern stocks (as defined by Costello et al. 2016)
 #              rebuilt to MEY. 
-df_sens3 <- read_csv("Results/bycatch_results_conservation.csv") %>% summ_func()
+df_run3 <- read_csv("Results/bycatch_summary_results_conservation.csv")
 
 # 4. Main run with alpha = 0.5
-df_sens4 <- read_csv("Results/bycatch_results_alpha=05.csv") %>% summ_func()
+df_run4 <- read_csv("Results/bycatch_summary_results_alpha=05.csv")
 
 # 5. Main run with alpha = 2
-df_sens5 <- read_csv("Results/bycatch_results_alpha=2.csv") %>% summ_func()
+df_run5 <- read_csv("Results/bycatch_summary_results_alpha=2.csv")
 
 # 6. Main run with 'nei' stocks removed
-df_sens6 <- read_csv("Results/bycatch_results_nonei.csv") %>% summ_func()
+df_run6 <- read_csv("Results/bycatch_summary_results_nonei.csv")
 
 # 7. Main run with a 25% sensitivity range on Fe and delta
-df_sens7 <- read_csv("Results/bycatch_results_sensrange25.csv") %>% summ_func()
+df_run7 <- read_csv("Results/bycatch_summary_results_sensrange25.csv")
 
 # 8. Main run with a 25% sensitivity range on weights for target stock groups 
 #              (e.g. demersals)
-df_sens8 <- read_csv("Results/bycatch_results_weights.csv") %>% summ_func()
+df_run8 <- read_csv("Results/bycatch_summary_results_weights.csv")
 
 # 9. Main run with 2012 only as the base year (rather than 2010-2012)
-df_sens9 <- read_csv("Results/bycatch_results_2012only.csv") %>% summ_func()
+df_run9 <- read_csv("Results/bycatch_summary_results_2012only.csv")
 
 
 #### Fig. S6 (main run plus sensitivity analyses 2-5) ####
 
 fig_s6 <-
   bind_rows(
-    df_sens1 %>% mutate(sens = "A"),
-    df_sens2 %>% mutate(sens = "B"),
-    df_sens3 %>% mutate(sens = "C"),
-    df_sens4 %>% mutate(sens = "D"),
-    df_sens5 %>% mutate(sens = "E")
+    df_run1 %>% mutate(sens = "A"),
+    df_run2 %>% mutate(sens = "B"),
+    df_run3 %>% mutate(sens = "C"),
+    df_run4 %>% mutate(sens = "D"),
+    df_run5 %>% mutate(sens = "E")
     ) %>%
   tradeoffs_plot("MEY") +
   scale_x_continuous(expand = c(0.075, 0)) +
@@ -764,11 +764,11 @@ rm(fig_s6); dev.off()
 
 fig_s7 <-
   bind_rows(
-    df_sens1 %>% mutate(sens = "A"),
-    df_sens6 %>% mutate(sens = "B"),
-    df_sens7 %>% mutate(sens = "C"),
-    df_sens8 %>% mutate(sens = "D"),
-    df_sens9 %>% mutate(sens = "E")
+    df_run1 %>% mutate(sens = "A"),
+    df_run6 %>% mutate(sens = "B"),
+    df_run7 %>% mutate(sens = "C"),
+    df_run8 %>% mutate(sens = "D"),
+    df_run9 %>% mutate(sens = "E")
     ) %>% 
   tradeoffs_plot("MEY") +
   scale_x_continuous(expand = c(0.075, 0)) +
@@ -798,7 +798,7 @@ sensitivity_runs <-
 ## Plot the figures over all sensitivity runs
 lapply(
   sensitivity_runs, function(s){
-    s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"))
+    s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"), col_types=c("ddddc"))
     
     bycatchdist_plot(s_df) +
       facet_wrap(~species, ncol = 3, scales = "free_x") + 
