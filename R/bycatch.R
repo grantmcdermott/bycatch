@@ -53,84 +53,38 @@ num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if yo
 source("R/bycatch_funcs.R")
 
 
-#########################################################################
-########## LOAD DATA AND CHOOSE ANALYSIS TYPE / SENSITIVITY RUN #########
-#########################################################################
+###################################################
+########## LOAD DATA AND CHOOSE MODEL RUN #########
+###################################################
 
 ### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
 target_df <- read_csv("Data/target_species.csv")
 
+### Choose model run. The `choose_run` function below sets the correct parameters  
+### for each run and also loads the correct version of the upsides data into the 
+### global environment. It takes as argument one of nine shorthand model descriptions
+### listed in the `run` vector. Alternatively, you may simply enter the integer between 
+### 1 and 9 that corresponds to the run of your choice.
+run <- 
+  c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
+    "nonei", "sensrange25", "weights", "2012only")[1] ## Change as needed
+
+choose_run(run) ## choose_run(1) works equally as well 
+
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
 
-## Set "alpha" parameter, i.e. elasticity of (changes in) bycatch to (changes 
-## in) target stocks. Default is 1. Other options used in sensitivity analysis.
-## See equation (S14). 
-alpha_exp <- c(1, 0.5, 2)[1] 
-alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
-
-## Select whether analysis simulates over 25% sensitivity range in Fe and delta
-sensrange25 <- c(0, 1)[1] # 0 = off, 1 = on
-sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
-
-## Select whether cost analysis simulates over 25% sensitivity range in bycatch weights
-weights_sens <- c(0, 1)[1] # 0 = off, 1 = on
-weights_str <- ifelse(weights_sens==0, "", "_weights")
-
-## Select scenario (are all stocks going to MEY/MSY ["All stocks"],
-##   or just those currently with F > Fmsy or B < Bmsy)
-scenario <- c("All stocks", "Con. Concern")[1]
-scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
-
-### Load target stock data, derived from the "upsides" model of Costello et al. 
-### (PNAS, 2016).
-## First choose which version of the upsides data to use: 1) Main (includes NEI 
-## stocks and uses a mean F over 2010-2012), 2) Excluding NEI stocks, 3) Use F
-## from 2012 only. The main results of the paper rely on (1). The latter two are 
-## used for sensitivity analysis in the SM.
-upsides_type <- c("main", "nonei", "2012only")[1] ## Change as needed.
-upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-## Now read in the data
-upsides <- 
-  fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
-  as_data_frame()
-# upsides <- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
-
-## Decide whether to add in a "correction factor" for possible upward bias in C-MSY projections
-## Default is 1 (i.e. no bias). Alternative is 2 (i.e. current F is twice as big as estimated by
-## the upsides model.)
-corr_factor <- c(1, 2)[1] ## Change as required 
-corr_str <- ""
-if(corr_factor==2){
-  corr_str <- "_fcorrected"
-  upsides <-
-    upsides %>%
-    mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%
-    ## Adjust additionally affected variables in sequence
-    mutate(
-      fvfmsy = curr_f/g,
-      eqfvfmey = curr_f/f_mey
-    ) %>%
-    mutate(
-      pctredfmsy = 100 * (1 - (1/fvfmsy)),
-      pctredfmey = 100 * (1 - (1/eqfvfmey)),
-      pctredfmsycon = 100 * (1-(fconmsy/curr_f))
-    )
-}
-
-## Convenience variable for output file name suffix
-suff_str <- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str)
 
 ################################
 ########### ANALYSIS ###########
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 156)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 110)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
-### MCMC sampling parameters
+### Monte Carlo (MC) sampling parameters
 
 ## How many draws (states of the world) are we simulating for each species?
 n1 <- 1000
@@ -140,17 +94,17 @@ n2 <- 100
 
 ### Results for all species
 
-## Apply the MCMC simulation function over all species (and bind into a common
+## Apply the MC simulation function over all species (and bind into a common
 ## data frame). A series of progress bars will give you an indication of how
 ## long you have to wait, with one progress shown per bycatch species. In other 
 ## words, you'll see 20 progress bars in total if you run the full sample.
-all_dt <- lapply(all_species, bycatch_func) %>% bind_rows() 
+results <- lapply(all_species, bycatch_func) %>% bind_rows() 
 
-## Write results for convenient later use
-write_csv(all_dt, paste0("Results/bycatch_results", suff_str, ".csv"))
+## Get summary results
+results_summary <- summ_func(results)
 
-## Get summary results and write those to disk too
-results_summary <- summ_func(all_dt)
+## Write results to disk for convenient later use
+write_csv(results, paste0("Results/bycatch_results", suff_str, ".csv"))
 write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
 
 ####################################
@@ -158,7 +112,7 @@ write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, "
 ####################################
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
-all_dt <- read_csv("Results/bycatch_results.csv")
+results <- read_csv("Results/bycatch_results.csv")
 results_summary <- read_csv("Results/bycatch_summary_results.csv")
 
 ## Choose map projection (See http://spatialreference.org)
@@ -483,13 +437,13 @@ fig2c <-
   theme(strip.text = element_text(size = 14))
 
 #### Fig 2.D (Bycatch reduction disb) ####
-fig2d <- bycatchdist_plot(all_dt %>% filter(species==sp_type), "MEY") 
+fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), "MEY") 
 
 #### Fig 2.E (Cost disb) ####
-fig2e <- cost_plot(all_dt %>% filter(species==sp_type), "MEY")
+fig2e <- cost_plot(results %>% filter(species==sp_type), "MEY")
 
 #### Fig 2.F (Targeting disb) ####
-fig2f <- targeting_plot(all_dt %>% filter(species==sp_type), "MEY")
+fig2f <- targeting_plot(results %>% filter(species==sp_type), "MEY")
 
 #### Composite Fig. 2 ####
 
@@ -641,7 +595,7 @@ dev.off()
 ##### Fig S2 (Combined bycatch reduction distributions) #####
 ##############################################################
 fig_s2 <- 
-  bycatchdist_plot(all_dt) +
+  bycatchdist_plot(results) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
 fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
 fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
@@ -652,7 +606,7 @@ dev.off()
 ##### Fig S3 (Combined cost distributions) #####
 #################################################
 fig_s3 <- 
-  cost_plot(all_dt) +
+  cost_plot(results) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
 fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
 fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
@@ -663,7 +617,7 @@ dev.off()
 ##### Fig S4 (Combined targeting change distributions) #####
 ##############################################################
 fig_s4 <- 
-  targeting_plot(all_dt) +
+  targeting_plot(results) +
   facet_wrap(~species, ncol = 3, scales = "free_x")
 fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
 fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)

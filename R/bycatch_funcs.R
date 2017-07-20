@@ -1,3 +1,117 @@
+#########################################################################
+### CONVENIENCE FUNCTION THAT SETS PARAMETERS FOR SPECIFIC MODEL RUNS ###
+### AND LOADS CORRECT VERSION OF THE UPSIDES DATA.                    ###  
+#########################################################################
+
+choose_run <- 
+  function(run){
+    
+    r_types <- 
+      c("main","fcorrected","conservation","alpha=05","alpha=2",
+        "nonei","sensrange25","weights","2012only")
+    
+    is.wholenumber <-
+      function(x, tol = .Machine$double.eps^0.5)  {
+        ifelse(is.double(x), abs(x - round(x) < tol), F) 
+      }
+    
+    if(is.wholenumber(run)) {run <- r_types[run]}
+    
+    run <- tolower(run)
+    
+    ## 1. Main run (default)
+    upsides_type <<- "main" ## C.f. Runs 6 and 9
+    corr_factor <<- 1 ## C.f. Run 2
+    scenario <<- "All stocks" ## C.f. Run 3
+    alpha_exp <<- 1  ## C.f. Runs 4 and 5
+    sensrange25 <<- 0 ## C.f. Run 7
+    weights_sens <<- 0 ## C.f. Run 8
+    
+    
+    ## 2. Correction factor for possible upward bias in catch-MSY projections
+    ##    Here we assume that current F is twice as big as estimated by Costello 
+    ##    et al. (2016).
+    if(run=="fcorrected") {corr_factor <<- 2}
+    
+    ## 3. Conservation concern scenario: Only stocks going to MEY/MSY are those currently 
+    ##    with F > Fmsy or B < Bmsy.
+    if(run=="conservation") {scenario <<- "Con. Concern"}
+    
+    ## 4. and 5. Different "alpha" exponents, i.e. elasticity of (changes in) bycatch to 
+    ##           (changes in) target stocks. See eqn (S14) in the paper.
+    if(run=="alpha=05") {alpha_exp <<- 0.5}
+    if(run=="alpha=2") {alpha_exp <<- 2}
+    
+    ## 6. Remove "NEI" (not elsewhere included) stocks from the Costello et al. 2016
+    if(run=="nonei") {upsides_type <<- "nonei"}
+    
+    ## 7. Simulate over a (uniform) 25% uncertainty range in Fe and delta
+    if(run=="sensrange25") {sensrange25 <<- 1}
+    
+    ## 8. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
+    ##    cost analysis.
+    if(run=="weights") {weights_sens <<- 1}
+    
+    ## 9. Use F from 2012 only. 
+    if(run=="2012only") {upsides_type <<- "2012only"}
+    
+    ## Convenience strings for import/export, file-reading and naming conventions
+    corr_str <- ""
+    scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
+    alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
+    upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
+    sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
+    weights_str <- ifelse(weights_sens==0, "", "_weights")
+    
+    ## Read in the relevant target stock data, derived from the "upsides" model of 
+    ## Costello et al. (PNAS, 2016).
+    upsides <<- 
+      fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
+      as_data_frame()
+    # upsides <<- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
+    
+    ## Final adjustment to upsides data in case of the "fcorrected" run
+    if(run=="fcorrected") {
+      corr_str <- "_fcorrected"
+      upsides <<-
+        upsides %>%
+        mutate(curr_f = ifelse(dbase=="FAO", curr_f/corr_factor, curr_f)) %>%
+        ## Adjust additionally affected variables in sequence
+        mutate(
+          fvfmsy = curr_f/g,
+          eqfvfmey = curr_f/f_mey
+        ) %>%
+        mutate(
+          pctredfmsy = 100 * (1 - (1/fvfmsy)),
+          pctredfmey = 100 * (1 - (1/eqfvfmey)),
+          pctredfmsycon = 100 * (1-(fconmsy/curr_f))
+        )
+    }
+    
+    ## Combined convenience variable for output file name suffix
+    suff_str <<- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str)
+    
+    ## Descriptive message for user
+    if(match(run,r_types) == 1) {
+      message(paste0("Run ", match(run,r_types), " (", run, ")"))
+    } else {
+      message(paste0("Run ", match(run,r_types), " (", run, ", sensitivity analysis)"))
+    } 
+    
+    message(
+      paste0(
+        "Parameters: \n",
+        "   upsides_type = ", upsides_type, "\n",
+        "   corr_factor = ", corr_factor, "\n",
+        "   scenario = ", scenario, "\n",
+        "   alpha_exp = ", alpha_exp, "\n",
+        "   sensrange25 = ", sensrange25, "\n",
+        "   weights_sens = ", sensrange25
+        )
+      )
+  }
+
+
 ##################################################################
 ##################################################################
 ### Equilibrium profit and yield functions (for cost analysis) ###
@@ -893,9 +1007,9 @@ summ_func <-
 
 
 tradeoffs_plot <-
-  function(summ_df, scenario) {
+  function(summ_df, goal) {
     
-    if(toupper(scenario)=="MEY"){
+    if(toupper(goal)=="MEY"){
       df1_filter <- "pctredmey"
       df2_filter <- "pcostmey"
     }else{
@@ -953,7 +1067,7 @@ tradeoffs_plot <-
         arrow = arrow(length = unit(.25, "lines"))
         ) +
       scale_size_continuous(
-        name=paste0("Cost (percent\nof ", toupper(scenario), ")"),
+        name=paste0("Cost (percent\nof ", toupper(goal), ")"),
         labels=percent, range=c(2,9)
         ) +
       scale_color_viridis(
