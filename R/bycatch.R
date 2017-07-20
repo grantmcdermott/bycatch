@@ -759,17 +759,4 @@ lapply(
   }
 )
 
-#### List of species categories ####
-# list("Shads" = 24, "Flounders, halibuts, soles" = 31, 
-#   "Cods, hakes, haddocks" = 32,"Miscellaneous coastal fishes" = 33,
-#  "Miscellaneous demersal fishes" = 34,"Herrings, sardines,anchovies" = 35,
-# "Tunas,bonitos,billfishes" = 36,"Miscellaneous pelagic fishes" = 37,
-#"Sharks, rays, chimeras" = 38,"Shrimps, prawns" = 45,
-#"Carps, barbels and other cyprinids" = 11,"Sturgeons, paddlefishes" = 21,
-#"Salmons, trouts, smelts" = 23,"Miscellaneous diadromous fishes" = 25,
-#"Crabs, sea-spiders" = 42,"Lobsters, spiny rock lobsers" = 43,
-#"King crabs, squat lobsters" = 44,"Miscellaneous marine crustaceans" = 47,
-#"Abalones, winkles, conchs" = 52,"Oysters" = 53,"Mussels" = 54,
-#"Scallops, pectens" = 55,"Clams, cockles, arkshells" = 56,
-#"Squids, cuttlefishes, octopuses" = 57,"Horseshoe crabs and other arachnoids" = 75,
-#"Sea-urchins and other echinoderms" = 76,"Miscellaneous aquatic invertebrates" = 56)
+### END ###

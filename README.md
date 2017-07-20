@@ -1,4 +1,4 @@
-# Protecting marine turtles, mammals and birds by rebuilding global fisheries
+# Protecting marine turtles, mammals and birds by rebuilding global fisheries (Burgess *et al*., 2017)
 
 This repo contains *R* code and data for reproducing Burgess *et al*. (2017), "Protecting marine turtles, mammals and birds by rebuilding global fisheries". Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternately, click on the green "clone or download" button just below that to download the repo to your local computer.
 
