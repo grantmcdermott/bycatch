@@ -106,7 +106,7 @@ choose_run <-
         "   scenario = ", scenario, "\n",
         "   alpha_exp = ", alpha_exp, "\n",
         "   sensrange25 = ", sensrange25, "\n",
-        "   weights_sens = ", sensrange25
+        "   weights_sens = ", weights_sens
         )
       )
   }
