@@ -59,8 +59,7 @@ source("R/bycatch_funcs.R")
 ###################################################
 
 ### Load bycatch data
-# bycatch_df <- read_csv("Data/bycatch_species.csv")
-bycatch_df <- read_csv("Data/bycatch_species_r1.csv")
+bycatch_df <- read_csv("Data/bycatch_species.csv")
 target_df <- read_csv("Data/target_species.csv")
 
 ### Choose model run. The `choose_run` function below sets the correct parameters  
