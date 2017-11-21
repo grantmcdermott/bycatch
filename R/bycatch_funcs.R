@@ -732,9 +732,9 @@ single_worldstate_outputs <-
       pctT <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
     } else { ## The "sensrange95" run. Sample %T according to distribution of underlying parameters
       # pctb <- runif(1, min = pctredbl, max = pctredbu) # if 95% uncertainty in Fe and delta is on
-      delta_sd <- (delta_mean - delta_q025)/1.96
-      deltaN_sd <- (deltaN_mean - deltaN_q025)/1.96
-      fe_sd <- (fe_mean - fe_q025)/1.96
+      delta_sd <- abs((delta_mean - delta_q025)) / 1.96
+      deltaN_sd <- abs((deltaN_mean - deltaN_q025)) / 1.96
+      fe_sd <- abs((fe_mean - fe_q025)) / 1.96
       ## Take draws from assumed normal distributions. Will override with 
       ## uniform draws for sensrange_type(s) 1 and 5.
       delta_draw <- suppressWarnings(rnorm(1, mean = delta_mean, sd = delta_sd))
@@ -742,7 +742,7 @@ single_worldstate_outputs <-
       fe_draw <- suppressWarnings(rnorm(1, mean = fe_mean, sd = fe_sd))
       ## Type 1: delta~N(.) & deltaN~U(.) 
       if(sensrange_type==1) {
-        deltaN_draw <- runif(1, min = min(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+        deltaN_draw <- runif(1, min = max(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
         pctT <- 100 * (delta_draw / (delta_draw-deltaN_draw))
       }
       ## Type 2: Fe~N(.) & deltaN~N(.)
@@ -763,7 +763,7 @@ single_worldstate_outputs <-
       ## Type 5: delta~U(.) & deltaN~U(.)
       if(sensrange_type==5) {
         delta_draw <- runif(1, min = delta_q025, max = delta_q975)
-        deltaN_draw <- runif(1, min = min(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+        deltaN_draw <- runif(1, min = max(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
         pctT <- 100 * (delta_draw / (delta_draw-deltaN_draw))
       }
     }
@@ -894,7 +894,8 @@ bycatchdist_plot <-
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-ycostmsy, -pcostmey) %>%
+      # select(-ycostmsy, -pcostmey) %>%
+      select(-ycostmsy, -pcostmey, -pctT) %>% ### REVISION
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
@@ -907,27 +908,184 @@ bycatchdist_plot <-
       gather(key, pctred, -species) %>%
       mutate(key = factor(key, levels = c("MSY", "MEY"))) 
     
+    ### REVISION
+    pctT_df <- df1 %>% distinct(species, .keep_all = T) %>% ungroup()
+    pctT_df <-
+      lapply(seq_len(nrow(pctT_df)), function(i) {
+        rel_bycsp <- slice(pctT_df, i)
+        bycsp <- rel_bycsp$species
+        # N <- df1 %>% filter(species==bycsp) %>% count(species) %>% pull(n)
+        N <- 10000
+        ##
+        delta_mean <- rel_bycsp$delta_mean
+        delta_q025 <- rel_bycsp$delta_q025
+        delta_q975 <- rel_bycsp$delta_q975
+        deltaN_mean <- rel_bycsp$deltaN_mean
+        deltaN_q025 <- rel_bycsp$deltaN_q025
+        deltaN_q975 <- rel_bycsp$deltaN_q975
+        fe_mean <- rel_bycsp$fe_mean
+        fe_q025 <- rel_bycsp$fe_q025
+        fe_q975 <- rel_bycsp$fe_q975
+        ## 
+        sensrange_type <- rel_bycsp$sensrange_type
+        ##
+        if(is.na(deltaN_mean)) {
+          deltaN_mean <- delta_mean + fe_mean ## Should only be relevent for type 4 cases
+        }
+        pctT_mean <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
+        ##
+        delta_sd <- abs((delta_mean - delta_q025)) / 1.96
+        deltaN_sd <- abs((deltaN_mean - deltaN_q025)) / 1.96
+        fe_sd <- abs((fe_mean - fe_q025)) / 1.96
+        ## Take draws from assumed normal distributions. Will override with 
+        ## uniform draws for sensrange_type(s) 1 and 5.
+        delta_draw <- suppressWarnings(rnorm(N, mean = delta_mean, sd = delta_sd))
+        deltaN_draw <- suppressWarnings(rnorm(N, mean = deltaN_mean, sd = deltaN_sd))
+        fe_draw <- suppressWarnings(rnorm(N, mean = fe_mean, sd = fe_sd))
+        ## Type 1: delta~N(.) & deltaN~U(.) 
+        if(sensrange_type==1) {
+          # deltaN_draw <- runif(N, min = max(delta_draw , deltaN_q025, na.rm=T), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+          deltaN_draw <- runif(N, min = deltaN_q025, max = deltaN_q975)
+          # pctT <- 100 * (delta_draw / (delta_draw - deltaN_draw))
+        }
+        ## Type 2: Fe~N(.) & deltaN~N(.)
+        if(sensrange_type==2) {
+          # pctT <- 100 * ((fe_draw - deltaN_draw) / fe_draw)
+        }
+        ## Type 3: delta~N(.) & deltaN~N(.)
+        if(sensrange_type==3) {
+          # if(deltaN_draw<=delta_draw){
+          #   deltaN_draw <- truncnorm::rtruncnorm(N, a=delta_draw, b=Inf, mean = deltaN_mean, sd = deltaN_sd) ## Make sure deltaN_draw>=delta_draw
+          # }
+          deltaN_draw <- rnorm(N, mean = deltaN_mean, sd = deltaN_sd)
+          # pctT <- 100 * (delta_draw / (delta_draw - deltaN_draw))
+        }
+        ## Type 4: delta~N(.) & Fe~N(.)
+        if(sensrange_type==4) {
+          # pctT <- 100 * (-delta_draw / fe_draw)
+        }
+        ## Type 5: delta~U(.) & deltaN~U(.)
+        if(sensrange_type==5) {
+          delta_draw <- runif(N, min = delta_q025, max = delta_q975)
+          # deltaN_draw <- runif(N, min = max(delta_draw , deltaN_q025, na.rm=T), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+          deltaN_draw <- runif(N, min = deltaN_q025, max = deltaN_q975)
+          # pctT <- 100 * (delta_draw / (delta_draw - deltaN_draw))
+        }
+        
+        T_df <-
+          # data.frame(pctT = pctT/100) %>%
+          data.frame(
+            delta_draw = delta_draw,
+            deltaN_draw = deltaN_draw,
+            fe_draw = fe_draw
+            ) %>%
+          as_data_frame() %>%
+          mutate(
+            species = bycsp,
+            sensrange_type = sensrange_type,
+            pctT_mean = pctT_mean/100,
+            delta_mean = delta_mean,
+            delta_sd = delta_sd,
+            delta_q025 = delta_q025,
+            delta_q975 = delta_q975,
+            deltaN_mean = deltaN_mean,
+            deltaN_sd = deltaN_sd,
+            deltaN_q025 = deltaN_q025,
+            deltaN_q975 = deltaN_q975,
+            fe_mean = fe_mean,
+            fe_sd = fe_sd,
+            fe_q025 = fe_q025,
+            fe_q975 = fe_q975
+            ) %>% 
+          ## Correction 
+          mutate(
+            deltaN_draw = ifelse(
+              deltaN_draw < delta_draw,
+              ifelse(
+                sensrange_type==3,
+                truncnorm::rtruncnorm(1, a=delta_draw, b=Inf, mean = deltaN_mean, sd = deltaN_sd),
+                ifelse(
+                  sensrange_type %in% c(1, 5),
+                  runif(1, min = max(delta_draw , deltaN_q025, na.rm=T), max = deltaN_q975),
+                  deltaN_draw
+                  )
+                ),
+              deltaN_draw
+              )
+            ) %>%
+          ## Now calculate pctTs (NOTE: Don't multiply by 100 because plot uses raw percentages)
+          mutate(
+            pctT = ifelse(
+              ## Type 1
+              sensrange_type==1,
+              delta_draw / (delta_draw - deltaN_draw),
+              ifelse(
+                ## Type 2
+                sensrange_type==2,
+                (fe_draw - deltaN_draw) / fe_draw,
+                ifelse(
+                  ## Type 3
+                  sensrange_type==3,
+                  delta_draw / (delta_draw - deltaN_draw),
+                  ifelse(
+                    ## Type 4
+                    sensrange_type==4,
+                    -delta_draw / fe_draw,
+                    ## Type 5
+                    delta_draw / (delta_draw - deltaN_draw)
+                    )
+                  )
+                )
+              )
+            ) %>%
+          ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
+          mutate(pctT = if_else(pctT==Inf, 0, pctT)) %>%
+          ## Truncate disbs to 95% range to aid visual inspection
+          mutate(
+            q025 = quantile(pctT, 0.025, na.rm=T),
+            q975 = quantile(pctT, 0.975, na.rm=T)
+            ) %>%
+          mutate(pctT = ifelse(pctT<q025, NA, pctT)) %>%
+          mutate(pctT = ifelse(pctT>q975, NA, pctT)) %>%
+          select(species, pctT, pctT_mean)
+        
+        return(T_df)
+        
+      }) %>%
+      bind_rows()
+    ### END REVISION
+    
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
     df2 %>% 
       ggplot() +
-      geom_rect(
-        data = filter(df1, row_number() == 1),
-        aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
-        alpha = .25
+      # geom_rect(
+      #   data = filter(df1, row_number() == 1),
+      #   aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
+      #   alpha = .25
+      #   ) +
+      geom_density(
+        data = pctT_df, 
+        aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75,
+        adjust = 2#, ## use more smoothing 
+        # show.legend = F
         ) +
       # geom_line(stat = "density") + ## lines only
       geom_density(aes(x = pctred, y = ..scaled.., col = key, fill = key), alpha = .5) +
+      # geom_vline(
+      #   data = filter(df1, row_number() == 1),
+      #   aes(xintercept = pctredbpt), lty = 2
+      #   ) +
       geom_vline(
-        data = filter(df1, row_number() == 1),
-        aes(xintercept = pctredbpt), lty = 2
+        data = pctT_df,
+        aes(xintercept = pctT_mean), lty = 2
         ) +
       labs(x = "Reduction in mortality", y = "Density") + 
       scale_x_continuous(labels = percent) + 
       # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
       # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(name = "", values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(name = "", values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
