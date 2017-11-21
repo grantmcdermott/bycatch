@@ -726,6 +726,9 @@ single_worldstate_outputs <-
     ## full underlying parameter distributions ("sensrange95" run only).
     if (sensrange95 == 0) { ## Normal run. Don't consider uncertainty in %T
       # pctb <- pctredb
+      if(is.na(deltaN_mean)) {
+        deltaN_mean <- delta_mean + fe_mean ## Should only be relevent for type 4 cases
+      }
       pctT <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
     } else { ## The "sensrange95" run. Sample %T according to distribution of underlying parameters
       # pctb <- runif(1, min = pctredbl, max = pctredbu) # if 95% uncertainty in Fe and delta is on
@@ -938,7 +941,8 @@ cost_plot <-
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-pctredmsy, -pctredmey) %>%
+      # select(-pctredmsy, -pctredmey) %>%
+      select(-pctredmsy, -pctredmey, -pctT) %>% ### REVISION
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
