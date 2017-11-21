@@ -8,6 +8,7 @@ library(data.table) ## Mostly for super fast reading/writing of large csv files
 library(pbapply)
 library(parallel)
 library(R.utils)
+library(truncnorm)
 library(scales)
 library(grid)
 library(png)
@@ -58,7 +59,8 @@ source("R/bycatch_funcs.R")
 ###################################################
 
 ### Load bycatch data
-bycatch_df <- read_csv("Data/bycatch_species.csv")
+# bycatch_df <- read_csv("Data/bycatch_species.csv")
+bycatch_df <- read_csv("Data/bycatch_species_r1.csv")
 target_df <- read_csv("Data/target_species.csv")
 
 ### Choose model run. The `choose_run` function below sets the correct parameters  
@@ -68,7 +70,7 @@ target_df <- read_csv("Data/target_species.csv")
 ### 1 and 9 that corresponds to the run of your choice.
 run <- 
   c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
-    "nonei", "sensrange25", "weights", "2012only")[1] ## Change as needed
+    "nonei", "sensrange95", "weights", "2012only")[1] ## Change as needed
 
 choose_run(run) ## choose_run(1) works equally as well 
 
@@ -673,7 +675,7 @@ df_run5 <- read_csv("Results/bycatch_summary_results_alpha=2.csv")
 df_run6 <- read_csv("Results/bycatch_summary_results_nonei.csv")
 
 # 7. Main run with a 25% sensitivity range on Fe and delta
-df_run7 <- read_csv("Results/bycatch_summary_results_sensrange25.csv")
+df_run7 <- read_csv("Results/bycatch_summary_results_sensrange95.csv")
 
 # 8. Main run with a 25% sensitivity range on weights for target stock groups 
 #              (e.g. demersals)
@@ -740,7 +742,7 @@ rm(fig_s7); dev.off()
 ## Figs. S2 and S3 already made for main run (1) ##
 ## Remaining sensitivty runs 2-9 as described above
 sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange25", "weights", "2012only")
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange95", "weights", "2012only")
 
 ## Plot the figures over all sensitivity runs
 lapply(

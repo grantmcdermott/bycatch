@@ -8,7 +8,7 @@ choose_run <-
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","sensrange25","weights","2012only")
+        "nonei","sensrange95","weights","2012only")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -24,7 +24,7 @@ choose_run <-
     corr_factor <<- 1 ## C.f. Run 2
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
-    sensrange25 <<- 0 ## C.f. Run 7
+    sensrange95 <<- 0 ## C.f. Run 7
     weights_sens <<- 0 ## C.f. Run 8
     
     
@@ -45,8 +45,8 @@ choose_run <-
     ## 6. Remove "NEI" (not elsewhere included) stocks from the Costello et al. 2016
     if(run=="nonei") {upsides_type <<- "nonei"}
     
-    ## 7. Simulate over a (uniform) 25% uncertainty range in Fe and delta
-    if(run=="sensrange25") {sensrange25 <<- 1}
+    ## 7. Simulate over a 95% uncertainty range in Fe and delta
+    if(run=="sensrange95") {sensrange95 <<- 1}
     
     ## 8. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
     ##    cost analysis.
@@ -60,7 +60,7 @@ choose_run <-
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-    sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
+    sensrange_str <- ifelse(sensrange95==0, "", "_sensrange95")
     weights_str <- ifelse(weights_sens==0, "", "_weights")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
@@ -105,7 +105,7 @@ choose_run <-
         "   corr_factor = ", corr_factor, "\n",
         "   scenario = ", scenario, "\n",
         "   alpha_exp = ", alpha_exp, "\n",
-        "   sensrange25 = ", sensrange25, "\n",
+        "   sensrange95 = ", sensrange95, "\n",
         "   weights_sens = ", weights_sens
         )
       )
@@ -333,9 +333,9 @@ myb_calc <- function(df, pctredb) {
   
   # Create 'imy' function which calculates the marginal yield cost, given pctredb
   imyb <- inverse(function (myb) redncost_giv_myb(dt, myb)$pctred, 0, mxmyb)
+  # Check if the maximum marginal yield cost ('mxmy') corresponds 
+  # to a still-insufficient reduction in bycatch.
   ifelse(
-    # Check if the maximum marginal yield cost ('mxmy') corresponds 
-    # to a still-insufficient reduction in bycatch.
     redncost_giv_myb(dt, mxmyb)$pctred < pctredb,
     # If yes, then require the max marginal yield.
     output <- mxmyb,
@@ -400,10 +400,10 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
     pcost <- 100,
     ifelse(
       # Check if there is a shortfall.
-      # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
       round(pctredb) < (meanpctredmey), 
+      # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
       pcost <- 0,
-      # There is a shortfall, and it is attainable through additional target species F reductions.
+      # Else, there is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
       #     given pct reduction needed for bycatch species.
@@ -658,9 +658,18 @@ wt_func <-
     return(new_wts_normalised)
   }
 
-## Input is a list of 'dt's' -> output from 'extract_func'
+## Inputs are a list of "dt's" (i.e. the output from `extract_func`) and the set 
+## of parameters for determining %T. This latter metric will either be a point
+## estimate as in the main run, or drawn from underlying parameter distributions 
+## as in the "sensrange95" run.
 single_worldstate_outputs <- 
-  function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept25) {
+  # function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept95, sensrange_type) { 
+  ### REVISION
+  function(
+    dt2, n2, reltdf, 
+    delta_mean, delta_q025, delta_q975, deltaN_mean, deltaN_q025, deltaN_q975, fe_mean, fe_q025, fe_q975, 
+    sensrange95, sensrange_type
+    ) { ### END REVISION
     
     ## Sample within each of the relevant target categories (demersal, shrimp, etc.) 
     ## and the combine into a common data frame.
@@ -705,17 +714,70 @@ single_worldstate_outputs <-
     mpctmsy <- sum(samp$pctrmsywt, na.rm = T) ## GRM: Added na.rm = T
     mpctmey <- sum(samp$pctrmeywt, na.rm = T) ## GRM: Added na.rm = T
     
-    if (sensrangept25 == 1) {
-      pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
-      } else {
-      pctb <- pctredb
+    # if (sensrangept95 == 1) {
+    #   pctb <- runif(1, min = pctredbl, max = pctredbu) # if 95% uncertainty in Fe and delta is on
+    #   } else {
+    #   pctb <- pctredb
+    #   }
+    ### REVISION
+    ## Parameter uncertainty / 95% CI sensitivity scenario adjustments
+    ## Calculate "%T" according to whether we are just taking the mean values
+    ## of delta, deltan and Fe as given point estimates... Or sampling from the 
+    ## full underlying parameter distributions ("sensrange95" run only).
+    if (sensrange95 == 0) { ## Normal run. Don't consider uncertainty in %T
+      # pctb <- pctredb
+      pctT <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
+    } else { ## The "sensrange95" run. Sample %T according to distribution of underlying parameters
+      # pctb <- runif(1, min = pctredbl, max = pctredbu) # if 95% uncertainty in Fe and delta is on
+      delta_sd <- (delta_mean - delta_q025)/1.96
+      deltaN_sd <- (deltaN_mean - deltaN_q025)/1.96
+      fe_sd <- (fe_mean - fe_q025)/1.96
+      ## Take draws from assumed normal distributions. Will override with 
+      ## uniform draws for sensrange_type(s) 1 and 5.
+      delta_draw <- suppressWarnings(rnorm(1, mean = delta_mean, sd = delta_sd))
+      deltaN_draw <- suppressWarnings(rnorm(1, mean = deltaN_mean, sd = deltaN_sd))
+      fe_draw <- suppressWarnings(rnorm(1, mean = fe_mean, sd = fe_sd))
+      ## Type 1: delta~N(.) & deltaN~U(.) 
+      if(sensrange_type==1) {
+        deltaN_draw <- runif(1, min = min(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+        pctT <- 100 * (delta_draw / (delta_draw-deltaN_draw))
       }
+      ## Type 2: Fe~N(.) & deltaN~N(.)
+      if(sensrange_type==2) {
+        pctT <- 100 * ((fe_draw-deltaN_draw) / fe_draw)
+      }
+      ## Type 3: delta~N(.) & deltaN~N(.)
+      if(sensrange_type==3) {
+        if(deltaN_draw<=delta_draw){
+          deltaN_draw <- truncnorm::rtruncnorm(1, a=delta_draw, b=Inf, mean = deltaN_mean, sd = deltaN_sd) ## Make sure deltaN_draw>=delta_draw
+        }
+        pctT <- 100 * (delta_draw / (delta_draw-deltaN_draw))
+      }
+      ## Type 4: delta~N(.) & Fe~N(.)
+      if(sensrange_type==4) {
+        pctT <- 100 * (-delta_draw / fe_draw)
+      }
+      ## Type 5: delta~U(.) & deltaN~U(.)
+      if(sensrange_type==5) {
+        delta_draw <- runif(1, min = delta_q025, max = delta_q975)
+        deltaN_draw <- runif(1, min = min(delta_draw , deltaN_q025), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
+        pctT <- 100 * (delta_draw / (delta_draw-deltaN_draw))
+      }
+    }
+    ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
+    if(pctT==Inf) {pctT <- 0}
+    ## End parameter uncertainty / 95% CI sensitivity scenario adjustments
+    ### END REVISION
+    
     stwld <- 
       data_frame(
         pctredmsy = mpctmsy, 
         pctredmey = mpctmey,
-        ycostmsy = cost_yield(samp, pctb, mpctmsy),
-        pcostmey = cost_profit(samp, pctb, mpctmey)
+        # ycostmsy = cost_yield(samp, pctb, mpctmsy),
+        # pcostmey = cost_profit(samp, pctb, mpctmey)
+        ycostmsy = cost_yield(samp, pctT, mpctmsy), ### REVISION changed from pctb to pctT
+        pcostmey = cost_profit(samp, pctT, mpctmey), ### REVISION changed from pctb to pctT
+        pctT = pctT ### REVISION added
         ) # need pctredpt from somewhere
     return(stwld)
   }
@@ -732,9 +794,30 @@ disb_func <-
       bind_rows()
     
     ## Required reduction parameters (i.e. What is the rate of population decline for this bycatch species?)
-    pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1] ## Point estimate
-    pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1] ## Lower bound
-    pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1] ## Upper bound
+    # pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1] ## Point estimate
+    # pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1] ## Lower bound
+    # pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1] ## Upper bound
+    ### REVISION
+    ## Collapse bycatch_df to single species of interest/relevance
+    rel_bycsp <- filter(bycatch_df, species==rel_targets$bycsp[1])
+    ## Now extract the relevant parameters for determining (the distribution 
+    ## around "%T". See Eq. (2b) in the paper. Only the mean values will be used 
+    ## in the main run. The full distributions (i.e. 95% CIs) will be used in  
+    ## the "sensrange95" run.
+    delta_mean <- rel_bycsp$delta_mean
+    delta_q025 <- rel_bycsp$delta_q025
+    delta_q975 <- rel_bycsp$delta_q975
+    deltaN_mean <- rel_bycsp$deltaN_mean
+    deltaN_q025 <- rel_bycsp$deltaN_q025
+    deltaN_q975 <- rel_bycsp$deltaN_q975
+    fe_mean <- rel_bycsp$fe_mean
+    fe_q025 <- rel_bycsp$fe_q025
+    fe_q975 <- rel_bycsp$fe_q975
+    ## Similarly, what combination of underlying parameter distributions govern the 
+    ## overall uncertainty in "%T"? (Only relevant to the "sensrange95" run.)
+    sensrange_type <- rel_bycsp$sensrange_type
+    ## END REVISION
+    
     
     #########################################################################################################
     ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
@@ -744,7 +827,14 @@ disb_func <-
       pblapply(1:n1, 
                possibly(function(i) {
                  evalWithTimeout(
-                   single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets, sensrange25), 
+                   # single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets, sensrange95),
+                   ### REVISION
+                   single_worldstate_outputs(
+                     dt2, n2, rel_targets, 
+                     delta_mean, delta_q025, delta_q975, deltaN_mean, deltaN_q025, deltaN_q975, fe_mean, fe_q025, fe_q975, 
+                     sensrange95, sensrange_type
+                     ), 
+                   ### END REVISION
                    timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
                    TimeoutException = function(ex) "TimedOut"
                    )
@@ -992,7 +1082,7 @@ samples_plot <-
 summ_func <-
   function(df) {
     df %>%
-      gather(key, value, -species) %>%
+      gather(key, value, -c(species, pctT)) %>%
       group_by(species, key) %>%
       # do(q=(quantile(.$value))) %>%
       summarise(
@@ -1023,14 +1113,17 @@ tradeoffs_plot <-
       ## Get pctredmey/pctredmsy rows from results_summary
       filter(key == df1_filter) %>% 
       ## Calculate growth rate post rebuilding
-      mutate(delta_post = delta + (fe * (q50/100))) %>% 
+      # mutate(delta_post = delta + (fe * (q50/100))) %>% 
+      mutate(delta_post = delta_mean + (fe_mean * (q50/100))) %>% ### REVISION (Should this be deltaN? Same q for below...)
       ## Calculate required selectivity change (% reduction in Fe at MEY or MSY)
       mutate(
-        targeting_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
+        # targeting_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
+        targeting_req1 = if_else(delta_post>=0, 0, 1-((delta_mean+fe_mean)/(delta_mean+fe_mean-delta_post))), ### REVISION
         targeting_req = if_else(targeting_req1>1, 1, targeting_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, targeting_req, contains("sens")) 
+      # select(species, grp, clade, delta, delta_post, targeting_req, contains("sens")) 
+      select(species, grp, clade, delta_mean, delta_post, targeting_req, contains("sens")) ### REVISION
     
     # Add median cost estimate
     df2 <- 
@@ -1043,7 +1136,8 @@ tradeoffs_plot <-
       left_join(df1, df2) %>% 
       ungroup() %>%
       mutate(species = factor(species)) %>%
-      mutate(species = fct_reorder(species, delta, .desc=TRUE)) 
+      # mutate(species = fct_reorder(species, delta, .desc=TRUE)) 
+      mutate(species = fct_reorder(species, delta_mean, .desc=TRUE)) ### REVISION
     
     df %>%
       ggplot(aes(y=species)) +
@@ -1058,12 +1152,14 @@ tradeoffs_plot <-
         show.legend = F
         ) + 
       geom_point(
-        aes(x=delta), 
+        # aes(x=delta), 
+        aes(x=delta_mean),  ### REVISION
         size=3, stroke=1, shape=21, col="red"
         ) +
       geom_vline(xintercept = 0, lty=2) +
       geom_segment(
-        aes(yend=species, x=delta, xend=delta_post),
+        # aes(yend=species, x=delta, xend=delta_post),
+        aes(yend=species, x=delta_mean, xend=delta_post), ### REVISION
         arrow = arrow(length = unit(.25, "lines"))
         ) +
       scale_size_continuous(
