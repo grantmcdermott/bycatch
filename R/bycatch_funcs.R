@@ -942,6 +942,8 @@ bycatchdist_plot <-
         delta_draw <- suppressWarnings(rnorm(N, mean = delta_mean, sd = delta_sd))
         deltaN_draw <- suppressWarnings(rnorm(N, mean = deltaN_mean, sd = deltaN_sd))
         fe_draw <- suppressWarnings(rnorm(N, mean = fe_mean, sd = fe_sd))
+        
+        ## NOTE: Waiting until creation of T_df below to calculate pctTs.
         ## Type 1: delta~N(.) & deltaN~U(.) 
         if(sensrange_type==1) {
           # deltaN_draw <- runif(N, min = max(delta_draw , deltaN_q025, na.rm=T), max = deltaN_q975) ## Make sure deltaN_draw>=delta_draw
