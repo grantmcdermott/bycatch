@@ -491,14 +491,14 @@ dev.off()
 ###############################
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY")
-fig_3mey + ggsave(paste0("Figures/fig-3-mey.png"), width=8, height=8)
-fig_3mey + ggsave(paste0("Figures/PDFs/fig-3-mey.pdf"), width=8, height=8, device = cairo_pdf)
+fig_3mey + ggsave("Figures/fig-3-mey.png", width=8, height=8)
+fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=8, height=8, device = cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY")
-fig_3msy + ggsave(paste0("Figures/fig-3-msy.png"), width=8, height=8)
-fig_3msy + ggsave(paste0("Figures/PDFs/fig-3-msy.pdf"), width=8, height=8, device = cairo_pdf)
+fig_3msy + ggsave("Figures/fig-3-msy.png", width=8, height=8)
+fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=8, height=8, device = cairo_pdf)
 rm(fig_3msy)
 dev.off()
 
