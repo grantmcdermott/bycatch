@@ -840,11 +840,11 @@ single_worldstate_outputs <-
     ## of delta, deltan and Fe as given point estimates... Or sampling from the 
     ## full underlying parameter distributions ("sensrange" run only).
     if (sensrange == 0) { ## Normal run. Don't consider uncertainty in %T
-      # pctb <- pctredb
-      if(is.na(deltaN_mean)) {
-        deltaN_mean <- delta_mean + fe_mean ## Should only be relevent for type 4 cases
+      rel_bycsp <- filter(bycatch_df, species==bycsp)
+      if(is.na(rel_bycsp$deltaN_mean)) {
+        rel_bycsp$deltaN_mean <- rel_bycsp$delta_mean + rel_bycsp$fe_mean ## Should only be relevent for type 4 cases
       }
-      pctT <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
+      pctT <- 100 * ((rel_bycsp$fe_mean - rel_bycsp$deltaN_mean) / rel_bycsp$fe_mean)
     } else { ## The "sensrange" run. Sample %T according to distribution of underlying parameters
       pctT <- sensrange_func(bycsp, 1)$pctT
     }
