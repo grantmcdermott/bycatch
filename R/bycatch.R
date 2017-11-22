@@ -69,7 +69,7 @@ target_df <- read_csv("Data/target_species.csv")
 ### 1 and 9 that corresponds to the run of your choice.
 run <- 
   c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
-    "nonei", "sensrange95", "weights", "2012only")[1] ## Change as needed
+    "nonei", "sensrange", "weights", "2012only")[1] ## Change as needed
 
 choose_run(run) ## choose_run(1) works equally as well 
 
@@ -674,7 +674,7 @@ df_run5 <- read_csv("Results/bycatch_summary_results_alpha=2.csv")
 df_run6 <- read_csv("Results/bycatch_summary_results_nonei.csv")
 
 # 7. Main run with a 25% sensitivity range on Fe and delta
-df_run7 <- read_csv("Results/bycatch_summary_results_sensrange95.csv")
+df_run7 <- read_csv("Results/bycatch_summary_results_sensrange.csv")
 
 # 8. Main run with a 25% sensitivity range on weights for target stock groups 
 #              (e.g. demersals)
@@ -741,7 +741,7 @@ rm(fig_s7); dev.off()
 ## Figs. S2 and S3 already made for main run (1) ##
 ## Remaining sensitivty runs 2-9 as described above
 sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange95", "weights", "2012only")
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange", "weights", "2012only")
 
 ## Plot the figures over all sensitivity runs
 lapply(

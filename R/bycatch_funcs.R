@@ -8,7 +8,7 @@ choose_run <-
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","sensrange95","weights","2012only")
+        "nonei","sensrange","weights","2012only")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -24,7 +24,7 @@ choose_run <-
     corr_factor <<- 1 ## C.f. Run 2
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
-    sensrange95 <<- 0 ## C.f. Run 7
+    sensrange <<- 0 ## C.f. Run 7
     weights_sens <<- 0 ## C.f. Run 8
     
     
@@ -46,7 +46,7 @@ choose_run <-
     if(run=="nonei") {upsides_type <<- "nonei"}
     
     ## 7. Simulate over a 95% uncertainty range in Fe and delta
-    if(run=="sensrange95") {sensrange95 <<- 1}
+    if(run=="sensrange") {sensrange <<- 1}
     
     ## 8. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
     ##    cost analysis.
@@ -60,7 +60,7 @@ choose_run <-
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-    sensrange_str <- ifelse(sensrange95==0, "", "_sensrange95")
+    sensrange_str <- ifelse(sensrange==0, "", "_sensrange")
     weights_str <- ifelse(weights_sens==0, "", "_weights")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
@@ -105,7 +105,7 @@ choose_run <-
         "   corr_factor = ", corr_factor, "\n",
         "   scenario = ", scenario, "\n",
         "   alpha_exp = ", alpha_exp, "\n",
-        "   sensrange95 = ", sensrange95, "\n",
+        "   sensrange = ", sensrange, "\n",
         "   weights_sens = ", weights_sens
         )
       )
@@ -662,7 +662,7 @@ wt_func <-
   }
 
 ## Input function for sampling %T, using the full distributions of its component 
-## parameters (delta, deltaN and Fe). Only relevant to the "sensrange95" run.
+## parameters (delta, deltaN and Fe). Only relevant to the "sensrange" run.
 sensrange_func <-
   function(bycsp, N) {
     
@@ -786,11 +786,11 @@ sensrange_func <-
 ## Input function for determing outcomes in a single state of the world, where 
 ## all uncertainty is been resolved. Inputs to this function are a list of  
 ## "dt's" (i.e. the output from `extract_func`), "n2", a data frame of relevant
-## target stocks, the bycatch species of interest, and the "sensrange95" 
+## target stocks, the bycatch species of interest, and the "sensrange" 
 ## indicator variable (i.e. whether to use a point estimate of %T or draw a
 ## sample according to its underlying parameter distributions). 
 single_worldstate_outputs <- 
-  function(dt2, n2, reltdf, bycsp, sensrange95) { 
+  function(dt2, n2, reltdf, bycsp, sensrange) { 
     
     ## Sample within each of the relevant target categories (demersal, shrimp, etc.) 
     ## and the combine into a common data frame.
@@ -838,14 +838,14 @@ single_worldstate_outputs <-
     ## Parameter uncertainty / 95% CI sensitivity scenario adjustments
     ## Calculate "%T" according to whether we are just taking the mean values
     ## of delta, deltan and Fe as given point estimates... Or sampling from the 
-    ## full underlying parameter distributions ("sensrange95" run only).
-    if (sensrange95 == 0) { ## Normal run. Don't consider uncertainty in %T
+    ## full underlying parameter distributions ("sensrange" run only).
+    if (sensrange == 0) { ## Normal run. Don't consider uncertainty in %T
       # pctb <- pctredb
       if(is.na(deltaN_mean)) {
         deltaN_mean <- delta_mean + fe_mean ## Should only be relevent for type 4 cases
       }
       pctT <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
-    } else { ## The "sensrange95" run. Sample %T according to distribution of underlying parameters
+    } else { ## The "sensrange" run. Sample %T according to distribution of underlying parameters
       pctT <- sensrange_func(bycsp, 1)$pctT
     }
     ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
@@ -889,7 +889,7 @@ disb_func <-
                  evalWithTimeout(
                    single_worldstate_outputs(
                      dt2, n2, rel_targets, 
-                     bycsp, sensrange95
+                     bycsp, sensrange
                      ), 
                    timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
                    TimeoutException = function(ex) "TimedOut"
