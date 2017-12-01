@@ -757,14 +757,16 @@ sensrange_func <-
           deltaN_draw < delta_draw & sensrange_type %in% c(1, 5),
           suppressWarnings(runif(1, min = max(delta_draw , deltaN_q025, na.rm=T), max = deltaN_q975)),
           deltaN_draw
-        )) %>%
+          )
+        ) %>%
       ### Type 3
       mutate(
         deltaN_draw = ifelse(
           deltaN_draw < delta_draw & sensrange_type == 3,
           truncnorm::rtruncnorm(1, a = delta_draw, b = Inf, mean = deltaN_mean, sd = deltaN_sd),
           deltaN_draw
-        )) %>%
+          )
+        ) %>%
       ## Calculate pctTs 
       ### Type 1
       mutate(pctT = ifelse(sensrange_type==1, 100*(delta_draw/(delta_draw-deltaN_draw)), NA)) %>%
@@ -778,7 +780,7 @@ sensrange_func <-
       mutate(pctT = ifelse(sensrange_type==5, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
       ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
       mutate(pctT = if_else(pctT==Inf, 0, pctT)) %>%
-      select(species, pctT, pctT_mean)
+      select(species, delta_draw, deltaN_draw, fe_draw, pctT, pctT_mean)
     
     return(pctT_df)
   }
