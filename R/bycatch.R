@@ -43,6 +43,7 @@ bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
 theme_update(
   text = element_text(family = font_type),
   legend.title = element_blank(),
+  legend.justification = "center", 
   strip.background = element_rect(fill = "white"), ## Facet strip
   panel.spacing = unit(2, "lines") ## Increase gap between facet panels
 )
@@ -137,20 +138,29 @@ sp_type <- all_species ## All species
 #### Fig 1.A (Heatmap: Bycatch mortality VS. Population decline) #####
 
 fig1a <-
-  crossing(delta = seq(-40,0, length.out = 100), fe = seq(0,40, length.out = 100)) %>%
-  mutate(z = abs(delta/fe)*100) %>%
-  mutate(z = ifelse(z>100, 100, z)) %>%
+  crossing(
+    delta_mean = seq(-40,0, length.out = 100), 
+    fe_mean = seq(0,40, length.out = 100)
+    ) %>%
+  mutate(pctT = abs(delta_mean/fe_mean)*100) %>%
+  mutate(pctT = ifelse(pctT>100, 100, pctT)) %>%
   mutate_all(funs(./100)) %>%
-  ggplot(aes(x = delta, y = fe)) + 
-  geom_raster(aes(fill = z), interpolate = T) +
+  ggplot(aes(x = delta_mean, y = fe_mean)) + 
+  geom_raster(aes(fill = pctT), interpolate = T) +
   scale_fill_gradientn(
     name = expression('%'~italic(T)),
-    colours = brewer_pal(palette = "Spectral")(11), 
+    # colours = brewer_pal(palette = "Spectral")(11), 
+    colours = rev(brewer_pal(palette = "YlOrRd")(9)), 
     trans = "reverse",
     labels = percent
-  ) +
+    ) +
+  # scale_fill_viridis(
+  #   name = expression('%'~italic(T)),
+  #   direction = -1,
+  #   labels = percent
+  #   ) +
   geom_polygon(
-    data=data_frame(delta=c(-40,-40,0)/100, fe=c(0,40,0)/100), 
+    data=data_frame(delta_mean=c(-40,-40,0)/100, fe_mean=c(0,40,0)/100), 
     fill="#F2F2F2FF", col="#F2F2F2FF", lwd=1.5
     ) +
   labs(
@@ -161,19 +171,24 @@ fig1a <-
 
 fig1a <-
   fig1a +
-  geom_point(
-    data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
-    aes(shape=clade), fill="black", alpha=0.5, size = 3.5, stroke = 0
-    ) +
+  # ## Add white "background" to geom_points to help with contrast
+  # geom_point(
+  #   data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
+  #   aes(shape=clade), fill="white", col="white", size = 3.5, stroke = 0.5
+  #   ) +
+  # geom_point(
+  #   data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
+  #   aes(shape=clade), fill="black", size = 3.5, stroke = 0, alpha=0.3
+  #   ) +
     geom_point(
       data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)),
-      aes(shape=clade), size = 3.5
-    ) +
+      aes(shape=clade), col="black", size = 3.5, stroke = 0.8
+      ) +
   scale_shape_manual(values = 21:24) +
   guides(
     fill = guide_colourbar(order = 1),
     shape = guide_legend(order = 2, title = NULL)
-  ) + 
+    ) + 
   coord_fixed()
 
 ## With animal silhouettes
@@ -263,16 +278,19 @@ fig1b <-
   geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
   scale_fill_gradientn(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-    colours = rev(brewer_pal(palette = "Spectral")(11)), #trans = "reverse",
+    # colours = rev(brewer_pal(palette = "Spectral")(11)), #trans = "reverse",
+    colours = brewer_pal(palette = "YlOrRd")(9),
     labels = percent, limits=c(min(fao_sf$avpctmey)/100, 1)
     ) +
   # scale_fill_viridis(
   #   name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-  #   labels = percent
+  #   direction = -1,
+  #   labels = percent,
+  #   limits=c(min(fao_sf$avpctmey)/100, 1)
   #   )  +
   guides(
     fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
-  ) +
+    ) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
     legend.position = "bottom",
@@ -289,7 +307,7 @@ fig1b <-
 
 fig1 <-
   ggdraw() +
-  # draw_plot(figureName, xpos, ypos, width, height) +
+  # draw_plot(;pfigureName, xpos, ypos, width, height) +
   draw_plot(fig1a, 0, 0.5, 1, 0.5) +
   draw_plot(fig1b, 0, 0, 1, 0.5) +
   draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.475), size = 15)
@@ -385,46 +403,60 @@ fig2a <-
 #### Fig 2.B (Heatmap) ####
 
 fig2b <-
-  crossing(delta = seq(-10,0, length.out = 100), fe = seq(0,10, length.out = 100)) %>%
-  mutate(z = abs(delta/fe)*100) %>%
+  crossing(
+    delta_mean = seq(-10,0, length.out = 100), 
+    fe_mean = seq(0,10, length.out = 100)
+    ) %>%
+  mutate(z = abs(delta_mean/fe_mean)*100) %>%
   mutate(z = ifelse(z>100, 100, z)) %>%
   mutate_all(funs(./100)) %>%
-  ggplot(aes(delta, fe, fill = z)) +
+  ggplot(aes(delta_mean, fe_mean, fill = z)) +
   geom_raster(interpolate = T) +
   scale_fill_gradientn(
     name = expression('%'~italic(T)),
-    colours = brewer_pal(palette = "Spectral")(11),
+    # colours = brewer_pal(palette = "Spectral")(11), 
+    colours = rev(brewer_pal(palette = "YlOrRd")(9)), 
     trans = "reverse",
     labels = percent
-  ) +
+    ) +
   geom_polygon(
-    data=data_frame(delta=c(-10,-10,0)/100, fe=c(0,10,0)/100), 
+    data=data_frame(delta_mean=c(-10,-10,0)/100, fe_mean=c(0,10,0)/100), 
     fill="#F2F2F2FF", col="#F2F2F2FF", lwd=0.75
     ) +
   labs(
     x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
-  ) +
+    ) +
   theme(legend.title = element_text())
 
 fig2b <-
   fig2b +
   lapply(all_species[1], function(s){
-    delta <- (filter(bycatch_df, species %in% sp_type))$delta
-    fe <- (filter(bycatch_df, species %in% sp_type))$fe
+    rel_bycsp <- filter(bycatch_df, species %in% sp_type)
+    delta_mean <- rel_bycsp$delta_mean
+    delta_q025 <- rel_bycsp$delta_q025
+    delta_q975 <- rel_bycsp$delta_q975
+    deltaN_mean <- rel_bycsp$deltaN_mean
+    deltaN_q025 <- rel_bycsp$deltaN_q025
+    deltaN_q975 <- rel_bycsp$deltaN_q975
+    fe_mean <- rel_bycsp$fe_mean
+    fe_q025 <- rel_bycsp$fe_q025
+    fe_q975 <- rel_bycsp$fe_q975
+    if(is.na(fe_q025)) {fe_q025 <- deltaN_q025 - delta_q975}
+    if(is.na(fe_q975)) {fe_q975 <- deltaN_q975 - delta_q025}
     j <- (bycatch_df %>% mutate(j = row_number()) %>% filter(species==s))$j
     z <- (bycatch_df %>% filter(species==s))$silhouette
     img <- readPNG(paste0("Figures/AnimalSilhouettes/",z,"-silhouette.png"))
     g_img <- rasterGrob(img, interpolate=FALSE)
     lapply(j, function(i) {
-      geom_img <- annotation_custom(g_img, xmin=delta[i]-0.004, xmax=delta[i]+0.004, ymin=fe[i]-0.004, ymax=fe[i]+0.004) 
-      # geom_deltas <- geom_vline(xintercept = delta*c(.75, 1.25), lty = 2) ## Don't like vline extending above plot
-      # geom_fes <- geom_hline(yintercept = fe*c(.75, 1.25), lty = 2) ## Don't like hline extending beyond plot
-      geom_deltal <- geom_segment(y=-Inf, yend=.1, x=delta*.75, xend=delta*.75, lty=2)
-      geom_deltau <- geom_segment(y=-Inf, yend=.1, x=delta*1.25, xend=delta*1.25, lty=2)
-      geom_fel <- geom_segment(x=-Inf, xend=0, y=fe*.75, yend=fe*.75, lty=2) 
-      geom_feh <- geom_segment(x=-Inf, xend=0, y=fe*1.25, yend=fe*1.25, lty=2)
-      return(list(geom_img, geom_deltal, geom_deltau, geom_fel, geom_feh))
+      geom_img <- annotation_custom(g_img, xmin=delta_mean[i]-0.004, xmax=delta_mean[i]+0.004, ymin=fe_mean[i]-0.004, ymax=fe_mean[i]+0.004) 
+      # geom_deltas <- geom_vline(xintercept = c(delta_q025, delta_q975), lty = 2) ## Don't like vline extending above plot
+      # geom_fes <- geom_hline(yintercept = fe_mean*c(.75, 1.25), lty = 2) ## Don't like hline extending beyond plot
+      geom_delta_q025 <- geom_segment(y=-Inf, yend=.1, x=delta_q025, xend=delta_q025, lty=2)
+      geom_delta_q975 <- geom_segment(y=-Inf, yend=.1, x=delta_q975, xend=delta_q975, lty=2)
+      geom_fe_q025 <- geom_segment(x=-Inf, xend=0, y=fe_q025, yend=fe_q025, lty=2) 
+      geom_fe_q975 <- geom_segment(x=-Inf, xend=0, y=fe_q975, yend=fe_q975, lty=2)
+      return(list(geom_img, geom_delta_q025, geom_delta_q975, geom_fe_q025, geom_fe_q975))
     }) 
   }) +
   scale_x_continuous(breaks=seq(-0.1, 0, by=0.02)) +
