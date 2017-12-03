@@ -342,14 +342,13 @@ fig2a <-
   ggplot() +
   geom_sf(data = countries, fill="black", col="black") +
   geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.25, alpha = 0.6) + 
-  scale_fill_manual(values = c("Range" = "#20b261")) +
   theme(
     # legend.position = "none",
     axis.line=element_blank(), 
     axis.ticks=element_blank(),
     axis.text.x=element_blank(), axis.text.y=element_blank(), 
     axis.title.x=element_blank(), axis.title.y=element_blank(),
-    panel.grid.major = element_line(colour = "grey75")
+    panel.grid.major = element_line(colour = "grey60")
   )
 
 # fig2a
@@ -366,12 +365,6 @@ fig2b <-
   geom_point(alpha = 0.5, size = 2) + 
   geom_point(shape = 21, size = 2) +
   scale_color_distiller( 
-    name = expression('%'~italic(T)), 
-    palette = "YlOrRd", 
-    trans = "reverse",
-    labels = percent, limits = c(1, 0)
-    ) +
-  scale_fill_distiller(
     name = expression('%'~italic(T)), 
     palette = "YlOrRd", 
     trans = "reverse",
@@ -438,7 +431,7 @@ save_plot("Figures/PDFs/fig-2.pdf", fig2,
           base_aspect_ratio = 1
           )
 
-rm(fig2, fig2a, fig2a_inset, fig2b, fig2c, fig2d, fig2e, fig2f)
+rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f)
 dev.off()
 
 
