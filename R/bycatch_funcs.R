@@ -985,7 +985,7 @@ bycatchdist_plot <-
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
     df2 %>% 
-      ggplot() +
+      ggplot(aes(group=species)) +
       geom_density(
         data = pctT_df, 
         aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75,
@@ -1122,7 +1122,7 @@ samples_plot <-
     lbl_df <- 
       data_frame(
         trgcat=c("Shrimp", "Demersals", "Tuna"),
-        target_description=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
+        target_lab_top=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
       )
     
     bd <- 
@@ -1130,7 +1130,7 @@ samples_plot <-
       left_join(lbl_df) %>%
       rename(MSY = pctredfmsy, MEY = pctredfmey) %>%
       ## Special chars ('(', '%', etc) req. diff quotation marks and spacing tokens (~, *) for plotmath parsing to work
-      mutate(target_lab = paste0("atop(", target_description, paste0(",~'('*", wt_Fe*100,"*'%'~of~italic(F)[e]*')')"))) %>%
+      mutate(target_lab_bottom = paste0("'('*", wt_Fe*100, "*'%'~of~italic(F)[e]*')'")) %>%
       group_by(trgcat) %>%
       gather(key, pctred, c(MSY, MEY)) %>%
       mutate(key = factor(key, levels = c("MSY", "MEY"))) %>% 
@@ -1145,7 +1145,8 @@ samples_plot <-
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
       scale_y_log10(labels = trans_format("log10", math_format(10^.x))) +
       labs(x = "Reduction in mortality", y = "Effort (USD)") +
-      facet_grid( ~ forcats::fct_reorder(target_lab, wt_Fe, .desc = T), 
+      facet_grid( ~ fct_reorder(target_lab_top, wt_Fe, .desc = T) +
+                    fct_reorder(target_lab_bottom, wt_Fe, .desc = T), 
                   labeller = label_parsed) +
       theme(
         # strip.text = element_text(size=14),

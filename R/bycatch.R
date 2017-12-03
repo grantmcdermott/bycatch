@@ -337,21 +337,21 @@ sp_type <- "Loggerhead turtle (NW Atlantic)"
 lh_rmus <- 
   read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp") %>%
   st_transform(proj_string)
-lh_nesters <- 
-  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
-  st_set_crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
-  st_transform(proj_string)
-
-## Extract points from lh_nesters SF object and create normal data frame 
-## Need to do this, since currently unable to change the size of points with geom_sf
-## See: https://github.com/tidyverse/ggplot2/issues/2037
-lh_nesters_df <- 
-  as_data_frame(lh_nesters) %>%
-  bind_cols(
-    do.call(rbind, unclass(st_geometry(lh_nesters))) %>% 
-      as_data_frame() %>%
-      rename(x=V1, y=V2)
-    )
+# lh_nesters <- 
+#   read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
+#   st_set_crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
+#   st_transform(proj_string)
+# 
+# ## Extract points from lh_nesters SF object and create normal data frame 
+# ## Need to do this, since currently unable to change the size of points with geom_sf
+# ## See: https://github.com/tidyverse/ggplot2/issues/2037
+# lh_nesters_df <- 
+#   as_data_frame(lh_nesters) %>%
+#   bind_cols(
+#     do.call(rbind, unclass(st_geometry(lh_nesters))) %>% 
+#       as_data_frame() %>%
+#       rename(x=V1, y=V2)
+#     )
 
 ## Bounding box
 # # extent <- st_bbox(st_buffer(lh_rmus, 1000000))
@@ -359,38 +359,43 @@ lh_nesters_df <-
 #       xmin       ymin       xmax       ymax 
 # -9042320.1   463591.8  1603802.3  5358890.1 
 ## Manually adjust limits
-extent <- c(-10000000.0, -500000.0, 2100000.0, 6250000.0)
+# extent <- c(-10000000.0, -500000.0, 2100000.0, 6250000.0)
+extent <- c(-11000000.0, -1500000.0, 3500000.0, 7000000.0)
 
 fig2a <-
   ggplot() +
-  geom_sf(data = countries, fill="bisque3", col="bisque3") +
-  geom_sf(data = lh_rmus, aes(fill="Range"), col="dodgerblue", alpha = 0.7) + 
-  scale_fill_manual(values = c("Range" = "dodgerblue")) +  
+  # geom_sf(data = countries, fill="bisque3", col="bisque3") +
+  geom_sf(data = countries, fill="black", col="black") +
+  geom_sf(data = lh_rmus, aes(fill="Range"), col="#20b261", size = 0.25, alpha = 0.6) + 
+  scale_fill_manual(values = c("Range" = "#20b261")) +  
   scale_shape_manual(values = c("Nesting sites" = 21)) 
 
-fig2a_inset <-
-  fig2a +
-  geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.2, size = 0.1) +
-  geom_rect(
-    data = data.frame(),
-    aes(xmin = extent[[1]], xmax = extent[[3]], ymin = extent[[2]], ymax = extent[[4]]),
-    colour = "red", fill = NA
-    ) +
-  ggthemes::theme_map() +
-  theme(
-    legend.position = "none",
-    plot.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(colour = "grey75")
-  )
+# fig2a_inset <-
+#   fig2a +
+#   geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.2, size = 0.1) +
+#   geom_rect(
+#     data = data.frame(),
+#     aes(xmin = extent[[1]], xmax = extent[[3]], ymin = extent[[2]], ymax = extent[[4]]),
+#     colour = "red", fill = NA
+#     ) +
+#   ggthemes::theme_map() +
+#   theme(
+#     legend.position = "none",
+#     plot.background = element_rect(fill = "white"),
+#     panel.grid.major = element_line(colour = "grey75")
+#   )
 
 fig2a <-
   fig2a +
-  geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.25, size = 2) +
-  coord_sf(xlim = c(extent[[1]], extent[[3]]),ylim = c(extent[[2]], extent[[4]])) +
-  guides(shape = guide_legend(override.aes = list(alpha = 0.5, size = 3))) +
+  # geom_point(data = lh_nesters_df, aes(x = x, y = y, shape = "Nesting sites"), fill="black", alpha = 0.25, size = 2) +
+  # coord_sf(xlim = c(extent[[1]], extent[[3]]),ylim = c(extent[[2]], extent[[4]])) +
+  # guides(shape = guide_legend(override.aes = list(alpha = 0.5, size = 3))) +
   theme(
-    legend.text=element_text(size=14),
-    legend.position = "bottom",
+    # legend.text=element_text(size=14),
+    # legend.position = "bottom",
+    # legend.margin=margin(0,0,0,0),
+    # legend.box.margin=margin(-10,-10,-10,-10),
+    legend.position = "none",
     axis.line=element_blank(), 
     axis.ticks=element_blank(),
     axis.text.x=element_blank(), axis.text.y=element_blank(), 
@@ -402,65 +407,77 @@ fig2a <-
 
 #### Fig 2.B (Heatmap) ####
 
-fig2b <-
-  crossing(
-    delta_mean = seq(-10,0, length.out = 100), 
-    fe_mean = seq(0,10, length.out = 100)
-    ) %>%
-  mutate(z = abs(delta_mean/fe_mean)*100) %>%
-  mutate(z = ifelse(z>100, 100, z)) %>%
-  mutate_all(funs(./100)) %>%
-  ggplot(aes(delta_mean, fe_mean, fill = z)) +
-  geom_raster(interpolate = T) +
-  scale_fill_gradientn(
-    name = expression('%'~italic(T)),
-    # colours = brewer_pal(palette = "Spectral")(11), 
-    colours = rev(brewer_pal(palette = "YlOrRd")(9)), 
+set.seed(123) ## Reset seed
+
+fig2b <- 
+  sensrange_func(sp_type, 1000) %>% 
+  mutate(pctT = pctT/100) %>%
+  # mutate(pctT = ifelse(pctT<0, 0, pctT)) %>%
+  ggplot(aes(delta_draw, deltaN_draw, col = pctT)) +
+  geom_point(alpha = 0.5, size = 2) + 
+  geom_point(shape = 21, size = 2) +
+  scale_color_distiller( 
+    name = expression('%'~italic(T)), 
+    palette = "YlOrRd", 
     trans = "reverse",
-    labels = percent
+    labels = percent, limits = c(1, 0)
     ) +
-  geom_polygon(
-    data=data_frame(delta_mean=c(-10,-10,0)/100, fe_mean=c(0,10,0)/100), 
-    fill="#F2F2F2FF", col="#F2F2F2FF", lwd=0.75
+  scale_fill_distiller(
+    name = expression('%'~italic(T)), 
+    palette = "YlOrRd", 
+    trans = "reverse",
+    labels = percent, limits = c(1, 0)
     ) +
   labs(
-    x = expression(Rate~of~population~change~(Delta)),
-    y = expression(Bycatch~mortality~rate~(italic(F)[e]))
+    x = expression(Delta),
+    y = expression(Delta[n])
     ) +
-  theme(legend.title = element_text())
+  theme(legend.title = element_text()) 
 
-fig2b <-
-  fig2b +
-  lapply(all_species[1], function(s){
-    rel_bycsp <- filter(bycatch_df, species %in% sp_type)
-    delta_mean <- rel_bycsp$delta_mean
-    delta_q025 <- rel_bycsp$delta_q025
-    delta_q975 <- rel_bycsp$delta_q975
-    deltaN_mean <- rel_bycsp$deltaN_mean
-    deltaN_q025 <- rel_bycsp$deltaN_q025
-    deltaN_q975 <- rel_bycsp$deltaN_q975
-    fe_mean <- rel_bycsp$fe_mean
-    fe_q025 <- rel_bycsp$fe_q025
-    fe_q975 <- rel_bycsp$fe_q975
-    if(is.na(fe_q025)) {fe_q025 <- deltaN_q025 - delta_q975}
-    if(is.na(fe_q975)) {fe_q975 <- deltaN_q975 - delta_q025}
-    j <- (bycatch_df %>% mutate(j = row_number()) %>% filter(species==s))$j
-    z <- (bycatch_df %>% filter(species==s))$silhouette
-    img <- readPNG(paste0("Figures/AnimalSilhouettes/",z,"-silhouette.png"))
-    g_img <- rasterGrob(img, interpolate=FALSE)
-    lapply(j, function(i) {
-      geom_img <- annotation_custom(g_img, xmin=delta_mean[i]-0.004, xmax=delta_mean[i]+0.004, ymin=fe_mean[i]-0.004, ymax=fe_mean[i]+0.004) 
-      # geom_deltas <- geom_vline(xintercept = c(delta_q025, delta_q975), lty = 2) ## Don't like vline extending above plot
-      # geom_fes <- geom_hline(yintercept = fe_mean*c(.75, 1.25), lty = 2) ## Don't like hline extending beyond plot
-      geom_delta_q025 <- geom_segment(y=-Inf, yend=.1, x=delta_q025, xend=delta_q025, lty=2)
-      geom_delta_q975 <- geom_segment(y=-Inf, yend=.1, x=delta_q975, xend=delta_q975, lty=2)
-      geom_fe_q025 <- geom_segment(x=-Inf, xend=0, y=fe_q025, yend=fe_q025, lty=2) 
-      geom_fe_q975 <- geom_segment(x=-Inf, xend=0, y=fe_q975, yend=fe_q975, lty=2)
-      return(list(geom_img, geom_delta_q025, geom_delta_q975, geom_fe_q025, geom_fe_q975))
-    }) 
-  }) +
-  scale_x_continuous(breaks=seq(-0.1, 0, by=0.02)) +
-  scale_y_continuous(breaks=seq(0, 0.1, by=0.02)) 
+# ## Get data frame of parameters distributions. Will be used to plot joint
+# ## density of delta and deltaN, set against a background gradient of %T.
+# jd <- sensrange_func(sp_type, 10000) 
+# ## Plot the figure
+# fig2b <-
+#   crossing(
+#     # delta_draw = seq(min(jd$delta_draw), max(jd$delta_draw), length.out = 100), 
+#     # deltaN_draw = seq(min(jd$deltaN_draw), max(jd$deltaN_draw), length.out = 100)
+#     delta_draw = seq(quantile(jd$delta_draw, .01), quantile(jd$delta_draw, .99), length.out = 100), 
+#     deltaN_draw = seq(0, 0.1, length.out = 100)
+#     )  %>%
+#   mutate(pctT = delta_draw/(delta_draw-deltaN_draw)) %>%
+#   ## Next two lines are to limit the color scheme for %T between 0-100%.
+#   mutate(pctT = ifelse(pctT>1, 1, pctT)) %>%
+#   mutate(pctT = ifelse(pctT<0, 0, pctT)) %>%
+#   ggplot(aes(delta_draw, deltaN_draw, fill = pctT)) +
+#   geom_raster(interpolate = T) +
+#   scale_fill_gradientn(
+#     name = expression('%'~italic(T)),
+#     colours = rev(brewer_pal(palette = "YlOrRd")(9)), 
+#     trans = "reverse",
+#     labels = percent
+#     ) +
+#   # geom_rect(aes(xmin=0, xmax=Inf, ymin=0, ymax=.1), col=brewer.pal(9, "YlOrRd")[1], fill=brewer.pal(9, "YlOrRd")[1]) +
+#   geom_rect(aes(xmin=0, xmax=Inf, ymin=0, ymax=.1), fill="#F2F2F2FF", col="#F2F2F2FF") +
+#   ## Add contour lines depicting the joint density of delta and deltaN
+#   geom_density_2d(data = jd, col="black") +
+#   labs(
+#     x = expression(Delta),
+#     y = expression(Delta[n])
+#     ) +
+#   theme(legend.title = element_text()) 
+#   # ## Some aesthetic touches to improve the boundary appearance of the plot
+#   # geom_rect(aes(xmin=0, xmax=Inf, ymin=-Inf, ymax=Inf), fill="white", col="white") +
+#   # geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=0), fill="white", col="white") +
+#   # geom_rect(
+#   #   aes(xmin=0, xmax=Inf, ymin=min(jd$deltaN_draw), ymax=max(jd$deltaN_draw)), 
+#   #   fill="#F2F2F2FF", col="#F2F2F2FF"
+#   #   ) +
+#   # geom_rect(
+#   #   aes(xmin=min(jd$delta_draw), xmax=max(jd$delta_draw), ymin=min(jd$deltaN_draw), ymax=0), 
+#   #   fill="#F2F2F2FF", col="#F2F2F2FF"
+#   #   ) 
+# rm(jd)
 
 
 #### Fig 2.C (Target species) ####
@@ -476,7 +493,8 @@ fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), "MEY")
 fig2e <- cost_plot(results %>% filter(species==sp_type), "MEY")
 
 #### Fig 2.F (Targeting disb) ####
-fig2f <- targeting_plot(results %>% filter(species==sp_type), "MEY")
+fig2f <- targeting_plot(results %>% filter(species==sp_type), "MEY") +
+  labs(x = "Targeting requirement")
 
 #### Composite Fig. 2 ####
 
@@ -492,29 +510,33 @@ fig2f <- fig2f + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2 <-
   ggdraw() +
   # draw_plot(fig, xpos,  ypos, width, height) +
-  draw_plot(fig2a, 0.025, 0.67, 0.475, 0.33) +
+  # draw_plot(fig2a, 0.025, 0.67, 0.475, 0.33) +
+  draw_plot(fig2a, 0,     0.67, 0.55, 0.33) +
   draw_plot(fig2b, 0.55,  0.67, 0.45,  0.33) +
-  draw_plot(fig2c, 0,     0.34, 1,     0.33) +
+  draw_plot(fig2c, 0,     0.34, 0.99,     0.33) +
   draw_plot(fig2d, 0,     0,    0.33,  0.33) +
   draw_plot(fig2e, 0.33,  0,    0.33,  0.33) +
   draw_plot(fig2f, 0.66,  0,    0.33,  0.33) +
-  draw_plot_label(c("A", "B", "C", "D", "E", "F"), 
-                  c(0, 0.525, 0, 0, 0.33, 0.66), 
-                  c(1, 1, 0.66, 0.33, 0.33, 0.33), 
-                  size = 15)
+  # draw_plot(legend_fig2) +
+  draw_plot_label(
+    c("A", "B", "C", "D", "E", "F"), 
+    c(0, 0.525, 0, 0, 0.33, 0.66), 
+    c(1, 1, 0.66, 0.33, 0.33, 0.33), 
+    size = 15
+    )
 
 # fig2
 
 save_plot("Figures/fig-2.png", fig2,
-          base_height = 10,
+          base_height = 9,
           base_aspect_ratio = 1
           )
 save_plot("Figures/PDFs/fig-2.pdf", fig2,
-          base_height = 10,
+          base_height = 9,
           base_aspect_ratio = 1
           )
 
-rm(fig2, fig2a, fig2a_inset, fig2b, fig2c, fig2d, fig2e)
+rm(fig2, fig2a, fig2a_inset, fig2b, fig2c, fig2d, fig2e, fig2f)
 dev.off()
 
 
