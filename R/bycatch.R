@@ -70,7 +70,7 @@ target_df <- read_csv("Data/target_species.csv")
 ### 1 and 9 that corresponds to the run of your choice.
 run <- 
   c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
-    "nonei", "sensrange", "weights", "2012only")[1] ## Change as needed
+    "nonei", "weights", "2012only")[1] ## Change as needed
 
 choose_run(run) ## choose_run(1) works equally as well 
 
@@ -242,7 +242,6 @@ overall_red <-
     wtpctmey = wt * pctmey,
     wtpctmsy = wt * pctmsy
   ) 
-
 
 fao_red <-
   overall_red %>% 
@@ -602,7 +601,6 @@ dev.off()
 
 # 1. Main run: base year is 2010-2012 (geom. mean) 
 #              alpha = 1
-#              no uncertainty in Fe or delta
 #              all stocks at MEY
 df_run1 <- read_csv("Results/bycatch_summary_results.csv")
 
@@ -622,15 +620,12 @@ df_run5 <- read_csv("Results/bycatch_summary_results_alpha=2.csv")
 # 6. Main run with 'nei' stocks removed
 df_run6 <- read_csv("Results/bycatch_summary_results_nonei.csv")
 
-# 7. Main run with a 25% sensitivity range on Fe and delta
-df_run7 <- read_csv("Results/bycatch_summary_results_sensrange.csv")
-
-# 8. Main run with a 25% sensitivity range on weights for target stock groups 
+# 7. Main run with a 25% sensitivity range on weights for target stock groups 
 #              (e.g. demersals)
-df_run8 <- read_csv("Results/bycatch_summary_results_weights.csv")
+df_run7 <- read_csv("Results/bycatch_summary_results_weights.csv")
 
-# 9. Main run with 2012 only as the base year (rather than 2010-2012)
-df_run9 <- read_csv("Results/bycatch_summary_results_2012only.csv")
+# 8. Main run with 2012 only as the base year (rather than 2010-2012)
+df_run8 <- read_csv("Results/bycatch_summary_results_2012only.csv")
 
 
 #### Fig. S6 (main run plus sensitivity analyses 2-5) ####
@@ -664,8 +659,7 @@ fig_s7 <-
     df_run1 %>% mutate(sens = "A"),
     df_run6 %>% mutate(sens = "B"),
     df_run7 %>% mutate(sens = "C"),
-    df_run8 %>% mutate(sens = "D"),
-    df_run9 %>% mutate(sens = "E")
+    df_run8 %>% mutate(sens = "D")
     ) %>% 
   tradeoffs_plot("MEY") +
   scale_x_continuous(expand = c(0.075, 0)) +
@@ -690,7 +684,7 @@ rm(fig_s7); dev.off()
 ## Figs. S2 and S3 already made for main run (1) ##
 ## Remaining sensitivty runs 2-9 as described above
 sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "sensrange", "weights", "2012only")
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "weights", "2012only")
 
 ## Plot the figures over all sensitivity runs
 lapply(

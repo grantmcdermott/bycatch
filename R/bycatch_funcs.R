@@ -8,7 +8,7 @@ choose_run <-
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","sensrange","weights","2012only")
+        "nonei","weights","2012only")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -24,7 +24,6 @@ choose_run <-
     corr_factor <<- 1 ## C.f. Run 2
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
-    sensrange <<- 0 ## C.f. Run 7
     weights_sens <<- 0 ## C.f. Run 8
     
     
@@ -45,14 +44,11 @@ choose_run <-
     ## 6. Remove "NEI" (not elsewhere included) stocks from the Costello et al. 2016
     if(run=="nonei") {upsides_type <<- "nonei"}
     
-    ## 7. Simulate over a 95% uncertainty range in Fe and delta
-    if(run=="sensrange") {sensrange <<- 1}
-    
-    ## 8. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
+    ## 7. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
     ##    cost analysis.
     if(run=="weights") {weights_sens <<- 1}
     
-    ## 9. Use F from 2012 only. 
+    ## 8. Use F from 2012 only. 
     if(run=="2012only") {upsides_type <<- "2012only"}
     
     ## Convenience strings for import/export, file-reading and naming conventions
@@ -60,7 +56,6 @@ choose_run <-
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-    sensrange_str <- ifelse(sensrange==0, "", "_sensrange")
     weights_str <- ifelse(weights_sens==0, "", "_weights")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
@@ -89,7 +84,7 @@ choose_run <-
     }
     
     ## Combined convenience variable for output file name suffix
-    suff_str <<- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str)
+    suff_str <<- paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str)
     
     ## Descriptive message for user
     if(match(run,r_types) == 1) {
@@ -105,7 +100,6 @@ choose_run <-
         "   corr_factor = ", corr_factor, "\n",
         "   scenario = ", scenario, "\n",
         "   alpha_exp = ", alpha_exp, "\n",
-        "   sensrange = ", sensrange, "\n",
         "   weights_sens = ", weights_sens
         )
       )
@@ -662,7 +656,7 @@ wt_func <-
   }
 
 ## Input function for sampling %T, using the full distributions of its component 
-## parameters (delta, deltaN and Fe). Only relevant to the "sensrange" run.
+## parameters (delta, deltaN and Fe). 
 sensrange_func <-
   function(bycsp, N) {
     
@@ -788,11 +782,9 @@ sensrange_func <-
 ## Input function for determing outcomes in a single state of the world, where 
 ## all uncertainty is been resolved. Inputs to this function are a list of  
 ## "dt's" (i.e. the output from `extract_func`), "n2", a data frame of relevant
-## target stocks, the bycatch species of interest, and the "sensrange" 
-## indicator variable (i.e. whether to use a point estimate of %T or draw a
-## sample according to its underlying parameter distributions). 
+## target stocks, and the bycatch species of interest. 
 single_worldstate_outputs <- 
-  function(dt2, n2, reltdf, bycsp, sensrange) { 
+  function(dt2, n2, reltdf, bycsp) { 
     
     ## Sample within each of the relevant target categories (demersal, shrimp, etc.) 
     ## and the combine into a common data frame.
@@ -837,22 +829,11 @@ single_worldstate_outputs <-
     mpctmsy <- sum(samp$pctrmsywt, na.rm = T) 
     mpctmey <- sum(samp$pctrmeywt, na.rm = T) 
     
-    ## Parameter uncertainty / 95% CI sensitivity scenario adjustments
-    ## Calculate "%T" according to whether we are just taking the mean values
-    ## of delta, deltan and Fe as given point estimates... Or sampling from the 
-    ## full underlying parameter distributions ("sensrange" run only).
-    if (sensrange == 0) { ## Normal run. Don't consider uncertainty in %T
-      rel_bycsp <- filter(bycatch_df, species==bycsp)
-      if(is.na(rel_bycsp$deltaN_mean)) {
-        rel_bycsp$deltaN_mean <- rel_bycsp$delta_mean + rel_bycsp$fe_mean ## Should only be relevent for type 4 cases
-      }
-      pctT <- 100 * ((rel_bycsp$fe_mean - rel_bycsp$deltaN_mean) / rel_bycsp$fe_mean)
-    } else { ## The "sensrange" run. Sample %T according to distribution of underlying parameters
-      pctT <- sensrange_func(bycsp, 1)$pctT
-    }
-    ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
+    ## Calculate "%T" by sampling from the underlying parameter distributions.
+    pctT <- sensrange_func(bycsp, 1)$pctT
+    ## Manual correction if randomly ended up dividing by zero (v. low 
+    ## probability of occuring)
     if(pctT==Inf) {pctT <- 0}
-    ## End parameter uncertainty / 95% CI sensitivity scenario adjustments
     
     ## Summarise the key result parameters for this state of the world in a DF
     stwld <- 
@@ -889,10 +870,7 @@ disb_func <-
       pblapply(1:n1, 
                possibly(function(i) {
                  evalWithTimeout(
-                   single_worldstate_outputs(
-                     dt2, n2, rel_targets, 
-                     bycsp, sensrange
-                     ), 
+                   single_worldstate_outputs(dt2, n2, rel_targets, bycsp), 
                    timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
                    TimeoutException = function(ex) "TimedOut"
                    )
@@ -960,7 +938,7 @@ bycatchdist_plot <-
         ) %>%
       select(MSY:species) %>%
       gather(key, pctred, -species) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+      mutate(key = factor(key, levels = c("MSY", "MEY")))
     
     pctT_df <-
       lapply(
@@ -985,15 +963,17 @@ bycatchdist_plot <-
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
     df2 %>% 
-      ggplot(aes(group=species)) +
+      group_by(species, key) %>%
+      ggplot(aes(x = pctred, y = ..scaled.., col = key, fill = key)) +
       geom_density(
         data = pctT_df, 
+        inherit.aes = FALSE, 
         aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75,
         adjust = 2#, ## use more smoothing 
         # show.legend = F
         ) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctred, y = ..scaled.., col = key, fill = key), alpha = .5) +
+      geom_density(alpha = .5) +
       geom_vline(
         data = pctT_df,
         aes(xintercept = pctT_mean), lty = 2
@@ -1036,9 +1016,10 @@ cost_plot <-
     }
     
     df2 %>% 
-      ggplot() +
+      group_by(species, key) %>%
+      ggplot(aes(x = pctcost, y = ..scaled.., col = key, fill = key)) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      geom_density(alpha = .5, adjust = 0.01) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
@@ -1081,12 +1062,13 @@ targeting_plot <-
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
-    x_lab <- "Req. targeting improvement"
+    x_lab <- "Required targeting improvement"
     
     df2 %>% 
-      ggplot() +
+      group_by(species, key) %>%
+      ggplot(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key)) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      geom_density(alpha = .5, adjust = 0.01) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
