@@ -70,7 +70,7 @@ target_df <- read_csv("Data/target_species.csv")
 ### 1 and 9 that corresponds to the run of your choice.
 run <- 
   c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
-    "nonei", "weights", "2012only")[1] ## Change as needed
+    "nonei", "weights", "2012only", "doubleuncert")[1] ## Change as needed
 
 choose_run(run) ## choose_run(1) works equally as well 
 
@@ -627,6 +627,9 @@ df_run7 <- read_csv("Results/bycatch_summary_results_weights.csv")
 # 8. Main run with 2012 only as the base year (rather than 2010-2012)
 df_run8 <- read_csv("Results/bycatch_summary_results_2012only.csv")
 
+# 9. Double uncertainty run (wider disb's on delta, deltaN and Fe)
+df_run9 <- read_csv("Results/bycatch_summary_results_doubleuncert.csv")
+
 
 #### Fig. S6 (main run plus sensitivity analyses 2-5) ####
 
@@ -659,7 +662,8 @@ fig_s7 <-
     df_run1 %>% mutate(sens = "A"),
     df_run6 %>% mutate(sens = "B"),
     df_run7 %>% mutate(sens = "C"),
-    df_run8 %>% mutate(sens = "D")
+    df_run8 %>% mutate(sens = "D"),
+    df_run9 %>% mutate(sens = "E")
     ) %>% 
   tradeoffs_plot("MEY") +
   scale_x_continuous(expand = c(0.075, 0)) +
@@ -684,7 +688,7 @@ rm(fig_s7); dev.off()
 ## Figs. S2 and S3 already made for main run (1) ##
 ## Remaining sensitivty runs 2-9 as described above
 sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "weights", "2012only")
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "weights", "2012only", "doubleuncert")
 
 ## Plot the figures over all sensitivity runs
 lapply(

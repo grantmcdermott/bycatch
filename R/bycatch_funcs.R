@@ -8,7 +8,7 @@ choose_run <-
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","weights","2012only")
+        "nonei","weights","2012only","doubleuncert")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -20,11 +20,12 @@ choose_run <-
     run <- tolower(run)
     
     ## 1. Main run (default)
-    upsides_type <<- "main" ## C.f. Runs 6 and 9
+    upsides_type <<- "main" ## C.f. Runs 6 and 8
     corr_factor <<- 1 ## C.f. Run 2
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
-    weights_sens <<- 0 ## C.f. Run 8
+    weights_sens <<- 0 ## C.f. Run 7
+    doubleuncert <<- 0 ## C.f. Run 9
     
     
     ## 2. Correction factor for possible upward bias in catch-MSY projections
@@ -51,12 +52,16 @@ choose_run <-
     ## 8. Use F from 2012 only. 
     if(run=="2012only") {upsides_type <<- "2012only"}
     
+    ## 9. Double the uncertainty ranges on %T parameters (delta, deltaN and Fe) 
+    if(run=="doubleuncert") {doubleuncert <<- 1}
+    
     ## Convenience strings for import/export, file-reading and naming conventions
     corr_str <- ""
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
     weights_str <- ifelse(weights_sens==0, "", "_weights")
+    doubleuncert_str <- ifelse(doubleuncert==0, "", "_doubleuncert")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
     ## Costello et al. (PNAS, 2016).
@@ -84,7 +89,8 @@ choose_run <-
     }
     
     ## Combined convenience variable for output file name suffix
-    suff_str <<- paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str)
+    suff_str <<- 
+      paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str, doubleuncert_str)
     
     ## Descriptive message for user
     if(match(run,r_types) == 1) {
@@ -100,7 +106,8 @@ choose_run <-
         "   corr_factor = ", corr_factor, "\n",
         "   scenario = ", scenario, "\n",
         "   alpha_exp = ", alpha_exp, "\n",
-        "   weights_sens = ", weights_sens
+        "   weights_sens = ", weights_sens, "\n",
+        "   doubleuncert = ", doubleuncert
         )
       )
   }
@@ -677,10 +684,22 @@ sensrange_func <-
     fe_mean <- rel_bycsp$fe_mean
     fe_q025 <- rel_bycsp$fe_q025
     fe_q975 <- rel_bycsp$fe_q975
-    ## Minor correction to deltaN_mean (only relevent for Type 4 cases)
+    ## Minor correction to deltaN_mean (only relevant for Type 4 cases)
     if(is.na(deltaN_mean)) {
       deltaN_mean <- delta_mean + fe_mean 
     }
+    
+    ## Adjustment for "doubleuncert" scenario only: Double uncertainty range on
+    ## all parameters
+    if(doubleuncert==1) {
+      delta_q025 <- delta_mean - 2 * (delta_mean-delta_q025)
+      delta_q975 <- delta_mean + 2 * (delta_q975-delta_mean)
+      deltaN_q025 <- deltaN_mean - 2 * (deltaN_mean-deltaN_q025)
+      deltaN_q975 <- deltaN_mean + 2 * (deltaN_q975-deltaN_mean)
+      fe_q025 <- fe_mean - 2 * (fe_mean-deltaN_q025)
+      fe_q975 <- fe_mean + 2 * (fe_q975-deltaN_mean)
+    }
+    
     ## Mean %T value for comparison 
     pctT_mean <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
     ## Get standard deviation (for sampling from rnorm)
