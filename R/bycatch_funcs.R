@@ -970,7 +970,7 @@ bycatchdist_plot <-
       mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
       mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred))
     
-    if(!is.null(series)) df2 <- filter(df2, key==series)
+    if(!is.null(series)) df2 <- filter(df2, key %in% c("%T", series))
     
     df2 %>% 
       group_by(species, key) %>%

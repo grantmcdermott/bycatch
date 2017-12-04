@@ -355,7 +355,6 @@ fig2c <-
 
 #### Fig 2.D (Bycatch reduction disb) ####
 
-set.seed(123) ## First reset seed for disb on %T
 fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), "MEY") 
 
 #### Fig 2.E (Cost disb) ####
@@ -520,8 +519,6 @@ dev.off()
 ##############################################################
 ##### Fig S2 (Combined bycatch reduction distributions) #####
 ##############################################################
-## First reset seed for disb on %T
-set.seed(123)
 fig_s2 <- 
   bycatchdist_plot(results) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
