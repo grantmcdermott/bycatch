@@ -946,63 +946,50 @@ bycatchdist_plot <-
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-ycostmsy, -pcostmey, -pctT) %>% ### REVISION
+      select(-ycostmsy, -pcostmey) %>% 
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
       df1 %>%
       rename(
-        MSY = pctredmsy,
-        MEY = pctredmey
+        "MSY" = "pctredmsy",
+        "MEY" = "pctredmey",
+        "%T" = "pctT"
         ) %>%
       select(MSY:species) %>%
       gather(key, pctred, -species) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY")))
+      mutate(key = factor(key, levels = c("%T", "MSY", "MEY"))) 
     
-    pctT_df <-
-      lapply(
-        df1 %>% distinct(species) %>% pull(species), 
-        function(x) {
-          sensrange_func(x, 10000)
-        }) %>%
-      bind_rows() %>%
-      ## Divide by 100 since plot takes raw elasticities
-      mutate_if(is.double, funs(. / 100)) %>%
-      ## Truncate disbs to 95% range to aid visual inspection
-      group_by(species) %>%
+    ## Truncate disbs to 95% range to aid visual inspection
+    df2 <-
+      df2 %>%
       mutate(
-        q025 = quantile(pctT, 0.025, na.rm=T),
-        q975 = quantile(pctT, 0.975, na.rm=T)
+        q025 = quantile(pctred, 0.025, na.rm=T),
+        q975 = quantile(pctred, 0.975, na.rm=T)
         ) %>%
-      mutate(pctT = ifelse(pctT<q025, NA, pctT)) %>%
-      mutate(pctT = ifelse(pctT>q975, NA, pctT)) %>%
-      ungroup %>%
-      select(species, pctT, pctT_mean)
+      mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
+      mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred))
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
     df2 %>% 
       group_by(species, key) %>%
-      ggplot(aes(x = pctred, y = ..scaled.., col = key, fill = key)) +
+      ggplot() +
       geom_density(
-        data = pctT_df, 
-        inherit.aes = FALSE, 
-        aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75
+        aes(x = pctred, y = ..scaled.., col = key, fill = key), 
+        alpha = .5, 
+        adjust = 1.5 ## Increase smoothing slightly to improve plot aesthetics
         ) +
-      # geom_line(stat = "density") + ## lines only
-      geom_density(alpha = .5) +
       geom_vline(
-        data = pctT_df,
-        aes(xintercept = pctT_mean), lty = 2
+        data = df1 %>% group_by(species) %>% summarise(pctT_median = quantile(pctT, 0.5, na.rm=T)),
+        aes(xintercept = pctT_median), lty = 2
         ) +
       labs(x = "Reduction in mortality", y = "Density") + 
       scale_x_continuous(labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(name = "", values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(name = "", values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(name = "", values = c("%T"="#A9A9A9", "MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(name = "", values = c("%T"="#A9A9A9", "MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       facet_wrap(~species) +
-      theme(legend.position = "bottom") 
+      theme(legend.position = "bottom")
   } 
 
 ##############################################################
