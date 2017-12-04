@@ -987,9 +987,7 @@ bycatchdist_plot <-
       geom_density(
         data = pctT_df, 
         inherit.aes = FALSE, 
-        aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75,
-        adjust = 2#, ## use more smoothing 
-        # show.legend = F
+        aes(x = pctT, y = ..scaled..), col = "gray", fill = "gray", alpha = 0.75
         ) +
       # geom_line(stat = "density") + ## lines only
       geom_density(alpha = .5) +
@@ -1038,7 +1036,7 @@ cost_plot <-
       group_by(species, key) %>%
       ggplot(aes(x = pctcost, y = ..scaled.., col = key, fill = key)) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(alpha = .5, adjust = 0.01) +
+      geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
@@ -1087,7 +1085,7 @@ targeting_plot <-
       group_by(species, key) %>%
       ggplot(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key)) +
       # geom_line(stat = "density") + ## lines only
-      geom_density(alpha = .5, adjust = 0.01) +
+      geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
       # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
