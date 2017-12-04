@@ -696,8 +696,8 @@ sensrange_func <-
       delta_q975 <- delta_mean + 2 * (delta_q975-delta_mean)
       deltaN_q025 <- deltaN_mean - 2 * (deltaN_mean-deltaN_q025)
       deltaN_q975 <- deltaN_mean + 2 * (deltaN_q975-deltaN_mean)
-      fe_q025 <- fe_mean - 2 * (fe_mean-deltaN_q025)
-      fe_q975 <- fe_mean + 2 * (fe_q975-deltaN_mean)
+      fe_q025 <- fe_mean - 2 * (fe_mean-fe_q025)
+      fe_q975 <- fe_mean + 2 * (fe_q975-fe_mean)
     }
     
     ## Mean %T value for comparison 
@@ -1244,7 +1244,7 @@ tradeoffs_plot <-
         labels=percent, range=c(2,9)
         ) +
       scale_color_viridis(
-        name=paste0("Req. targeting\nimprovement"),
+        name=paste0("Targeting\nrequirement"),
         trans="reverse", direction=-1, 
         option="plasma", labels=percent
         ) +
