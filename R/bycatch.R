@@ -413,13 +413,15 @@ dev.off()
 ### Fig. 3 (Tradeoff plots) ###
 ###############################
 
-fig_3mey <- tradeoffs_plot(results_summary, "MEY")
+fig_3mey <- tradeoffs_plot(results_summary, "MEY") + 
+  theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
 fig_3mey + ggsave("Figures/fig-3-mey.png", width=8, height=8)
 fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=8, height=8, device = cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
-fig_3msy <- tradeoffs_plot(results_summary, "MSY")
+fig_3msy <- tradeoffs_plot(results_summary, "MSY") + 
+  theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
 fig_3msy + ggsave("Figures/fig-3-msy.png", width=8, height=8)
 fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=8, height=8, device = cairo_pdf)
 rm(fig_3msy)
