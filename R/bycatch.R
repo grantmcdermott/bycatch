@@ -139,8 +139,8 @@ sp_type <- all_species ## All species
 
 fig1a <-
   crossing(
-    delta_mean = seq(-40,0, length.out = 100), 
-    fe_mean = seq(0,40, length.out = 100)
+    delta_mean = seq(-45, 0, length.out = 100), 
+    fe_mean = seq(0, 45, length.out = 100)
     ) %>%
   mutate(pctT = abs(delta_mean/fe_mean)*100) %>%
   mutate(pctT = ifelse(pctT>100, 100, pctT)) %>%
@@ -160,7 +160,7 @@ fig1a <-
   #   labels = percent
   #   ) +
   geom_polygon(
-    data=data_frame(delta_mean=c(-40,-40,0)/100, fe_mean=c(0,40,0)/100), 
+    data=data_frame(delta_mean=c(-45,-45,0)/100, fe_mean=c(0,45,0)/100), 
     fill="#F2F2F2FF", col="#F2F2F2FF", lwd=1.5
     ) +
   labs(
@@ -171,15 +171,6 @@ fig1a <-
 
 fig1a <-
   fig1a +
-  # ## Add white "background" to geom_points to help with contrast
-  # geom_point(
-  #   data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
-  #   aes(shape=clade), fill="white", col="white", size = 3.5, stroke = 0.5
-  #   ) +
-  # geom_point(
-  #   data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)), 
-  #   aes(shape=clade), fill="black", size = 3.5, stroke = 0, alpha=0.3
-  #   ) +
     geom_point(
       data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)),
       aes(shape=clade), col="black", size = 3.5, stroke = 0.8
@@ -190,25 +181,6 @@ fig1a <-
     shape = guide_legend(order = 2, title = NULL)
     ) + 
   coord_fixed()
-
-## With animal silhouettes
-# fig1a <-
-#   fig1a +
-#   lapply(sp_type, function(s){
-#     delta <- (filter(bycatch_df, species %in% sp_type))$delta
-#     fe <- (filter(bycatch_df, species %in% sp_type))$fe
-#     j <- (bycatch_df %>% mutate(n = row_number()) %>% filter(species==s))$n
-#     z <- (bycatch_df %>% filter(species==s))$silhouette
-#     img <- readPNG(paste0("Figures/AnimalSilhouettes/",z,"-silhouette.png"))
-#     g_img <- rasterGrob(img, interpolate=FALSE)
-#     lapply(j, function(i) {
-#       annotation_custom(g_img, xmin=delta[i]-0.025, xmax=delta[i]+0.025, ymin=fe[i]-0.025, ymax=fe[i]+0.025)
-#     })
-#   })
-# fig1a +
-#   xlim(-0.2, 0) +
-#   ylim(0, 0.2)
-
 
 #### Fig 1.B (Upsides FAO summary map) ####
 
@@ -354,7 +326,7 @@ fig2a <-
 
 #### Fig 2.B (Heatmap) ####
 
-set.seed(123) ## Reset seed
+set.seed(123) ## First reset seed for disb on %T parameters
 
 fig2b <- 
   sensrange_func(sp_type, 1000) %>% 
@@ -382,13 +354,16 @@ fig2c <-
   theme(strip.text = element_text(size = 14))
 
 #### Fig 2.D (Bycatch reduction disb) ####
+
+set.seed(123) ## First reset seed for disb on %T
 fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), "MEY") 
 
 #### Fig 2.E (Cost disb) ####
 fig2e <- cost_plot(results %>% filter(species==sp_type), "MEY")
 
 #### Fig 2.F (Targeting disb) ####
-fig2f <- targeting_plot(results %>% filter(species==sp_type), "MEY") +
+fig2f <- 
+  targeting_plot(results %>% filter(species==sp_type), "MEY") +
   labs(x = "Targeting requirement")
 
 #### Composite Fig. 2 ####
@@ -543,6 +518,8 @@ dev.off()
 ##############################################################
 ##### Fig S2 (Combined bycatch reduction distributions) #####
 ##############################################################
+## First reset seed for disb on %T
+set.seed(123)
 fig_s2 <- 
   bycatchdist_plot(results) +
   facet_wrap(~species, ncol = 3, scales = "free_x") 
