@@ -1100,12 +1100,12 @@ targeting_plot <-
       group_by(species) %>%
       ## Calculate growth rate after rebuilding
       mutate(
-        delta_mey = delta_mean + (fe_mean * (pctredmey/100)),
-        delta_msy = delta_mean + (fe_mean * (pctredmsy/100))) %>% 
+        targimpmey = 100 * ((pctT - pctredmey)/(100 - pctredmey)),
+        targimpmsy = 100 * ((pctT - pctredmsy)/(100 - pctredmsy))) %>% 
       mutate(
-        targeting_pct_mey1 = if_else(delta_mey>=0, 0, 100*(1-((delta_mean+fe_mean)/(delta_mean+fe_mean-delta_mey)))),
+        targeting_pct_mey1 = if_else(targimpmey<=0, 0, targimpmey),
         targeting_pct_mey = if_else(targeting_pct_mey1>100, 100, targeting_pct_mey1),
-        targeting_pct_msy1 = if_else(delta_msy>=0, 0, 100*(1-((delta_mean+fe_mean)/(delta_mean+fe_mean-delta_msy)))),
+        targeting_pct_msy1 = if_else(targimpmsy<=0, 0, targimpmsy),
         targeting_pct_msy = if_else(targeting_pct_msy1>100, 100, targeting_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
       # select(-c(pctredmsy, pctredmey, pcostmey, ycostmsy, delta_mey, delta_msy, targeting_pct_mey1, targeting_pct_msy1)) %>%
       select(species, targeting_pct_msy, targeting_pct_mey) %>%
