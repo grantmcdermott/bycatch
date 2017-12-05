@@ -1287,7 +1287,7 @@ tradeoffs_plot <-
       scale_color_viridis(
         name=paste0("Targeting\nrequirement"),
         trans="reverse", direction=-1, 
-        option="plasma", labels=percent
+        labels=percent
         ) +
       guides(
         size = guide_legend(order = 1),
