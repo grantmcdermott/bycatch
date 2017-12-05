@@ -63,17 +63,6 @@ source("R/bycatch_funcs.R")
 bycatch_df <- read_csv("Data/bycatch_species.csv")
 target_df <- read_csv("Data/target_species.csv")
 
-### Choose model run. The `choose_run` function below sets the correct parameters  
-### for each run and also loads the correct version of the upsides data into the 
-### global environment. It takes as argument one of nine shorthand model descriptions
-### listed in the `run` vector. Alternatively, you may simply enter the integer between 
-### 1 and 9 that corresponds to the run of your choice.
-run <- 
-  c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
-    "nonei", "weights", "2012only", "doubleuncert")[1] ## Change as needed
-
-choose_run(run) ## choose_run(1) works equally as well 
-
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
 
@@ -93,6 +82,17 @@ n1 <- 1000
 ## How many times do we sample (with replacement) over target stocks to resolve 
 ## uncertainty for a single draw?
 n2 <- 100 
+
+### Choose model run. The `choose_run` function below sets the correct parameters  
+### for each run and also loads the correct version of the upsides data into the 
+### global environment. It takes as argument one of 10 shorthand model descriptions
+### listed in the `run` vector. Alternatively, you may simply enter the integer between 
+### 1 and 10 that corresponds to the run of your choice.
+run <- 
+  c("main", "fcorrected", "conservation", "alpha=05", "alpha=2", 
+    "nonei", "weights", "2012only", "doubleuncert", "kitchen")[1] ## Change as needed
+
+choose_run(run) ## choose_run(1) works equally as well 
 
 ### Results for all species
 
@@ -404,7 +404,7 @@ save_plot("Figures/PDFs/fig-2.pdf", fig2,
           base_aspect_ratio = 1
           )
 
-rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f)
+rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f, lh_rmus)
 dev.off()
 
 
@@ -606,6 +606,8 @@ df_run8 <- read_csv("Results/bycatch_summary_results_2012only.csv")
 # 9. Double uncertainty run (wider disb's on delta, deltaN and Fe)
 df_run9 <- read_csv("Results/bycatch_summary_results_doubleuncert.csv")
 
+# 10. Kitchen sink
+df_run10 <- read_csv("Results/bycatch_summary_results_kitchen.csv")
 
 #### Fig. S6 (main run plus sensitivity analyses 2-5) ####
 
@@ -635,11 +637,12 @@ rm(fig_s6); dev.off()
 
 fig_s7 <-
   bind_rows(
-    df_run1 %>% mutate(sens = "A"),
-    df_run6 %>% mutate(sens = "B"),
-    df_run7 %>% mutate(sens = "C"),
-    df_run8 %>% mutate(sens = "D"),
-    df_run9 %>% mutate(sens = "E")
+    # df_run1 %>% mutate(sens = "A"),
+    df_run6 %>% mutate(sens = "A"),
+    df_run7 %>% mutate(sens = "B"),
+    df_run8 %>% mutate(sens = "C"),
+    df_run9 %>% mutate(sens = "D"),
+    df_run10 %>% mutate(sens = "E")
     ) %>% 
   tradeoffs_plot("MEY") +
   scale_x_continuous(expand = c(0.075, 0)) +
@@ -662,9 +665,10 @@ rm(fig_s7); dev.off()
 ##########################################################
 
 ## Figs. S2 and S3 already made for main run (1) ##
-## Remaining sensitivty runs 2-9 as described above
+## Remaining sensitivty runs 2-10 as described above
 sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", "weights", "2012only", "doubleuncert")
+  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", 
+    "weights", "2012only", "doubleuncert", "kitchen")
 
 ## Plot the figures over all sensitivity runs
 lapply(

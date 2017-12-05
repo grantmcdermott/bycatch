@@ -8,7 +8,7 @@ choose_run <-
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","weights","2012only","doubleuncert")
+        "nonei","weights","2012only","doubleuncert", "kitchen")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -22,16 +22,23 @@ choose_run <-
     ## 1. Main run (default)
     upsides_type <<- "main" ## C.f. Runs 6 and 8
     corr_factor <<- 1 ## C.f. Run 2
+    corr_factor_msg <- corr_factor
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
+    alpha_exp_msg <- alpha_exp
     weights_sens <<- 0 ## C.f. Run 7
+    weights_sens_msg <- weights_sens
     doubleuncert <<- 0 ## C.f. Run 9
+    kitchen <<- 0 ## C.f. Run 10
     
     
     ## 2. Correction factor for possible upward bias in catch-MSY projections
     ##    Here we assume that current F is twice as big as estimated by Costello 
     ##    et al. (2016).
-    if(run=="fcorrected") {corr_factor <<- 2}
+    if(run=="fcorrected") {
+      corr_factor <<- 2
+      corr_factor_msg <- corr_factor
+      }
     
     ## 3. Conservation concern scenario: Only stocks going to MEY/MSY are those currently 
     ##    with F > Fmsy or B < Bmsy.
@@ -39,21 +46,41 @@ choose_run <-
     
     ## 4. and 5. Different "alpha" exponents, i.e. elasticity of (changes in) bycatch to 
     ##           (changes in) target stocks. See eqn (S14) in the paper.
-    if(run=="alpha=05") {alpha_exp <<- 0.5}
-    if(run=="alpha=2") {alpha_exp <<- 2}
+    if(run=="alpha=05") {
+      alpha_exp <<- 0.5
+      alpha_exp_msg <- alpha_exp
+      }
+    if(run=="alpha=2") {
+      alpha_exp <<- 2
+      alpha_exp_msg <- alpha_exp
+      }
     
     ## 6. Remove "NEI" (not elsewhere included) stocks from the Costello et al. 2016
     if(run=="nonei") {upsides_type <<- "nonei"}
     
     ## 7. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
     ##    cost analysis.
-    if(run=="weights") {weights_sens <<- 1}
+    if(run=="weights") {
+      weights_sens <<- 1
+      weights_sens_msg <- "W[i] * U(0.75, 1.25)"
+      }
     
     ## 8. Use F from 2012 only. 
     if(run=="2012only") {upsides_type <<- "2012only"}
     
     ## 9. Double the uncertainty ranges on %T parameters (delta, deltaN and Fe) 
     if(run=="doubleuncert") {doubleuncert <<- 1}
+    
+    ## 10. Kitchen sink run: Combine elements of Runs 2, 4, 5 and 7 
+    if(run=="kitchen") {
+      kitchen <<- 1
+      corr_factor_vector <<- 2^runif(n1, min = -1, max = 1)
+      alpha_exp_vector <<- 2^runif(n1, min = -1, max = 1)
+      corr_factor_msg <- "2 ^ U(-1, 1)" ## Just for the choose_run() user message. Will draw actual values during run analysis.
+      alpha_exp_msg <- "2 ^ U(-1, 1)" ## Ditto.
+      weights_sens <<- 1
+      weights_sens_msg <- "W[i] * U(0.75, 1.25)"
+      }
     
     ## Convenience strings for import/export, file-reading and naming conventions
     corr_str <- ""
@@ -62,6 +89,7 @@ choose_run <-
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
     weights_str <- ifelse(weights_sens==0, "", "_weights")
     doubleuncert_str <- ifelse(doubleuncert==0, "", "_doubleuncert")
+    kitchen_str <- ifelse(kitchen==0, "", "_kitchen")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
     ## Costello et al. (PNAS, 2016).
@@ -70,7 +98,7 @@ choose_run <-
       as_data_frame()
     # upsides <<- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
     
-    ## Final adjustment to upsides data in case of the "fcorrected" run
+    ## Adjustment to upsides data in the case of the "fcorrected" run
     if(run=="fcorrected") {
       corr_str <- "_fcorrected"
       upsides <<-
@@ -80,17 +108,17 @@ choose_run <-
         mutate(
           fvfmsy = curr_f/g,
           eqfvfmey = curr_f/f_mey
-        ) %>%
+          ) %>%
         mutate(
           pctredfmsy = 100 * (1 - (1/fvfmsy)),
           pctredfmey = 100 * (1 - (1/eqfvfmey)),
           pctredfmsycon = 100 * (1-(fconmsy/curr_f))
-        )
+          )
     }
     
     ## Combined convenience variable for output file name suffix
     suff_str <<- 
-      paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str, doubleuncert_str)
+      paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str, doubleuncert_str, kitchen_str)
     
     ## Descriptive message for user
     if(match(run,r_types) == 1) {
@@ -103,10 +131,10 @@ choose_run <-
       paste0(
         "Parameters: \n",
         "   upsides_type = ", upsides_type, "\n",
-        "   corr_factor = ", corr_factor, "\n",
+        "   corr_factor = ", corr_factor_msg, "\n",
         "   scenario = ", scenario, "\n",
-        "   alpha_exp = ", alpha_exp, "\n",
-        "   weights_sens = ", weights_sens, "\n",
+        "   alpha_exp = ", alpha_exp_msg, "\n",
+        "   weights_sens = ", weights_sens_msg, "\n",
         "   doubleuncert = ", doubleuncert
         )
       )
@@ -888,19 +916,45 @@ disb_func <-
     dists <-
       pblapply(1:n1, 
                possibly(function(i) {
-                 evalWithTimeout(
-                   single_worldstate_outputs(dt2, n2, rel_targets, bycsp), 
-                   timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
-                   TimeoutException = function(ex) "TimedOut"
-                   )
-                 }, 
-                 # otherwise = NULL
-                 otherwise = data_frame(pctredmsy=as.double(NA), pctredmey=as.double(NA), ycostmsy=as.double(NA), pcostmey=as.double(NA)) ## To catch failed uniroot cases
-                 ),
+                 
+                 if(kitchen==1) {
+                     alpha_exp <<- alpha_exp_vector[i]
+                     corr_factor_kitchen <- corr_factor_vector[i]
+                       rel_targets <-
+                         rel_targets %>%
+                         mutate(curr_f_orig = curr_f) %>%
+                         mutate(curr_f = ifelse(dbase=="FAO", curr_f_orig/corr_factor_kitchen, curr_f)) %>%
+                         ## Adjust additionally affected variables in sequence
+                         mutate(
+                           fvfmsy = curr_f/g,
+                           eqfvfmey = curr_f/f_mey
+                         ) %>%
+                         mutate(
+                           pctredfmsy = 100 * (1 - (1/fvfmsy)),
+                           pctredfmey = 100 * (1 - (1/eqfvfmey)),
+                           pctredfmsycon = 100 * (1-(fconmsy/curr_f))
+                         ) 
+                       }
+                 
+                 dist_df <-
+                   evalWithTimeout(
+                     single_worldstate_outputs(dt2, n2, rel_targets, bycsp), 
+                     timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
+                     TimeoutException = function(ex) "TimedOut"
+                     )
+                 
+                 ## Optional: Check that each alpha draw for the kitchen sink 
+                 ## run is unique despite use of multicore function and "<<-"...
+                 # if(kitchen==1) {dist_df <- dist_df %>% mutate(alpha_draw = alpha_exp)}
+                 
+                 return(dist_df)
+               }, 
+               otherwise = data_frame(pctredmsy=as.double(NA), pctredmey=as.double(NA), ycostmsy=as.double(NA), pcostmey=as.double(NA)) ## To catch failed uniroot cases
+               ),
                cl=num_cores
-               )
+      )
     return(dists)
-    }
+  }
 
 ###############################################################################
 ## Final step: Convenience wrapper to apply over all target stocks affecting ##
@@ -915,7 +969,7 @@ bycatch_func <-
       mutate(species = z)
     }
 
-## E.g. bycatch_func("Loggerhead_turtle")
+## E.g. bycatch_func("Loggerhead_turtle (NW Atlantic)")
 
 
 
@@ -960,7 +1014,7 @@ bycatchdist_plot <-
       gather(key, pctred, -species) %>%
       mutate(key = factor(key, levels = c("%T", "MSY", "MEY"))) 
     
-    ## Truncate disbs to 95% range to aid visual inspection
+    ## Truncate %T disb to 95% range to aid visual inspection
     df2 <-
       df2 %>%
       mutate(
