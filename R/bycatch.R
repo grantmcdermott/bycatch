@@ -36,17 +36,45 @@ set.seed(123)
 ## Assign font. Register to extrafont package DB first. If below font is not
 ## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
-## Assign color scheme
-bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
-                  "#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")
-## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
-theme_update(
-  text = element_text(family = font_type),
-  legend.title = element_blank(),
-  legend.justification = "center", 
-  strip.background = element_rect(fill = "white"), ## Facet strip
-  panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-)
+# ## Assign color scheme
+# bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
+#                   "#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")
+# show_col(bycatch_cols)
+## Make some adjustments to the (now default) cowplot ggplot2 theme for figures.
+# theme_update(
+#   text = element_text(family = font_type),
+#   legend.title = element_blank(),
+#   legend.justification = "center", 
+#   strip.background = element_rect(fill = "white"), ## Facet strip
+#   panel.spacing = unit(2, "lines") ## Increase gap between facet panels
+# )
+
+## Make some adjustments to the (now default) cowplot ggplot2 theme for figures.
+## See: http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
+theme_science <-
+  theme_cowplot(font_size = 7, line_size = 0.15) +
+  theme(
+    text = element_text(family = font_type),
+    legend.title = element_blank(),
+    legend.key.size = unit(0.4, "lines"),
+    legend.margin = margin(t=3, r=0, b=3, l=0, unit="pt"), ## Change last digit to -ve to reduce space between right legend and plot
+    legend.spacing = unit(0.2, "cm"),
+    legend.justification = "center", 
+    plot.margin = margin(t=3, r=3, b=3, l=3, unit="pt"),#unit(c(3, 3, 3, 3), "points"), 
+    strip.background = element_rect(fill = "white"), ## Facet strip
+    panel.spacing = unit(1, "lines"), ## Increase gap between facet panels
+    strip.text = element_text(size = 7)
+    )
+theme_set(theme_science)
+fig_width <- 2.3 ## Width of one column in Science (in inches)
+## Also adjust geoms (https://stackoverflow.com/a/21175042)
+params <- ls(pattern = '^geom_', env = as.environment('package:ggplot2'))
+params <- setdiff(params, paste0("geom_", c("bin2d", "count", "freqpoly", "histogram", "jitter", 
+                                            "qq", "qq_line")))
+geoms <- gsub("geom_", "", params)
+lapply(geoms, update_geom_defaults, list(size = 1.3, stroke = 0.225))
+lapply(c("line", "vline", "hline", "segment", "density"), update_geom_defaults, list(size = 0.2))
+rm(params, geoms)
 
 ## Decide on number of cores for parallel computation
 num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if you are running additional processes on your computer
@@ -55,9 +83,9 @@ num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if yo
 source("R/bycatch_funcs.R")
 
 
-###################################################
-########## LOAD DATA AND CHOOSE MODEL RUN #########
-###################################################
+##############################
+########## LOAD DATA #########
+##############################
 
 ### Load bycatch data
 bycatch_df <- read_csv("Data/bycatch_species.csv")
@@ -161,19 +189,23 @@ fig1a <-
   #   ) +
   geom_polygon(
     data=data_frame(delta_mean=c(-45,-45,0)/100, fe_mean=c(0,45,0)/100), 
-    fill="#F2F2F2FF", col="#F2F2F2FF", lwd=1.5
+    fill="#F2F2F2FF", col="#F2F2F2FF", #lwd=1.5
+    lwd = 0.6
     ) +
   labs(
     x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
   ) +
-  theme(legend.title = element_text())
+  theme(
+    legend.title = element_text(),
+    legend.margin = margin(l=-8, unit="pt")
+    ) 
 
 fig1a <-
   fig1a +
     geom_point(
       data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)),
-      aes(shape=clade), col="black", size = 3.5, stroke = 0.8
+      aes(shape=clade), col="black"#, size = 3.5, stroke = 0.8
       ) +
   scale_shape_manual(values = 21:24) +
   guides(
@@ -246,27 +278,26 @@ fao_sf <-
 fig1b <-
   ggplot() + 
   geom_sf(data = countries, fill = "white", col="white") +
-  geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
+  # geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
+  geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_gradientn(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
+    # name = "Reduction in fishing effort (MEY vs. 2010-12)",
     # colours = rev(brewer_pal(palette = "Spectral")(11)), #trans = "reverse",
     colours = brewer_pal(palette = "YlOrRd")(9),
     labels = percent, limits=c(min(fao_sf$avpctmey)/100, 1)
     ) +
-  # scale_fill_viridis(
-  #   name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-  #   direction = -1,
-  #   labels = percent,
-  #   limits=c(min(fao_sf$avpctmey)/100, 1)
-  #   )  +
   guides(
-    fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
+    # fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
+    fill=guide_colourbar(barwidth=10.5, label.position="bottom", title.position="top")
     ) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
     legend.position = "bottom",
+    legend.justification = "center",
+    legend.margin = margin(l=-3, t=-5, unit="pt"),
     axis.line=element_blank(),axis.text.x=element_blank(),
-    axis.text.y=element_blank(),axis.ticks=element_blank(),
+    axis.text.y=element_blank(), axis.ticks=element_blank(),
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
     panel.grid.major = element_line(colour = "white")
@@ -279,19 +310,27 @@ fig1b <-
 fig1 <-
   ggdraw() +
   # draw_plot(;pfigureName, xpos, ypos, width, height) +
-  draw_plot(fig1a, 0, 0.5, 1, 0.5) +
-  draw_plot(fig1b, 0, 0, 1, 0.5) +
-  draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.475), size = 15)
+  draw_plot(fig1a, 0, 0.49, 1, 0.49) +
+  draw_plot(fig1b, 0, 0, 1, 0.49) +
+  # draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.475), size = 15)
+  draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.49), size = 9)
 # fig1
 
-save_plot("Figures/fig-1.png", fig1,
-          base_height = 10,
-          base_aspect_ratio = 1/1.6#1/1.3
+save_plot(#"Figures/fig-1.png", fig1,
+          # base_height = 10,
+          #base_aspect_ratio = 1/1.6#1/1.3
+  "Figures/fig-1.png", fig1,
+  base_width = fig_width,
+  base_height = fig_width*1.5
           )
-save_plot("Figures/PDFs/fig-1.pdf", fig1,
-          base_height = 10,
-          base_aspect_ratio = 1/1.6#1/1.3
-          )
+save_plot(#"Figures/PDFs/fig-1.pdf", fig1,
+          # base_height = 10,
+          # base_aspect_ratio = 1/1.6#1/1.3
+  "Figures/PDFs/fig-1.pdf", fig1,
+  base_width = fig_width,
+  base_height = fig_width*1.5,
+  device=cairo_pdf
+  )
 rm(fig1, fig1a, fig1b)
 dev.off()
 
@@ -311,15 +350,18 @@ lh_rmus <-
 
 fig2a <-
   ggplot() +
-  geom_sf(data = countries, fill="black", col="black") +
-  geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.25, alpha = 0.6) + 
+  # geom_sf(data = countries, fill="black", col="black") +
+  # geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.25, alpha = 0.6) + 
+  geom_sf(data = countries, col="black", fill="black", size = 0.1) +
+  geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.1, alpha = 0.6) + 
   theme(
     # legend.position = "none",
     axis.line=element_blank(), 
     axis.ticks=element_blank(),
     axis.text.x=element_blank(), axis.text.y=element_blank(), 
     axis.title.x=element_blank(), axis.title.y=element_blank(),
-    panel.grid.major = element_line(colour = "grey60")
+    # panel.grid.major = element_line(colour = "grey60")
+    panel.grid.major = element_line(colour = "grey60", size = 0.5)
   )
 
 # fig2a
@@ -333,8 +375,10 @@ fig2b <-
   mutate(pctT = pctT/100) %>%
   # mutate(pctT = ifelse(pctT<0, 0, pctT)) %>%
   ggplot(aes(delta_draw, deltaN_draw, col = pctT)) +
-  geom_point(alpha = 0.5, size = 2) + 
-  geom_point(shape = 21, size = 2) +
+  # geom_point(alpha = 0.5, size = 2) + 
+  # geom_point(shape = 21, size = 2) +
+  geom_point(alpha = 0.5) + 
+  geom_point(shape = 21) +
   scale_color_distiller( 
     name = expression('%'~italic(T)), 
     palette = "YlOrRd", 
@@ -345,24 +389,27 @@ fig2b <-
     x = expression(Delta),
     y = expression(Delta[n])
     ) +
-  theme(legend.title = element_text()) 
+  theme(
+    legend.title = element_text(),
+    legend.margin = margin(l=-8, unit="pt")
+    ) 
 
 #### Fig 2.C (Target species) ####
 fig2c <- 
   stockselect_func(sp_type) %>%
-  samples_plot() + ## Note log scale
-  theme(strip.text = element_text(size = 14))
+  samples_plot() #+ ## Note log scale
+  # theme(strip.text = element_text(size = 14))
 
 #### Fig 2.D (Bycatch reduction disb) ####
 
-fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), "MEY") 
+fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), series = "MEY") 
 
 #### Fig 2.E (Cost disb) ####
-fig2e <- cost_plot(results %>% filter(species==sp_type), "MEY")
+fig2e <- cost_plot(results %>% filter(species==sp_type), series = "MEY")
 
 #### Fig 2.F (Targeting disb) ####
 fig2f <- 
-  targeting_plot(results %>% filter(species==sp_type), "MEY") +
+  targeting_plot(results %>% filter(species==sp_type), series = "MEY") +
   labs(x = "Targeting requirement")
 
 #### Composite Fig. 2 ####
@@ -390,19 +437,29 @@ fig2 <-
     c("A", "B", "C", "D", "E", "F"), 
     c(0, 0.525, 0, 0, 0.33, 0.66), 
     c(1, 1, 0.66, 0.33, 0.33, 0.33), 
-    size = 15
+    # size = 15
+    size = 9
     )
 
 # fig2
 
-save_plot("Figures/fig-2.png", fig2,
-          base_height = 9,
-          base_aspect_ratio = 1
-          )
-save_plot("Figures/PDFs/fig-2.pdf", fig2,
-          base_height = 9,
-          base_aspect_ratio = 1
-          )
+save_plot(
+  #"Figures/fig-2.png", fig2,
+  #base_height = 9,
+  #base_aspect_ratio = 1
+  "Figures/fig-2.png", fig2,
+  base_width = 2 * fig_width,
+  base_height = 2 * fig_width
+  )
+save_plot(
+  #"Figures/PDFs/fig-2.pdf", fig2,
+  # base_height = 9,
+  # base_aspect_ratio = 1
+  "Figures/PDFs/fig-2.pdf", fig2,
+  base_width = 2 * fig_width,
+  base_height = 2 * fig_width, 
+  device=cairo_pdf
+  )
 
 rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f, lh_rmus)
 dev.off()
@@ -414,16 +471,34 @@ dev.off()
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-fig_3mey + ggsave("Figures/fig-3-mey.png", width=8, height=8)
-fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=8, height=8, device = cairo_pdf)
+# fig_3mey + ggsave("Figures/fig-3-mey.png", width=8, height=8)
+# fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=8, height=8, device = cairo_pdf)
+fig_3mey + ggsave("Figures/fig-3-mey.png", width=2*fig_width, height=2*fig_width)
+fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-fig_3msy + ggsave("Figures/fig-3-msy.png", width=8, height=8)
-fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=8, height=8, device = cairo_pdf)
+# fig_3msy + ggsave("Figures/fig-3-msy.png", width=8, height=8)
+# fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=8, height=8, device = cairo_pdf)
+fig_3msy + ggsave("Figures/fig-3-msy.png", width=2*fig_width, height=2*fig_width)
+fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3msy)
+dev.off()
+
+
+###############################
+### Fig. 4 (Recovery rates) ###
+###############################
+
+## First get a data frame of recovery rates by cost and targeting level
+recovery_df <- recovery_func(results)
+
+fig4 <- recovery_plot(recovery_df)
+fig4 + ggsave("Figures/fig-4.png", width=2*fig_width, height=fig_width)
+fig4 + ggsave("Figures/PDFs/fig-4.pdf", width=2*fig_width, height=fig_width, device=cairo_pdf)
+rm(fig4)
 dev.off()
 
 
@@ -492,38 +567,46 @@ fao_tax_sf <-
 fig_s1 <-
   ggplot() + 
   geom_sf(data = countries, fill = "white", col="white") +
-  geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
+  # geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
+  geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_viridis(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-    labels = percent
-  )  +
+    labels = percent, limits=c(min(fao_tax_sf$avpctmey)/100, 1)
+    )  +
   guides(
-    fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
-  ) +
+    fill=guide_colourbar(barwidth=10.5, label.position="bottom", title.position="top")
+    ) +
   facet_wrap(~taxonomy, ncol=2) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
     legend.position = "bottom",
-    axis.line=element_blank(),axis.text.x=element_blank(),
-    axis.text.y=element_blank(),axis.ticks=element_blank(),
+    legend.justification = "center", 
+    legend.margin = margin(t=-5, unit="pt"),
+    axis.line=element_blank(), axis.text.x=element_blank(),
+    axis.text.y=element_blank(), axis.ticks=element_blank(),
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
-    panel.spacing = unit(1, "lines"),
     panel.grid.major = element_line(colour = "white")
-  )
-fig_s1 + ggsave("Figures/fig-S1.png", width = 7, height = 7)
-fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
+    )
+# fig_s1 + ggsave("Figures/fig-S1.png", width = 7, height = 7)
+# fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
+fig_s1 + ggsave("Figures/fig-S1.png", width = 2*fig_width, height = 2*fig_width)
+fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 2*fig_width, height = 2*fig_width)
 rm(fig_s1)
 dev.off()
+
 
 ##############################################################
 ##### Fig S2 (Combined bycatch reduction distributions) #####
 ##############################################################
 fig_s2 <- 
-  bycatchdist_plot(results) +
-  facet_wrap(~species, ncol = 3, scales = "free_x") 
-fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
-fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
+  bycatchdist_plot(results, combined_avg = T) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") +
+  theme(legend.text = element_text(size = 7))
+# fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
+# fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
+fig_s2 + ggsave("Figures/fig-S2.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -531,10 +614,13 @@ dev.off()
 ##### Fig S3 (Combined cost distributions) #####
 #################################################
 fig_s3 <- 
-  cost_plot(results) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
-fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
+  cost_plot(results, combined_avg = T) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") +
+  theme(legend.text = element_text(size = 7))
+# fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
+# fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
+fig_s3 + ggsave("Figures/fig-S3.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s3)
 dev.off()
 
@@ -542,38 +628,71 @@ dev.off()
 ##### Fig S4 (Combined targeting change distributions) #####
 ##############################################################
 fig_s4 <- 
-  targeting_plot(results) +
-  facet_wrap(~species, ncol = 3, scales = "free_x")
-fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
-fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)
+  targeting_plot(results, combined_avg = T) +
+  facet_wrap(~species, ncol = 3, scales = "free_x") +
+  theme(legend.text = element_text(size = 7))
+
+# fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
+# fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)
+fig_s4 + ggsave("Figures/fig-S4.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
+
 rm(fig_s4)
 dev.off()
 
+
+######################################
+### Fig. S5 ("Pretty good" profit) ###
+######################################
+
+## If not already loaded from Fig. 4 above
+# recovery_df <- recovery_func(results)
+
+fig_s5 <- pgp_plot(recovery_df)
+fig_s5 + ggsave("Figures/fig-S5.png", width=fig_width, height=fig_width)
+fig_s5 + ggsave("Figures/PDFs/fig-S5.pdf", width=fig_width, height=fig_width, device=cairo_pdf)
+rm(fig_s5)
+dev.off()
+
 #################################################
-#### Fig. S5 (theoretical alpha sensitivity) ####
+#### Fig. S6 (Theoretical alpha sensitivity) ####
 #################################################
-fig_s5 <-
+fig_s6 <-
   ggplot(data_frame(x = c(0, 5)), aes(x = x)) +
-  stat_function(fun = function(x) (1 - (0.5^x))) +
+  # stat_function(fun = function(x) (1 - (0.5^x))) +
+  stat_function(fun = function(x) (1 - (0.5^x)), size = 0.2) +
   geom_vline(aes(xintercept = 1), lty = 2) +
   geom_hline(aes(yintercept = 0.5), lty = 2) +
   scale_y_continuous(label = percent) +
-  annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 0.03, parse=T, family = font_type) +
-  annotate("text", label = "        Reduction in target \nspecies mortality (50%)", x = 3.5, y = 0.75, family = font_type) +
+  # annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 0.03, parse=T, family = font_type) +
+  # annotate("text", label = "        Reduction in target \nspecies mortality (50%)", x = 3.5, y = 0.75, family = font_type) +
+  annotate(
+    "text", 
+    label = paste(expression(alpha==1)), 
+    x = 1.5, y = 0.03, parse=T, family = font_type,
+    size = 2
+    ) +
+  annotate(
+    "text", 
+    label = "        Reduction in target \nspecies mortality (50%)", 
+    x = 3.5, y = 0.75, family = font_type,
+    size = 2
+    ) +
   labs(
     x = expression(alpha), 
     y = "Reduction in bycatch mortality"
   ) 
-fig_s5 + ggsave("Figures/fig-S5.png", width = 4, height = 4)
-fig_s5 + ggsave("Figures/PDFs/fig-S5.pdf", width = 4, height = 4)
-rm(fig_s5)
+# fig_s6 + ggsave("Figures/fig-S5.png", width = 4, height = 4)
+# fig_s6 + ggsave("Figures/PDFs/fig-S5.pdf", width = 4, height = 4)
+fig_s6 + ggsave("Figures/fig-S5.png", width = fig_width, height = fig_width)
+fig_s6 + ggsave("Figures/PDFs/fig-S5.pdf", width = fig_width, height = fig_width)
+
+rm(fig_s6)
 dev.off()
 
-################################################
-#### Figs. S6 and S7 (Sensitivity analysis) ####
-################################################
-
-## Sensitivity plots (possible analyses to include)
+############################################################
+#### Figs. S7-S9 (Trade-off plots for sensitivity runs) ####
+############################################################
 
 # 1. Main run: base year is 2010-2012 (geom. mean) 
 #              alpha = 1
@@ -609,82 +728,197 @@ df_run9 <- read_csv("Results/bycatch_summary_results_doubleuncert.csv")
 # 10. Kitchen sink
 df_run10 <- read_csv("Results/bycatch_summary_results_kitchen.csv")
 
-#### Fig. S6 (main run plus sensitivity analyses 2-5) ####
-
-fig_s6 <-
-  bind_rows(
-    df_run1 %>% mutate(sens = "A"),
-    df_run2 %>% mutate(sens = "B"),
-    df_run3 %>% mutate(sens = "C"),
-    df_run4 %>% mutate(sens = "D"),
-    df_run5 %>% mutate(sens = "E")
-    ) %>%
-  tradeoffs_plot("MEY") +
-  scale_x_continuous(expand = c(0.075, 0)) +
-  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
-  theme(
-    strip.text.x = element_text(face="bold", size = 16, hjust=0),
-    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
-    panel.spacing = unit(1, "lines")
-    )
-
-fig_s6 + ggsave("Figures/fig-S6.png", width=16, height=8)
-fig_s6 + ggsave("Figures/PDFs/fig-S6.pdf", width=16, height=8, device=cairo_pdf)
-
-rm(fig_s6); dev.off()
-
-#### Fig. S7 (main run plus sensitivity analyses 6-9) ####
-
+#### Fig. S7 (sensitivity runs 2-4) ####
 fig_s7 <-
   bind_rows(
-    # df_run1 %>% mutate(sens = "A"),
-    df_run6 %>% mutate(sens = "A"),
-    df_run7 %>% mutate(sens = "B"),
-    df_run8 %>% mutate(sens = "C"),
-    df_run9 %>% mutate(sens = "D"),
-    df_run10 %>% mutate(sens = "E")
-    ) %>% 
+    df_run2 %>% mutate(sens = "A"),
+    df_run3 %>% mutate(sens = "B"),
+    df_run4 %>% mutate(sens = "C")
+    ) %>%
   tradeoffs_plot("MEY") +
-  scale_x_continuous(expand = c(0.075, 0)) +
   facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
   theme(
-    strip.text.x = element_text(face="bold", size = 16, hjust=0),
-    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
-    panel.spacing = unit(1, "lines")
+    strip.text.x = element_text(face="bold", size = 9, hjust=0),
+    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
+    )
+#### Fig. S8 (sensitivity runs 5-7) ####
+fig_s8 <-
+  bind_rows(
+    df_run5 %>% mutate(sens = "D"),
+    df_run6 %>% mutate(sens = "E"),
+    df_run7 %>% mutate(sens = "F")
+    ) %>%
+  tradeoffs_plot("MEY") +
+  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
+  theme(
+    strip.text.x = element_text(face="bold", size = 9, hjust=0),
+    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
+    )
+#### Fig. S9 (sensitivity runs 8-10) ####
+fig_s9 <-
+  bind_rows(
+    df_run8 %>% mutate(sens = "G"),
+    df_run9 %>% mutate(sens = "H"),
+    df_run10 %>% mutate(sens = "I")
+    ) %>%
+  tradeoffs_plot("MEY") +
+  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
+  theme(
+    strip.text.x = element_text(face="bold", size = 9, hjust=0),
+    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
     )
 
-fig_s7 + ggsave("Figures/fig-S7.png", width=16, height=8)
-fig_s7 + ggsave("Figures/PDFs/fig-S7.pdf", width=16, height=8, device=cairo_pdf)
+fig_s7 + ggsave("Figures/fig-S7.png", width=3*fig_width, height=2*fig_width)
+fig_s8 + ggsave("Figures/fig-S8.png", width=3*fig_width, height=2*fig_width)
+fig_s9 + ggsave("Figures/fig-S9.png", width=3*fig_width, height=2*fig_width)
+fig_s7 + ggsave("Figures/PDFs/fig-S7.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
+fig_s8 + ggsave("Figures/PDFs/fig-S8.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
+fig_s9 + ggsave("Figures/PDFs/fig-S9.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 
-rm(fig_s7); dev.off()
+rm(fig_s7, fig_s8, fig_s9)
+dev.off()
+
+rm(df_run1, df_run2, df_run3, df_run4, df_run5, df_run6, df_run7, df_run8, df_run9, df_run10)
+
+
+###########################################################################
+#### Fig. S10 (Illustrating role of uncertainty with the Māui dolphin) ####
+###########################################################################
+
+sp_type <- "Māui dolphin"
+## Run 1 (main)
+main_results <- read_csv("Results/bycatch_results.csv") %>% filter(species==sp_type)
+## Run 9 (doubleuncert)
+doubleuncert_results <- read_csv("Results/bycatch_results_doubleuncert.csv") %>% filter(species==sp_type)
+## Run 10 (kitchen)
+kitchen_results <- read_csv("Results/bycatch_results_kitchen.csv") %>% filter(species==sp_type)
+
+#' compare population-level uncertainties in %T and costs of halting the 
+#' decline (% of MEY) across the main analysis (A, D), the ‘double uncertainty’ 
+#' sensitivity analysis (B, E), and the ‘kitchen sink’ sensitivity analysis (C, F),
+ 
+#### Fig. 10 Bycatch distributions (panels A, D and G) ####
+## Define common bounds on bycatch disb plots for comparison
+lim_x <- quantile(doubleuncert_results$pctT, c(0.025, 0.975), na.rm = T)/100
+## Fig 10.A (Bycatch distribution, Main run)
+fig_s10a <- 
+  bycatchdist_plot(main_results, series = "MEY") + 
+  scale_x_continuous(
+    name = "Reduction in mortality (MEY) vs. %T", 
+    limits = lim_x, labels = percent
+    ) + 
+  theme(strip.text.x = element_blank(), legend.position = "none")
+## Fig 10.D (Bycatch distribution, Double uncertainty run) 
+fig_s10d <- 
+  bycatchdist_plot(doubleuncert_results, series = "MEY") + 
+  scale_x_continuous(
+    name = "Reduction in mortality (MEY) vs. %T", 
+    limits = lim_x, labels = percent
+    ) +
+  theme(strip.text.x = element_blank(), legend.position = "none")
+## Fig 10.G (Bycatch distribution, Kitchen sink run) 
+fig_s10g <- 
+  bycatchdist_plot(kitchen_results, series = "MEY") + 
+  scale_x_continuous(
+    name = "Reduction in mortality (MEY) vs. %T", 
+    limits = lim_x, labels = percent
+    ) +
+  theme(strip.text.x = element_blank(), legend.position = "none")
+
+#### Fig. 10 Cost distributions (panels B, E and H) ####
+## Fig 10.D (Costs distribution, Main run) 
+fig_s10b <- 
+  cost_plot(main_results, series = "MEY") + 
+  theme(strip.text.x = element_blank(), legend.position = "none")
+## Fig 10.E (Costs distribution, Double uncertainty run) 
+fig_s10e <- 
+  cost_plot(doubleuncert_results, series = "MEY") + 
+  theme(strip.text.x = element_blank(), legend.position = "none")
+## Fig 10.H (Costs distribution, Kitchen sink run) 
+fig_s10h <- 
+  cost_plot(kitchen_results, series = "MEY") + 
+  theme(strip.text.x = element_blank(), legend.position = "none")
+
+#### Fig. 10 Recovery plots (panels C, F and I) ####
+
+## First get data frames of recovery rates by cost and targeting level
+recovery_main <- recovery_func(read_csv("Results/bycatch_results.csv"))
+recovery_doubleuncert <- recovery_func(read_csv("Results/bycatch_results_doubleuncert.csv"))
+recovery_kitchen <- recovery_func(read_csv("Results/bycatch_results_kitchen.csv"))
+
+## Fig 10.C (Recovery rate, Main run) 
+fig_s10c <- recovery_plot(recovery_main, goal = "cost") + coord_cartesian()
+## Fig 10.F (Recovery rate, Double uncertainty run) 
+fig_s10f <- recovery_plot(recovery_doubleuncert, goal = "cost") + coord_cartesian()
+## Fig 10.I (Recovery rate, Kitchen sink run) 
+fig_s10i <- recovery_plot(recovery_kitchen, goal = "cost") + coord_cartesian()
+
+#### Composite Fig. S 10 ####
+
+fig_s10 <-
+  ggdraw() +
+  # draw_plot(fig, xpos,  ypos, width, height) +
+  draw_plot(fig_s10a, 0,    0.66, 0.33, 0.33) +
+  draw_plot(fig_s10b, 0.33, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s10c, 0.66, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s10d, 0,    0.33, 0.33, 0.33) +
+  draw_plot(fig_s10e, 0.33, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s10f, 0.66, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s10g, 0,    0,    0.33, 0.33) +
+  draw_plot(fig_s10h, 0.33, 0,    0.33, 0.33) +
+  draw_plot(fig_s10i, 0.66, 0,    0.33, 0.33) +
+  draw_plot_label(
+    c("A", "B", "C", "D", "E", "F", "G", "H", "I"), 
+    c(0, 0.33, 0.66, 0, 0.33, 0.66, 0, 0.33, 0.66), 
+    c(1, 1, 1, 0.66, 0.66, 0.66, 0.33, 0.33, 0.33), 
+    # size = 15
+    size = 9
+  )
+
+# fig_s10
+
+save_plot(
+  "Figures/fig-S10.png", fig_s10,
+  base_width = 3 * fig_width,
+  base_height = 3 * fig_width
+  )
+save_plot(
+  "Figures/PDFs/fig-S10.pdf", fig_s10,
+  base_width = 3 * fig_width,
+  base_height = 3 * fig_width, 
+  device=cairo_pdf
+  )
+
+rm(fig_s10, fig_s10a, fig_s10b, fig_s10c, fig_s10d, fig_s10e, fig_s10f, fig_s10g, fig_s10h, fig_s10i)
+dev.off()
 
 
 
-##########################################################
-#### Replicas of Figs. S2 and S3 for sensitivity runs ####
-##########################################################
-
-## Figs. S2 and S3 already made for main run (1) ##
-## Remaining sensitivty runs 2-10 as described above
-sensitivity_runs <- 
-  c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", 
-    "weights", "2012only", "doubleuncert", "kitchen")
-
-## Plot the figures over all sensitivity runs
-lapply(
-  sensitivity_runs, function(s){
-    s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"), col_types=c("ddddc"))
-    
-    bycatchdist_plot(s_df) +
-      facet_wrap(~species, ncol = 3, scales = "free_x") + 
-      ggsave(paste0("Figures/SensitivityS2S3/fig-S2-", s, ".png"), width = 10, height = 13)
-    
-    cost_plot(s_df) +
-      facet_wrap(~species, ncol = 3, scales = "free_x") +
-    ggsave(paste0("Figures/SensitivityS2S3/fig-S3-", s, ".png"), width = 10, height = 13)
-    
-    Sys.sleep(4)
-  }
-)
+# ##########################################################
+# #### Replicas of Figs. S2 and S3 for sensitivity runs ####
+# ##########################################################
+# 
+# ## Figs. S2 and S3 already made for main run (1) ##
+# ## Remaining sensitivty runs 2-10 as described above
+# sensitivity_runs <- 
+#   c("fcorrected", "conservation", "alpha=05", "alpha=2", "nonei", 
+#     "weights", "2012only", "doubleuncert", "kitchen")
+# 
+# ## Plot the figures over all sensitivity runs
+# lapply(
+#   sensitivity_runs, function(s){
+#     s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"), col_types=c("ddddc"))
+#     
+#     bycatchdist_plot(s_df) +
+#       facet_wrap(~species, ncol = 3, scales = "free_x") + 
+#       ggsave(paste0("Figures/SensitivityS2S3/fig-S2-", s, ".png"), width = 10, height = 13)
+#     
+#     cost_plot(s_df) +
+#       facet_wrap(~species, ncol = 3, scales = "free_x") +
+#     ggsave(paste0("Figures/SensitivityS2S3/fig-S3-", s, ".png"), width = 10, height = 13)
+#     
+#     Sys.sleep(4)
+#   }
+# )
 
 ### END ###

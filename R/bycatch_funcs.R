@@ -87,7 +87,7 @@ choose_run <-
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-    weights_str <- ifelse(weights_sens==0, "", "_weights")
+    weights_str <- ifelse(weights_sens==1 & kitchen==0, "_weights", "")
     doubleuncert_str <- ifelse(doubleuncert==0, "", "_doubleuncert")
     kitchen_str <- ifelse(kitchen==0, "", "_kitchen")
     
@@ -995,7 +995,7 @@ g_legend <-
 ##################################################################
 
 bycatchdist_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
@@ -1017,14 +1017,23 @@ bycatchdist_plot <-
     ## Truncate %T disb to 95% range to aid visual inspection
     df2 <-
       df2 %>%
+      group_by(key) %>%
       mutate(
         q025 = quantile(pctred, 0.025, na.rm=T),
         q975 = quantile(pctred, 0.975, na.rm=T)
         ) %>%
       mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
-      mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred))
+      mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred)) %>%
+      ungroup()
     
     if(!is.null(series)) df2 <- filter(df2, key %in% c("%T", series))
+    
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+      }
     
     df2 %>% 
       group_by(species, key) %>%
@@ -1050,7 +1059,7 @@ bycatchdist_plot <-
 ### Plot that asks: How much will it cost to stop decline? ###
 ##############################################################
 cost_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
@@ -1066,6 +1075,13 @@ cost_plot <-
       mutate(key = factor(key, levels = c("MSY", "MEY"))) 
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
+    
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+    }
     
     if(!is.null(series)){
       x_lab <-  paste0("Cost (percent of ", series,")")
@@ -1093,7 +1109,7 @@ cost_plot <-
 ### Plot that asks: How much would targeting need to improve to stop decline? ###
 ###################################################################################
 targeting_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
@@ -1119,6 +1135,12 @@ targeting_plot <-
       mutate(key = factor(key, levels = c("MSY", "MEY"))) 
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+    }
     
     x_lab <- "Required targeting improvement"
     
@@ -1179,7 +1201,8 @@ samples_plot <-
     bd %>% 
       filter(key=="MEY") %>% ## MEY filter added
       ggplot(aes(x = pctred, y = wt_usd, col = key)) +
-      geom_point(alpha=0.5, size = 3) +
+      # geom_point(alpha=0.5, size = 3) +
+      geom_point(alpha=0.5) +
       # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
       scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
@@ -1199,10 +1222,7 @@ samples_plot <-
 ### Fig. 3 Trade-offs ###
 #########################
 
-#########################
-### Results summaries ###
-#########################
-
+## First, a generic function that summarises the results by species
 summ_func <-
   function(df) {
     df %>%
@@ -1219,7 +1239,7 @@ summ_func <-
       ungroup()
   }
 
-
+## Second, the function that actually plots the trade-offs figure
 tradeoffs_plot <-
   function(summ_df, goal) {
     
@@ -1273,16 +1293,19 @@ tradeoffs_plot <-
         ) + 
       geom_point(
         aes(x=delta_mean), 
-        size=3, stroke=1, shape=21, col="red"
+        # size=3, stroke=1, shape=21, col="red"
+        size=1.5, stroke=0.5, shape=21, col="red"
         ) +
       geom_vline(xintercept = 0, lty=2) +
       geom_segment(
         aes(yend=species, x=delta_mean, xend=delta_post),
-        arrow = arrow(length = unit(.25, "lines"))
+        # arrow = arrow(length = unit(.25, "lines"))
+        arrow = arrow(length = unit(.15, "lines"))
         ) +
       scale_size_continuous(
         name=paste0("Cost (percent\nof ", toupper(goal), ")"),
-        labels=percent, range=c(2,9)
+        labels=percent#, 
+        # range=c(2,9)
         ) +
       scale_color_viridis(
         name=paste0("Targeting\nrequirement"),
@@ -1296,9 +1319,200 @@ tradeoffs_plot <-
       # coord_fixed(ratio = .025) +
       labs(x = expression(Rate~of~population~change~(Delta))) +
       facet_grid(clade~., scales = "free", space = "free", switch = "both") +
+      # theme(
+      #   legend.title = element_text(),
+      #   axis.title.y=element_blank(),
+      #   strip.placement = "outside" ## Alongside `switch="both"` in facet_grid() call above
+      #   )
       theme(
-        legend.title = element_text(),
-        axis.title.y=element_blank(), 
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 8),
+        strip.text = element_text(size = 8),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7),
+        legend.key.size = unit(0.6, "lines"),
+        axis.title.y=element_blank(),
         strip.placement = "outside" ## Alongside `switch="both"` in facet_grid() call above
-        ) 
+        )
   }
+
+
+#############################
+### Fig. 4 Recovery rates ###
+#############################
+
+## First define a generic recovery function that produces a DF of recovery
+## estimates (percentage of species saved) at various levels of cost MEY and
+## targeting improvement. We will also add an additional column describing the
+## cost estimate under a single species scenario as a reference point.
+recovery_func <-
+  function(bdist){
+    
+    ## Define a "single stock cost" function that we will use to define
+    ## the relative margins of pretty good profit.
+    ss_cost_func <- 
+      function(targ) {
+        ## Define theoretical cost relationship
+        ss_cost <- 
+          function(pctT,f_mey,price,marginalcost,g,k,phi,beta) {
+            pmey <- eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)
+            fT <- f_mey * (1 - (pctT/100))
+            pT <- eqprofitf(fT,price,marginalcost,g,k,phi,beta)
+            out <- 100 * (1 - (pT/pmey))
+            return(out)
+          }
+        ## Note: Doesn't matter which stock we choose from the upsides DF so 
+        ## just sampling a random row.
+        # u_df <- upsides[sample(1:nrow(upsides), 1), ]
+        u_df <- upsides[7000, ]
+        stc <- 
+          ss_cost(
+            targ, u_df$f_mey, u_df$price, u_df$marginalcost, u_df$g, u_df$k,
+            u_df$phi, u_df$beta
+          )
+        return(stc)
+      }
+    
+    recovery_df <-
+      pblapply(0:100, function(x) {
+        bdist %>%
+          mutate(targimp = 100 * ((pctT - pctredmey)/(100 - pctredmey))) %>%
+          mutate(targimp = if_else(targimp<=0, 0, targimp)) %>%
+          mutate(targimp = if_else(targimp>100, 100, targimp)) %>%
+          # gather(key, value, c(pcostmey, targimp)) %>%
+          mutate(singstcst = ss_cost_func(targimp)) %>%
+          gather(key, value, c(pcostmey, targimp, singstcst)) %>%
+          group_by(species, key) %>%
+          mutate(grp = row_number()) %>%
+          group_by(grp, key) %>%
+          mutate(saved = value <= x) %>%
+          count(saved) %>%
+          group_by(grp, key) %>%
+          mutate(saved_perc = n / sum(n)) %>%
+          filter(saved == T) %>%
+          mutate(perc = x) %>%
+          group_by(key, perc) %>%
+          summarise(
+            saved_mean = mean(saved_perc),
+            saved_q025 = quantile(saved_perc, 0.025),
+            saved_q975 = quantile(saved_perc, 0.975)
+            )
+        },
+        cl = num_cores
+        ) %>%
+      bind_rows() %>%
+      ungroup()
+    
+    ## Separate out the single stock cost variable into its own column
+    ss_df <- 
+      recovery_df %>% 
+      filter(key=="singstcst") %>% 
+      rename(singstcst = saved_mean) %>%
+      select(perc, singstcst)
+    ## Rejoin with main recovery DF
+    recovery_df <-
+      recovery_df %>%
+      filter(key!="singstcst") %>% 
+      left_join(ss_df) %>%
+      arrange(perc) %>%
+      select(perc, key, everything()) 
+    }
+
+## Now we define the plotting function, which takes as inputs the recovery DF
+## yielded by recovery_func() above and optional input describing which "goal"
+## ("cost" or "targeting") we wish to evaluate.
+recovery_plot <-
+  function(recovery_df, goal=NULL){
+    
+    if(!is.null(goal)) {
+      if(goal %in% tolower(c("pcostmey", "cost"))) {
+        recovery_df <- filter(recovery_df, key=="pcostmey")
+      }
+      if(goal %in% tolower(c("targimp", "targeting"))) {
+        recovery_df <- filter(recovery_df, key=="targimp")
+      }
+    }
+    
+    recovery_fig <-
+      recovery_df %>% 
+      mutate(key_lab = key) %>%
+      mutate(key_lab = ifelse(key_lab=="pcostmey", "Cost (percent of MEY)", key_lab)) %>%
+      mutate(key_lab = ifelse(key_lab=="targimp", "Targeting improvement", key_lab)) %>%
+      group_by(key) %>%
+      ggplot(aes(x=perc/100, y=saved_mean, ymin=saved_q025, ymax=saved_q975, fill=key)) + 
+      geom_ribbon(alpha = 0.4) +
+      geom_line(aes(col=key), size = 0.5) + 
+      # scale_colour_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) + 
+      # scale_fill_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) +
+      scale_colour_brewer(palette = "Dark2") + 
+      scale_fill_brewer(palette = "Dark2") +
+      scale_x_continuous(
+        labels = percent
+        ) +
+      scale_y_continuous(
+        name = "Populations recovering",
+        labels = percent,
+        limits = c(0, 1)
+        ) +
+      theme(
+        panel.grid.major = element_line(colour = "grey85"),
+        axis.title.x = element_blank(),
+        legend.position = "none",
+        strip.placement = "outside"
+        ) +
+      facet_grid(~ key_lab, switch = "both") +
+      coord_fixed(ratio = 1)
+    
+    return(recovery_fig)
+  } 
+
+
+####################################
+### Fig. S5 "Pretty good" profit ###
+####################################
+
+## Similar to recovery_plot() above, this takes as input a data frame of 
+## summarised population recovery rates by cost and targeting level.
+pgp_plot <-
+  function(recovery_df){
+  
+      pgp_df <-
+        recovery_df %>%
+        mutate(
+          saved_q025 = ifelse(key=="pcostmey", singstcst, saved_mean),
+          saved_q975 = ifelse(key=="pcostmey", saved_mean, singstcst)
+          )
+    
+    pgp_fig <-
+      pgp_df %>% 
+      # mutate(key_lab = key) %>%
+      # mutate(key_lab = ifelse(key_lab=="pcostmey", "Cost (percent of MEY)", key_lab)) %>%
+      # mutate(key_lab = ifelse(key_lab=="targimp", "Targeting improvement", key_lab)) %>%
+      # mutate(key_lab = ifelse(key_lab=="pgp", "Pretty good profit", key_lab)) %>%
+      # group_by(key) %>%
+      ggplot(aes(x=perc/100, y=saved_mean)) + 
+      geom_ribbon(aes(ymin=saved_q025, ymax=saved_q975, fill=key), alpha = 0.5) +
+      geom_line(aes(col=key)) + 
+      geom_line(aes(y=singstcst), col="black", lty = 2) + 
+      # scale_color_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) + 
+      # scale_fill_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) +
+      scale_color_brewer(palette = "Paired", direction=-1) +
+      scale_fill_brewer(palette = "Paired", direction=-1) +
+      scale_x_continuous(
+        name = "Profit cost or targeting improvement",
+        labels = percent
+      ) +
+      scale_y_continuous(
+        name = "Populations recovering",
+        labels = percent,
+        limits = c(0, 1)
+      ) +
+      theme(
+        panel.grid.major = element_line(colour = "grey85"),
+        legend.position = "none",
+        strip.placement = "outside"
+      ) +
+      coord_fixed(ratio = 1)
+    
+    return(pgp_fig)
+  } 
