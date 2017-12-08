@@ -1,7 +1,14 @@
-#########################################################################
-### CONVENIENCE FUNCTION THAT SETS PARAMETERS FOR SPECIFIC MODEL RUNS ###
-### AND LOADS CORRECT VERSION OF THE UPSIDES DATA.                    ###  
-#########################################################################
+#############################################
+#############################################
+####    * SETUP FUNCTIONS FUNCTIONS *    ####
+#############################################
+#############################################
+
+
+##########################################################################
+### Convenience function that specifies model run parameters and loads ###
+### appropriate version of the upsides data (Costello et al., 2016).   ###  
+##########################################################################
 
 choose_run <- 
   function(run){
@@ -140,6 +147,13 @@ choose_run <-
       )
   }
 
+
+
+######################################
+######################################
+####    * ANALYSIS FUNCTIONS *    ####
+######################################
+######################################
 
 ##################################################################
 ##################################################################
@@ -978,14 +992,14 @@ bycatch_func <-
 
 
 
-######################
-######################
-### PLOT FUNCTIONS ###
-######################
-######################
+######################################
+######################################
+####    * PLOTTING FUNCTIONS *    ####
+######################################
+######################################
 
-
-### Function to extract legend (to serve as common legend at bottom of composite figures) 
+## Simple function to extract legend (to serve as common legend at bottom of 
+## composite figures) 
 g_legend <- 
   function(a_ggplot){ 
     tmp <- ggplot_gtable(ggplot_build(a_ggplot)) 
@@ -999,7 +1013,7 @@ g_legend <-
 ##################################################################
 
 bycatchdist_plot <-
-  function(bdist, series=NULL, combined_avg=FALSE){
+  function(bdist, series=NULL, combined_avg=FALSE, truncate95=TRUE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
@@ -1018,8 +1032,9 @@ bycatchdist_plot <-
       gather(key, pctred, -species) %>%
       mutate(key = factor(key, levels = c("%T", "MSY", "MEY"))) 
     
-    ## Truncate %T disb to 95% range to aid visual inspection
-    df2 <-
+    ## Truncate %T disb to 95% range to aid visual inspection (default)
+    if(truncate95) {
+      df2 <-
       df2 %>%
       group_by(key) %>%
       mutate(
@@ -1029,6 +1044,7 @@ bycatchdist_plot <-
       mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
       mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred)) %>%
       ungroup()
+      }
     
     if(!is.null(series)) df2 <- filter(df2, key %in% c("%T", series))
     
@@ -1062,13 +1078,14 @@ bycatchdist_plot <-
 ##############################################################
 ### Plot that asks: How much will it cost to stop decline? ###
 ##############################################################
+
 cost_plot <-
   function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-pctredmsy, -pctredmey, -pctT) %>% ### REVISION
+      select(-pctredmsy, -pctredmey, -pctT) %>% 
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
@@ -1096,15 +1113,11 @@ cost_plot <-
     df2 %>% 
       group_by(species, key) %>%
       ggplot(aes(x = pctcost, y = ..scaled.., col = key, fill = key)) +
-      # geom_line(stat = "density") + ## lines only
       geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
-      # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -1112,6 +1125,7 @@ cost_plot <-
 ###################################################################################
 ### Plot that asks: How much would targeting need to improve to stop decline? ###
 ###################################################################################
+
 targeting_plot <-
   function(bdist, series=NULL, combined_avg=FALSE){
     
@@ -1122,12 +1136,12 @@ targeting_plot <-
       mutate(
         targimpmey = 100 * ((pctT - pctredmey)/(100 - pctredmey)),
         targimpmsy = 100 * ((pctT - pctredmsy)/(100 - pctredmsy))) %>% 
+      ## Calculate selectivity change needed (% reduction in Fe at MEY or MSY)
       mutate(
         targeting_pct_mey1 = if_else(targimpmey<=0, 0, targimpmey),
         targeting_pct_mey = if_else(targeting_pct_mey1>100, 100, targeting_pct_mey1),
         targeting_pct_msy1 = if_else(targimpmsy<=0, 0, targimpmsy),
-        targeting_pct_msy = if_else(targeting_pct_msy1>100, 100, targeting_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
-      # select(-c(pctredmsy, pctredmey, pcostmey, ycostmsy, delta_mey, delta_msy, targeting_pct_mey1, targeting_pct_msy1)) %>%
+        targeting_pct_msy = if_else(targeting_pct_msy1>100, 100, targeting_pct_msy1)) %>% 
       select(species, targeting_pct_msy, targeting_pct_mey) %>%
       mutate_if(is.double, funs(. / 100)) 
     
@@ -1151,15 +1165,11 @@ targeting_plot <-
     df2 %>% 
       group_by(species, key) %>%
       ggplot(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key)) +
-      # geom_line(stat = "density") + ## lines only
       geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
-      # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -1179,7 +1189,7 @@ stockselect_func <-
       rename(wt_Fe = wt) %>% 
       select(idorig, speciescat, speciescatname, pctredfmsy,pctredfmey,trgcat, 
              wt_Fe,wt_usd)
-  }
+    }
   
 ## Second, the function that actually plots the scatter figures
 samples_plot <- 
@@ -1203,22 +1213,17 @@ samples_plot <-
       mutate(pctred = pctred/100)
     
     bd %>% 
-      filter(key=="MEY") %>% ## MEY filter added
+      filter(key=="MEY") %>% 
       ggplot(aes(x = pctred, y = wt_usd, col = key)) +
-      # geom_point(alpha=0.5, size = 3) +
       geom_point(alpha=0.5) +
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
       scale_y_log10(labels = trans_format("log10", math_format(10^.x))) +
       labs(x = "Reduction in mortality", y = "Effort (USD)") +
       facet_grid( ~ fct_reorder(target_lab_top, wt_Fe, .desc = T) +
                     fct_reorder(target_lab_bottom, wt_Fe, .desc = T), 
                   labeller = label_parsed) +
-      theme(
-        # strip.text = element_text(size=14),
-        legend.position = "none"
-      )
+      theme(legend.position = "none")
 }
 
 
@@ -1232,7 +1237,6 @@ summ_func <-
     df %>%
       gather(key, value, -c(species, pctT)) %>%
       group_by(species, key) %>%
-      # do(q=(quantile(.$value))) %>%
       summarise(
         q025 = quantile(value, .025, na.rm = T),
         q50 = quantile(value, .5, na.rm = T),
@@ -1270,7 +1274,7 @@ tradeoffs_plot <-
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
       select(species, grp, clade, delta_mean, delta_post, targeting_req, contains("sens")) 
     
-    # Add median cost estimate
+    # Add cost point estimate
     df2 <- 
       summ_df %>%
       filter(key == df2_filter) %>% 
@@ -1297,19 +1301,16 @@ tradeoffs_plot <-
         ) + 
       geom_point(
         aes(x=delta_mean), 
-        # size=3, stroke=1, shape=21, col="red"
         size=1.5, stroke=0.5, shape=21, col="red"
         ) +
       geom_vline(xintercept = 0, lty=2) +
       geom_segment(
         aes(yend=species, x=delta_mean, xend=delta_post),
-        # arrow = arrow(length = unit(.25, "lines"))
         arrow = arrow(length = unit(.15, "lines"))
         ) +
       scale_size_continuous(
         name=paste0("Cost (percent\nof ", toupper(goal), ")"),
-        labels=percent#, 
-        # range=c(2,9)
+        labels=percent
         ) +
       scale_color_viridis(
         name=paste0("Targeting\nrequirement"),
@@ -1320,14 +1321,8 @@ tradeoffs_plot <-
         size = guide_legend(order = 1),
         col = guide_colourbar(order = 2)
         ) +
-      # coord_fixed(ratio = .025) +
       labs(x = expression(Rate~of~population~change~(Delta))) +
       facet_grid(clade~., scales = "free", space = "free", switch = "both") +
-      # theme(
-      #   legend.title = element_text(),
-      #   axis.title.y=element_blank(),
-      #   strip.placement = "outside" ## Alongside `switch="both"` in facet_grid() call above
-      #   )
       theme(
         axis.text = element_text(size = 7),
         axis.title = element_text(size = 8),
@@ -1383,7 +1378,6 @@ recovery_func <-
           mutate(targimp = 100 * ((pctT - pctredmey)/(100 - pctredmey))) %>%
           mutate(targimp = if_else(targimp<=0, 0, targimp)) %>%
           mutate(targimp = if_else(targimp>100, 100, targimp)) %>%
-          # gather(key, value, c(pcostmey, targimp)) %>%
           mutate(singstcst = ss_cost_func(targimp)) %>%
           gather(key, value, c(pcostmey, targimp, singstcst)) %>%
           group_by(species, key) %>%
@@ -1446,8 +1440,6 @@ recovery_plot <-
       ggplot(aes(x=perc/100, y=saved_mean, ymin=saved_q025, ymax=saved_q975, fill=key)) + 
       geom_ribbon(alpha = 0.4) +
       geom_line(aes(col=key), size = 0.5) + 
-      # scale_colour_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) + 
-      # scale_fill_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) +
       scale_colour_brewer(palette = "Dark2") + 
       scale_fill_brewer(palette = "Dark2") +
       scale_x_continuous(
@@ -1489,33 +1481,26 @@ pgp_plot <-
     
     pgp_fig <-
       pgp_df %>% 
-      # mutate(key_lab = key) %>%
-      # mutate(key_lab = ifelse(key_lab=="pcostmey", "Cost (percent of MEY)", key_lab)) %>%
-      # mutate(key_lab = ifelse(key_lab=="targimp", "Targeting improvement", key_lab)) %>%
-      # mutate(key_lab = ifelse(key_lab=="pgp", "Pretty good profit", key_lab)) %>%
-      # group_by(key) %>%
       ggplot(aes(x=perc/100, y=saved_mean)) + 
       geom_ribbon(aes(ymin=saved_q025, ymax=saved_q975, fill=key), alpha = 0.5) +
       geom_line(aes(col=key)) + 
       geom_line(aes(y=singstcst), col="black", lty = 2) + 
-      # scale_color_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) + 
-      # scale_fill_manual(values = c("targimp"="#E41A1C", "pcostmey"="#377EB8")) +
       scale_color_brewer(palette = "Paired", direction=-1) +
       scale_fill_brewer(palette = "Paired", direction=-1) +
       scale_x_continuous(
         name = "Profit cost or targeting improvement",
         labels = percent
-      ) +
+        ) +
       scale_y_continuous(
         name = "Populations recovering",
         labels = percent,
         limits = c(0, 1)
-      ) +
+        ) +
       theme(
         panel.grid.major = element_line(colour = "grey85"),
         legend.position = "none",
         strip.placement = "outside"
-      ) +
+        ) +
       coord_fixed(ratio = 1)
     
     return(pgp_fig)

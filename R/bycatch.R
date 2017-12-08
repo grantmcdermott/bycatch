@@ -11,7 +11,6 @@ library(R.utils)
 library(truncnorm)
 library(scales)
 library(grid)
-library(png)
 # library(maps)
 library(rworldmap) ## Better shape files
 library(sf)
@@ -36,21 +35,10 @@ set.seed(123)
 ## Assign font. Register to extrafont package DB first. If below font is not
 ## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
-# ## Assign color scheme
-# bycatch_cols <- c("#ef3b2c","#386cb0","#fdb462","#7fc97f",
-#                   "#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")
-# show_col(bycatch_cols)
-## Make some adjustments to the (now default) cowplot ggplot2 theme for figures.
-# theme_update(
-#   text = element_text(family = font_type),
-#   legend.title = element_blank(),
-#   legend.justification = "center", 
-#   strip.background = element_rect(fill = "white"), ## Facet strip
-#   panel.spacing = unit(2, "lines") ## Increase gap between facet panels
-# )
 
-## Make some adjustments to the (now default) cowplot ggplot2 theme for figures.
-## See: http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
+## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
+## to match publication requirements. See: 
+## http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
 theme_science <-
   theme_cowplot(font_size = 7, line_size = 0.15) +
   theme(
@@ -100,7 +88,7 @@ all_species <- bycatch_df$species
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 110)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 130)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### Monte Carlo (MC) sampling parameters
@@ -182,14 +170,9 @@ fig1a <-
     trans = "reverse",
     labels = percent
     ) +
-  # scale_fill_viridis(
-  #   name = expression('%'~italic(T)),
-  #   direction = -1,
-  #   labels = percent
-  #   ) +
   geom_polygon(
     data=data_frame(delta_mean=c(-45,-45,0)/100, fe_mean=c(0,45,0)/100), 
-    fill="#F2F2F2FF", col="#F2F2F2FF", #lwd=1.5
+    fill="#F2F2F2FF", col="#F2F2F2FF", 
     lwd = 0.6
     ) +
   labs(
@@ -205,7 +188,7 @@ fig1a <-
   fig1a +
     geom_point(
       data = bycatch_df %>% mutate(clade = stringr::str_to_title(clade)),
-      aes(shape=clade), col="black"#, size = 3.5, stroke = 0.8
+      aes(shape=clade), col="black"
       ) +
   scale_shape_manual(values = 21:24) +
   guides(
@@ -227,25 +210,25 @@ overall_red <-
     fvfmsy = mean(fvfmsy, na.rm=T),
     pctmey = mean(pctredfmey, na.rm=T),
     pctmsy = mean(pctredfmsy, na.rm=T)
-  ) %>%
+    ) %>%
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, fvfmey),
     fvfmsy = ifelse(fvfmsy==-Inf, NA, fvfmsy),
     pctmey = ifelse(pctmey==-Inf, NA, pctmey),
     pctmsy = ifelse(pctmey==-Inf, NA, pctmsy)
-  ) %>%
+    ) %>%
   mutate(
     wt = margc * ((g * fvfmsy)^bet),
     cstcurr = wt,
     cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
     cstmsy = margc * ((g)^bet)
-  ) %>%
+    ) %>%
   ungroup() %>%
   mutate(wt = wt/sum(wt, na.rm = T)) %>%
   mutate(
     wtpctmey = wt * pctmey,
     wtpctmsy = wt * pctmsy
-  ) 
+    ) 
 
 fao_red <-
   overall_red %>% 
@@ -257,13 +240,13 @@ fao_red <-
   mutate(
     avpctmey = 100 * (1 - (cstmey/cstcurr)),
     avpctmsy = 100 * (1 - (cstmsy/cstcurr))
-  ) %>%
+    ) %>%
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
     fvfmsy = ifelse(fvfmsy==-Inf, NA, pctmey),
     pctmey = ifelse(pctmey==-Inf, NA, pctmey),
     pctmsy = ifelse(pctmey==-Inf, NA, pctmsy)
-  ) 
+    ) 
 
 ## Load (and filter) FAO spatial data, before joining with the fao_red DF above
 fao_sf <- 
@@ -278,17 +261,13 @@ fao_sf <-
 fig1b <-
   ggplot() + 
   geom_sf(data = countries, fill = "white", col="white") +
-  # geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
   geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_gradientn(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
-    # name = "Reduction in fishing effort (MEY vs. 2010-12)",
-    # colours = rev(brewer_pal(palette = "Spectral")(11)), #trans = "reverse",
     colours = brewer_pal(palette = "YlOrRd")(9),
     labels = percent, limits=c(min(fao_sf$avpctmey)/100, 1)
     ) +
   guides(
-    # fill=guide_colourbar(barwidth=21, label.position="bottom", title.position="top")
     fill=guide_colourbar(barwidth=10.5, label.position="bottom", title.position="top")
     ) +
   theme(
@@ -309,23 +288,18 @@ fig1b <-
 
 fig1 <-
   ggdraw() +
-  # draw_plot(;pfigureName, xpos, ypos, width, height) +
+  # draw_plot(figureName, xpos, ypos, width, height) +
   draw_plot(fig1a, 0, 0.49, 1, 0.49) +
   draw_plot(fig1b, 0, 0, 1, 0.49) +
-  # draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.475), size = 15)
   draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.49), size = 9)
 # fig1
 
-save_plot(#"Figures/fig-1.png", fig1,
-          # base_height = 10,
-          #base_aspect_ratio = 1/1.6#1/1.3
+save_plot(
   "Figures/fig-1.png", fig1,
   base_width = fig_width,
   base_height = fig_width*1.5
-          )
-save_plot(#"Figures/PDFs/fig-1.pdf", fig1,
-          # base_height = 10,
-          # base_aspect_ratio = 1/1.6#1/1.3
+  )
+save_plot(
   "Figures/PDFs/fig-1.pdf", fig1,
   base_width = fig_width,
   base_height = fig_width*1.5,
@@ -350,17 +324,13 @@ lh_rmus <-
 
 fig2a <-
   ggplot() +
-  # geom_sf(data = countries, fill="black", col="black") +
-  # geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.25, alpha = 0.6) + 
   geom_sf(data = countries, col="black", fill="black", size = 0.1) +
   geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.1, alpha = 0.6) + 
   theme(
-    # legend.position = "none",
     axis.line=element_blank(), 
     axis.ticks=element_blank(),
     axis.text.x=element_blank(), axis.text.y=element_blank(), 
     axis.title.x=element_blank(), axis.title.y=element_blank(),
-    # panel.grid.major = element_line(colour = "grey60")
     panel.grid.major = element_line(colour = "grey60", size = 0.5)
   )
 
@@ -373,10 +343,7 @@ set.seed(123) ## First reset seed for disb on %T parameters
 fig2b <- 
   sensrange_func(sp_type, 1000) %>% 
   mutate(pctT = pctT/100) %>%
-  # mutate(pctT = ifelse(pctT<0, 0, pctT)) %>%
   ggplot(aes(delta_draw, deltaN_draw, col = pctT)) +
-  # geom_point(alpha = 0.5, size = 2) + 
-  # geom_point(shape = 21, size = 2) +
   geom_point(alpha = 0.5) + 
   geom_point(shape = 21) +
   scale_color_distiller( 
@@ -397,11 +364,9 @@ fig2b <-
 #### Fig 2.C (Target species) ####
 fig2c <- 
   stockselect_func(sp_type) %>%
-  samples_plot() #+ ## Note log scale
-  # theme(strip.text = element_text(size = 14))
+  samples_plot() ## Note log scale
 
 #### Fig 2.D (Bycatch reduction disb) ####
-
 fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), series = "MEY") 
 
 #### Fig 2.E (Cost disb) ####
@@ -422,39 +387,31 @@ fig2d <- fig2d + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2e <- fig2e + theme(strip.text.x = element_blank(), legend.position = "none")
 fig2f <- fig2f + theme(strip.text.x = element_blank(), legend.position = "none")
 
-### Now, draw the figure (without legend)
+### Draw the figure (without legend)
 fig2 <-
   ggdraw() +
   # draw_plot(fig, xpos,  ypos, width, height) +
-  # draw_plot(fig2a, 0.025, 0.67, 0.475, 0.33) +
   draw_plot(fig2a, 0,     0.67, 0.55, 0.33) +
-  draw_plot(fig2b, 0.55,  0.67, 0.45,  0.33) +
-  draw_plot(fig2c, 0,     0.34, 0.99,     0.33) +
-  draw_plot(fig2d, 0,     0,    0.33,  0.33) +
-  draw_plot(fig2e, 0.33,  0,    0.33,  0.33) +
-  draw_plot(fig2f, 0.66,  0,    0.33,  0.33) +
+  draw_plot(fig2b, 0.55, 0.67, 0.45, 0.33) +
+  draw_plot(fig2c, 0,     0.34, 0.99, 0.33) +
+  draw_plot(fig2d, 0,     0,    0.33, 0.33) +
+  draw_plot(fig2e, 0.33,  0,    0.33, 0.33) +
+  draw_plot(fig2f, 0.66,  0,    0.33, 0.33) +
   draw_plot_label(
     c("A", "B", "C", "D", "E", "F"), 
     c(0, 0.525, 0, 0, 0.33, 0.66), 
     c(1, 1, 0.66, 0.33, 0.33, 0.33), 
-    # size = 15
     size = 9
     )
 
 # fig2
 
 save_plot(
-  #"Figures/fig-2.png", fig2,
-  #base_height = 9,
-  #base_aspect_ratio = 1
   "Figures/fig-2.png", fig2,
   base_width = 2 * fig_width,
   base_height = 2 * fig_width
   )
 save_plot(
-  #"Figures/PDFs/fig-2.pdf", fig2,
-  # base_height = 9,
-  # base_aspect_ratio = 1
   "Figures/PDFs/fig-2.pdf", fig2,
   base_width = 2 * fig_width,
   base_height = 2 * fig_width, 
@@ -471,8 +428,6 @@ dev.off()
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-# fig_3mey + ggsave("Figures/fig-3-mey.png", width=8, height=8)
-# fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=8, height=8, device = cairo_pdf)
 fig_3mey + ggsave("Figures/fig-3-mey.png", width=2*fig_width, height=2*fig_width)
 fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3mey)
@@ -480,8 +435,6 @@ dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-# fig_3msy + ggsave("Figures/fig-3-msy.png", width=8, height=8)
-# fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=8, height=8, device = cairo_pdf)
 fig_3msy + ggsave("Figures/fig-3-msy.png", width=2*fig_width, height=2*fig_width)
 fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3msy)
@@ -506,7 +459,7 @@ dev.off()
 ########### SUPPLEMENTARY FIGURES ########### 
 #############################################
 
-#############################################################
+############################################################
 ##### Fig S1 (Upsides by FAO region & taxonomic group) #####
 #############################################################
 
@@ -567,7 +520,6 @@ fao_tax_sf <-
 fig_s1 <-
   ggplot() + 
   geom_sf(data = countries, fill = "white", col="white") +
-  # geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.25) +
   geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_viridis(
     name = "Reduction in fishing effort (MEY vs. 2010-2012)",
@@ -588,8 +540,7 @@ fig_s1 <-
     axis.title.y=element_blank(),
     panel.grid.major = element_line(colour = "white")
     )
-# fig_s1 + ggsave("Figures/fig-S1.png", width = 7, height = 7)
-# fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 7, height = 7)
+
 fig_s1 + ggsave("Figures/fig-S1.png", width = 2*fig_width, height = 2*fig_width)
 fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 2*fig_width, height = 2*fig_width)
 rm(fig_s1)
@@ -603,8 +554,6 @@ fig_s2 <-
   bycatchdist_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-# fig_s2 + ggsave("Figures/fig-S2.png", width = 10, height = 13)
-# fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width = 10, height = 13, device = cairo_pdf)
 fig_s2 + ggsave("Figures/fig-S2.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
 fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s2)
@@ -617,8 +566,6 @@ fig_s3 <-
   cost_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-# fig_s3 + ggsave("Figures/fig-S3.png", width = 10, height = 13)
-# fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width = 10, height = 13, device = cairo_pdf)
 fig_s3 + ggsave("Figures/fig-S3.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
 fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s3)
@@ -631,9 +578,6 @@ fig_s4 <-
   targeting_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-
-# fig_s4 + ggsave("Figures/fig-S4.png", width = 10, height = 13)
-# fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width = 10, height = 13, device = cairo_pdf)
 fig_s4 + ggsave("Figures/fig-S4.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
 fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 
@@ -659,13 +603,10 @@ dev.off()
 #################################################
 fig_s6 <-
   ggplot(data_frame(x = c(0, 5)), aes(x = x)) +
-  # stat_function(fun = function(x) (1 - (0.5^x))) +
   stat_function(fun = function(x) (1 - (0.5^x)), size = 0.2) +
   geom_vline(aes(xintercept = 1), lty = 2) +
   geom_hline(aes(yintercept = 0.5), lty = 2) +
   scale_y_continuous(label = percent) +
-  # annotate("text", label = paste(expression(alpha==1)), x = 1.5, y = 0.03, parse=T, family = font_type) +
-  # annotate("text", label = "        Reduction in target \nspecies mortality (50%)", x = 3.5, y = 0.75, family = font_type) +
   annotate(
     "text", 
     label = paste(expression(alpha==1)), 
@@ -682,8 +623,6 @@ fig_s6 <-
     x = expression(alpha), 
     y = "Reduction in bycatch mortality"
   ) 
-# fig_s6 + ggsave("Figures/fig-S5.png", width = 4, height = 4)
-# fig_s6 + ggsave("Figures/PDFs/fig-S5.pdf", width = 4, height = 4)
 fig_s6 + ggsave("Figures/fig-S5.png", width = fig_width, height = fig_width)
 fig_s6 + ggsave("Figures/PDFs/fig-S5.pdf", width = fig_width, height = fig_width)
 
@@ -792,10 +731,6 @@ main_results <- read_csv("Results/bycatch_results.csv") %>% filter(species==sp_t
 doubleuncert_results <- read_csv("Results/bycatch_results_doubleuncert.csv") %>% filter(species==sp_type)
 ## Run 10 (kitchen)
 kitchen_results <- read_csv("Results/bycatch_results_kitchen.csv") %>% filter(species==sp_type)
-
-#' compare population-level uncertainties in %T and costs of halting the 
-#' decline (% of MEY) across the main analysis (A, D), the ‘double uncertainty’ 
-#' sensitivity analysis (B, E), and the ‘kitchen sink’ sensitivity analysis (C, F),
  
 #### Fig. 10 Bycatch distributions (panels A, D and G) ####
 ## Define common bounds on bycatch disb plots for comparison
