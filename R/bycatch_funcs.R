@@ -484,9 +484,7 @@ upsides_subset_func <-
       if(dt$type == 1){
         upsides %>%
           filter(regionfao %in% dt$faoreg) %>%
-          # filter(grepl(paste0("\\b",dt$faoreg,"\\b"), regionfao)) %>% ## GRM CHANGED: To handle cases with a multi-FAO region string
           filter(speciescat %in% dt$spcat)
-          # filter(grepl(paste0("\\b",dt$spcat,"\\b"), speciescat)) ## GRM CHANGED: To handle cases with a multi-species cat
       } else if (dt$type == 2) {
         upsides %>%
           filter(speciescat %in% dt$spcat) %>%
@@ -763,6 +761,10 @@ sensrange_func <-
       delta_draw <- runif(N, min = delta_q025, max = delta_q975)
       deltaN_draw <- runif(N, min = deltaN_q025, max = deltaN_q975)
     }
+    ## Type 6: delta~U(.) & deltaN~N(.)
+    if(sensrange_type==5) {
+      delta_draw <- runif(N, min = delta_q025, max = delta_q975)
+    }
     
     ## Finally, put these draws (parameters) into a DF and use them to calcuate 
     ## %T. Note that some adjustments are required for cases where the draw on 
@@ -792,15 +794,15 @@ sensrange_func <-
         fe_q975 = fe_q975
       ) %>% 
       ## Correct cases where deltaN_draw < delta_draw (implies negative Fe)
-      ### Types 1 & 5
+      ### Types 1, 5 & 6 (DeltaN ~ U(.))
       mutate(
         deltaN_draw = ifelse(
-          deltaN_draw < (delta_draw+0.005) & sensrange_type %in% c(1, 5),
+          deltaN_draw < (delta_draw+0.005) & sensrange_type %in% c(1, 5, 6),
           suppressWarnings(runif(1, min = max(delta_draw+0.005, deltaN_q025, na.rm=T), max = deltaN_q975)),
           deltaN_draw
           )
         ) %>%
-      ### Type 3
+      ### Type 3 (DeltaN ~ N(.))
       mutate(
         deltaN_draw = ifelse(
           deltaN_draw < (delta_draw+0.005) & sensrange_type == 3,
@@ -819,6 +821,8 @@ sensrange_func <-
       mutate(pctT = ifelse(sensrange_type==4, 100*(-delta_draw/fe_draw), pctT)) %>%
       ### Type 5
       mutate(pctT = ifelse(sensrange_type==5, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
+      ### Type 6
+      mutate(pctT = ifelse(sensrange_type==6, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
       ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
       mutate(pctT = if_else(pctT==Inf, 0, pctT)) %>%
       select(species, delta_draw, deltaN_draw, fe_draw, pctT, pctT_mean)
