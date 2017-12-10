@@ -461,7 +461,7 @@ dev.off()
 
 ############################################################
 ##### Fig S1 (Upsides by FAO region & taxonomic group) #####
-#############################################################
+############################################################
 
 ## Read in taxonomy CSV for faceting categories
 tax_df <- read_csv("Data/taxonomies.csv") 
@@ -547,9 +547,9 @@ rm(fig_s1)
 dev.off()
 
 
-##############################################################
+#############################################################
 ##### Fig S2 (Combined bycatch reduction distributions) #####
-##############################################################
+#############################################################
 fig_s2 <- 
   bycatchdist_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
@@ -559,9 +559,9 @@ fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width=2.5*fig_width, height=2.5*fig_w
 rm(fig_s2)
 dev.off()
 
-#################################################
+################################################
 ##### Fig S3 (Combined cost distributions) #####
-#################################################
+################################################
 fig_s3 <- 
   cost_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
@@ -571,9 +571,9 @@ fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width=2.5*fig_width, height=2.5*fig_w
 rm(fig_s3)
 dev.off()
 
-##############################################################
+############################################################
 ##### Fig S4 (Combined targeting change distributions) #####
-##############################################################
+############################################################
 fig_s4 <- 
   targeting_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
@@ -623,8 +623,8 @@ fig_s6 <-
     x = expression(alpha), 
     y = "Reduction in bycatch mortality"
   ) 
-fig_s6 + ggsave("Figures/fig-S5.png", width = fig_width, height = fig_width)
-fig_s6 + ggsave("Figures/PDFs/fig-S5.pdf", width = fig_width, height = fig_width)
+fig_s6 + ggsave("Figures/fig-S6.png", width = fig_width, height = fig_width)
+fig_s6 + ggsave("Figures/PDFs/fig-S6.pdf", width = fig_width, height = fig_width)
 
 rm(fig_s6)
 dev.off()
