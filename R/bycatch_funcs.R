@@ -1013,7 +1013,7 @@ g_legend <-
 ##################################################################
 
 bycatchdist_plot <-
-  function(bdist, series=NULL, combined_avg=FALSE, truncate95=TRUE){
+  function(bdist, series=NULL, combined_avg=FALSE, truncate95=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
@@ -1044,6 +1044,8 @@ bycatchdist_plot <-
       mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
       mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred)) %>%
       ungroup()
+      
+      message("Truncating distributions to 95% range")
       }
     
     if(!is.null(series)) df2 <- filter(df2, key %in% c("%T", series))

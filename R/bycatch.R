@@ -322,10 +322,17 @@ lh_rmus <-
   read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp") %>%
   st_transform(proj_string)
 
+## Similarly for the the nesting sites
+lh_nesters <- 
+  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
+  st_set_crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
+  st_transform(proj_string)
+
 fig2a <-
   ggplot() +
   geom_sf(data = countries, col="black", fill="black", size = 0.1) +
   geom_sf(data = lh_rmus, col="#20b261", fill="#20b261", size = 0.1, alpha = 0.6) + 
+  geom_sf(data = lh_nesters, col="#b22071", alpha = 0.2, size = 0.2) +
   theme(
     axis.line=element_blank(), 
     axis.ticks=element_blank(),
@@ -367,7 +374,7 @@ fig2c <-
   samples_plot() ## Note log scale
 
 #### Fig 2.D (Bycatch reduction disb) ####
-fig2d <- bycatchdist_plot(results %>% filter(species==sp_type), series = "MEY") 
+fig2d <- bycatchdist_plot(filter(results, species==sp_type), series = "MEY", truncate95 = T) 
 
 #### Fig 2.E (Cost disb) ####
 fig2e <- cost_plot(results %>% filter(species==sp_type), series = "MEY")
@@ -418,7 +425,7 @@ save_plot(
   device=cairo_pdf
   )
 
-rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f, lh_rmus)
+rm(fig2, fig2a, fig2b, fig2c, fig2d, fig2e, fig2f, lh_rmus, lh_nesters)
 dev.off()
 
 
@@ -551,7 +558,7 @@ dev.off()
 ##### Fig S2 (Combined bycatch reduction distributions) #####
 #############################################################
 fig_s2 <- 
-  bycatchdist_plot(results, combined_avg = T) +
+  bycatchdist_plot(results, combined_avg = T, truncate95 = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
 fig_s2 + ggsave("Figures/fig-S2.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
@@ -737,7 +744,7 @@ kitchen_results <- read_csv("Results/bycatch_results_kitchen.csv") %>% filter(sp
 lim_x <- quantile(doubleuncert_results$pctT, c(0.025, 0.975), na.rm = T)/100
 ## Fig 10.A (Bycatch distribution, Main run)
 fig_s10a <- 
-  bycatchdist_plot(main_results, series = "MEY") + 
+  bycatchdist_plot(main_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
@@ -745,7 +752,7 @@ fig_s10a <-
   theme(strip.text.x = element_blank(), legend.position = "none")
 ## Fig 10.D (Bycatch distribution, Double uncertainty run) 
 fig_s10d <- 
-  bycatchdist_plot(doubleuncert_results, series = "MEY") + 
+  bycatchdist_plot(doubleuncert_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
@@ -753,7 +760,7 @@ fig_s10d <-
   theme(strip.text.x = element_blank(), legend.position = "none")
 ## Fig 10.G (Bycatch distribution, Kitchen sink run) 
 fig_s10g <- 
-  bycatchdist_plot(kitchen_results, series = "MEY") + 
+  bycatchdist_plot(kitchen_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
@@ -844,7 +851,7 @@ dev.off()
 #   sensitivity_runs, function(s){
 #     s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"), col_types=c("ddddc"))
 #     
-#     bycatchdist_plot(s_df) +
+#     bycatchdist_plot(s_df, combined_avg = T, truncate95 = T) +
 #       facet_wrap(~species, ncol = 3, scales = "free_x") + 
 #       ggsave(paste0("Figures/SensitivityS2S3/fig-S2-", s, ".png"), width = 10, height = 13)
 #     
