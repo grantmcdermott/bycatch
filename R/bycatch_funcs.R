@@ -1499,7 +1499,7 @@ pgp_plot <-
         limits = c(0, 1)
         ) +
       theme(
-        panel.grid.major = element_line(colour = "grey85"),
+        panel.grid.major = element_line(colour = "grey85", size = 0.2),
         legend.position = "none",
         strip.placement = "outside"
         ) +
