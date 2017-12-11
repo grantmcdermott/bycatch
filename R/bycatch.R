@@ -640,91 +640,62 @@ dev.off()
 #### Figs. S7-S9 (Trade-off plots for sensitivity runs) ####
 ############################################################
 
-# 1. Main run: base year is 2010-2012 (geom. mean) 
-#              alpha = 1
-#              all stocks at MEY
-df_run1 <- read_csv("Results/bycatch_summary_results.csv")
+s_runs <- c("fcorrected", "conservation", "alpha=05", "alpha=2", 
+              "nonei", "weights", "2012only", "doubleuncert", "kitchen")
 
-# 2. Estimated current F cut in half for all Catch-MSY stocks (to estimate effects of possible bias)
-df_run2 <- read_csv("Results/bycatch_summary_results_fcorrected.csv")
+s_runs_list <- lapply(paste0("Results/bycatch_summary_results_", s_runs,".csv"), read_csv)
 
-# 3. Only conservation concern stocks (as defined by Costello et al. 2016)
-#              rebuilt to MEY. 
-df_run3 <- read_csv("Results/bycatch_summary_results_conservation.csv")
-
-# 4. Main run with alpha = 0.5
-df_run4 <- read_csv("Results/bycatch_summary_results_alpha=05.csv")
-
-# 5. Main run with alpha = 2
-df_run5 <- read_csv("Results/bycatch_summary_results_alpha=2.csv")
-
-# 6. Main run with 'nei' stocks removed
-df_run6 <- read_csv("Results/bycatch_summary_results_nonei.csv")
-
-# 7. Main run with a 25% sensitivity range on weights for target stock groups 
-#              (e.g. demersals)
-df_run7 <- read_csv("Results/bycatch_summary_results_weights.csv")
-
-# 8. Main run with 2012 only as the base year (rather than 2010-2012)
-df_run8 <- read_csv("Results/bycatch_summary_results_2012only.csv")
-
-# 9. Double uncertainty run (wider disb's on delta, deltaN and Fe)
-df_run9 <- read_csv("Results/bycatch_summary_results_doubleuncert.csv")
-
-# 10. Kitchen sink
-df_run10 <- read_csv("Results/bycatch_summary_results_kitchen.csv")
-
-#### Fig. S7 (sensitivity runs 2-4) ####
-fig_s7 <-
+fig_s7_df <-
   bind_rows(
-    df_run2 %>% mutate(sens = "A"),
-    df_run3 %>% mutate(sens = "B"),
-    df_run4 %>% mutate(sens = "C")
-    ) %>%
-  tradeoffs_plot("MEY") +
-  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
-  theme(
-    strip.text.x = element_text(face="bold", size = 9, hjust=0),
-    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
+    s_runs_list[[1]] %>% mutate(sens = "A"),
+    s_runs_list[[2]] %>% mutate(sens = "B"),
+    s_runs_list[[3]] %>% mutate(sens = "C")
     )
-#### Fig. S8 (sensitivity runs 5-7) ####
-fig_s8 <-
+fig_s8_df <-
   bind_rows(
-    df_run5 %>% mutate(sens = "D"),
-    df_run6 %>% mutate(sens = "E"),
-    df_run7 %>% mutate(sens = "F")
-    ) %>%
-  tradeoffs_plot("MEY") +
-  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
-  theme(
-    strip.text.x = element_text(face="bold", size = 9, hjust=0),
-    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
+    s_runs_list[[4]] %>% mutate(sens = "D"),
+    s_runs_list[[5]] %>% mutate(sens = "E"),
+    s_runs_list[[6]] %>% mutate(sens = "F")
     )
-#### Fig. S9 (sensitivity runs 8-10) ####
-fig_s9 <-
+fig_s9_df <-
   bind_rows(
-    df_run8 %>% mutate(sens = "G"),
-    df_run9 %>% mutate(sens = "H"),
-    df_run10 %>% mutate(sens = "I")
-    ) %>%
-  tradeoffs_plot("MEY") +
-  facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
-  theme(
-    strip.text.x = element_text(face="bold", size = 9, hjust=0),
-    panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF")
+    s_runs_list[[7]] %>% mutate(sens = "G"),
+    s_runs_list[[8]] %>% mutate(sens = "H"),
+    s_runs_list[[9]] %>% mutate(sens = "I")
     )
 
-fig_s7 + ggsave("Figures/fig-S7.png", width=3*fig_width, height=2*fig_width)
-fig_s8 + ggsave("Figures/fig-S8.png", width=3*fig_width, height=2*fig_width)
-fig_s9 + ggsave("Figures/fig-S9.png", width=3*fig_width, height=2*fig_width)
-fig_s7 + ggsave("Figures/PDFs/fig-S7.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
-fig_s8 + ggsave("Figures/PDFs/fig-S8.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
-fig_s9 + ggsave("Figures/PDFs/fig-S9.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
+## Find the low and high extremes of "delta_post" to set common bounds on the 
+## x-axes across the figs.
+x_lim <- 
+  lapply(s_runs_list, function(df) {
+    bounds <- 
+      df %>% 
+      filter(key=="pctredmey") %>% 
+      mutate(delta_post = delta_mean + (fe_mean * (q50/100))) %>%
+      summarise(low = min(delta_post), high = max(delta_post))
+    }) %>%
+  bind_rows() %>%
+  summarise(low = min(low), high = max(high))
 
-rm(fig_s7, fig_s8, fig_s9)
+## Plot the figures
+lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
+  p <-
+    df %>%
+    tradeoffs_plot("MEY") +
+    xlim(c(x_lim$low, x_lim$high)) +
+    facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
+    theme(
+      strip.text.x = element_text(face="bold", size = 9, hjust=0),
+      panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
+      panel.spacing = unit(0.5, "lines")
+    )
+  fig_name <- ifelse(grepl(df$sens[1], "A"), "S7", ifelse(grepl(df$sens[1], "D"), "S8", "S9"))
+  p + ggsave(paste0("Figures/fig-", fig_name, ".png"), width=3*fig_width, height=2*fig_width)
+  p + ggsave(paste0("Figures/PDFs/fig-", fig_name, ".pdf"), width=3*fig_width, height=2*fig_width, device=cairo_pdf)
+})
+
+rm(s_runs, s_runs_list, x_lim, fig_s7_df, fig_s8_df, fig_s9_df)
 dev.off()
-
-rm(df_run1, df_run2, df_run3, df_run4, df_run5, df_run6, df_run7, df_run8, df_run9, df_run10)
 
 
 ###########################################################################
