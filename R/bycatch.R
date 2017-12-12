@@ -685,6 +685,7 @@ lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
     xlim(c(x_lim$low, x_lim$high)) +
     facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
     theme(
+      strip.text.y = element_text(angle = 90),  #https://github.com/tidyverse/ggplot2/issues/2356
       strip.text.x = element_text(face="bold", size = 9, hjust=0),
       panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
       panel.spacing = unit(0.5, "lines")
