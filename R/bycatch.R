@@ -1,17 +1,16 @@
-## Clear environment
-rm(list = ls())
+# rm(list = ls())
 
 #####################################
-########### Load packages ###########
+########### LOAD PACKAGES ###########
 #####################################
-library(data.table) ## Mostly for super fast reading/writing of large csv files
+
+library(data.table) 
 library(pbapply)
 library(parallel)
 library(R.utils)
 library(truncnorm)
 library(scales)
 library(grid)
-# library(maps)
 library(rworldmap) ## Better shape files
 library(sf)
 library(rgeos)
@@ -36,33 +35,13 @@ set.seed(123)
 ## available, then extrafont package will use the Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
 
-## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
-## to match publication requirements. See: 
-## http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
-theme_science <-
-  theme_cowplot(font_size = 7, line_size = 0.15) +
-  theme(
-    text = element_text(family = font_type),
-    legend.title = element_blank(),
-    legend.key.size = unit(0.4, "lines"),
-    legend.margin = margin(t=3, r=0, b=3, l=0, unit="pt"), ## Change last digit to -ve to reduce space between right legend and plot
-    legend.spacing = unit(0.2, "cm"),
-    legend.justification = "center", 
-    plot.margin = margin(t=3, r=3, b=3, l=3, unit="pt"),#unit(c(3, 3, 3, 3), "points"), 
-    strip.background = element_rect(fill = "white"), ## Facet strip
-    panel.spacing = unit(1, "lines"), ## Increase gap between facet panels
-    strip.text = element_text(size = 7)
-    )
-theme_set(theme_science)
-fig_width <- 2.3 ## Width of one column in Science (in inches)
-## Also adjust geoms (https://stackoverflow.com/a/21175042)
-params <- ls(pattern = '^geom_', env = as.environment('package:ggplot2'))
-params <- setdiff(params, paste0("geom_", c("bin2d", "count", "freqpoly", "histogram", "jitter", 
-                                            "qq", "qq_line")))
-geoms <- gsub("geom_", "", params)
-lapply(geoms, update_geom_defaults, list(size = 1.3, stroke = 0.225))
-lapply(c("line", "vline", "hline", "segment", "density"), update_geom_defaults, list(size = 0.2))
-rm(params, geoms)
+## Choose the plotting theme. The first (recommended) option will ensure 
+## publication-ready PNG and PDF export files consistent with Science's strict 
+## figure requirements (incl. dimensions and font size). However, the output may 
+## look small in your interactive session. The second option may thus be more 
+## visually appealing for a purely interactive session, but comes without 
+## guarantees. 
+theme_type <- c("Science", "Interactive")[1] ## Change as needed.
 
 ## Decide on number of cores for parallel computation
 num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if you are running additional processes on your computer
@@ -88,7 +67,7 @@ all_species <- bycatch_df$species
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 130)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 110)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### Monte Carlo (MC) sampling parameters
@@ -178,7 +157,7 @@ fig1a <-
   labs(
     x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
-  ) +
+    ) +
   theme(
     legend.title = element_text(),
     legend.margin = margin(l=-8, unit="pt")
@@ -282,7 +261,6 @@ fig1b <-
     panel.grid.major = element_line(colour = "white")
   )
 
-# fig1b
 
 #### Composite Fig. 1 ####
 

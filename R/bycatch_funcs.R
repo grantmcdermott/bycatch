@@ -1,8 +1,56 @@
-#############################################
-#############################################
-####    * SETUP FUNCTIONS FUNCTIONS *    ####
-#############################################
-#############################################
+###################################
+###################################
+####    * SETUP FUNCTIONS *    ####
+###################################
+###################################
+
+############################
+### Plotting theme setup ###
+############################
+
+if(theme_type == "Interactive"){
+  ## Theme better suited for interactive viewing. This is not the default and
+  ## and we can't guarantee that all figures will be 100% correct, but it should
+  ## be clsoe enough.
+  theme_interactive <-
+    theme_cowplot() +
+    theme(
+      text = element_text(family = font_type),
+      legend.title = element_blank(),
+      legend.justification = "center", 
+      strip.background = element_rect(fill = "white"), ## Facet strip
+      panel.spacing = unit(2, "lines")
+    )
+  theme_set(theme_interactive)
+  fig_width <- 5
+  } else {
+  ## Theme optimised for publication-ready figures. The preferred default. See: 
+  ## http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
+  theme_science <-
+    theme_cowplot(font_size = 7, line_size = 0.15) +
+    theme(
+      text = element_text(family = font_type),
+      legend.title = element_blank(),
+      legend.key.size = unit(0.4, "lines"),
+      legend.margin = margin(t=3, r=0, b=3, l=0, unit="pt"), ## Change last digit to -ve to reduce space between right legend and plot
+      legend.spacing = unit(0.2, "cm"),
+      legend.justification = "center", 
+      plot.margin = margin(t=3, r=3, b=3, l=3, unit="pt"),#unit(c(3, 3, 3, 3), "points"), 
+      strip.background = element_rect(fill = "white"), ## Facet strip
+      panel.spacing = unit(1, "lines"), ## Increase gap between facet panels
+      strip.text = element_text(size = 7)
+      )
+  theme_set(theme_science)
+  fig_width <- 2.3 ## Width of one column in Science (in inches)
+  ## Also adjust geoms (https://stackoverflow.com/a/21175042)
+  params <- ls(pattern = '^geom_', env = as.environment('package:ggplot2'))
+  params <- setdiff(params, paste0("geom_", c("bin2d", "count", "freqpoly", "histogram", "jitter", 
+                                              "qq", "qq_line")))
+  geoms <- gsub("geom_", "", params)
+  lapply(geoms, update_geom_defaults, list(size = 1.3, stroke = 0.225))
+  lapply(c("line", "vline", "hline", "segment", "density"), update_geom_defaults, list(size = 0.2))
+  rm(params, geoms)
+  }
 
 
 ##########################################################################
