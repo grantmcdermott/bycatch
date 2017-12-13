@@ -1,14 +1,69 @@
-#########################################################################
-### CONVENIENCE FUNCTION THAT SETS PARAMETERS FOR SPECIFIC MODEL RUNS ###
-### AND LOADS CORRECT VERSION OF THE UPSIDES DATA.                    ###  
-#########################################################################
+###################################
+###################################
+####    * SETUP FUNCTIONS *    ####
+###################################
+###################################
+
+############################
+### Plotting theme setup ###
+############################
+
+if(theme_type == "Interactive"){
+  ## Theme better suited for interactive viewing. This is not the default and
+  ## and we can't guarantee that all figures will be 100% correct, but it should
+  ## be clsoe enough.
+  theme_interactive <-
+    theme_cowplot() +
+    theme(
+      text = element_text(family = font_type),
+      legend.title = element_blank(),
+      legend.justification = "center", 
+      strip.background = element_rect(fill = "white"), ## Facet strip
+      panel.spacing = unit(2, "lines")
+    )
+  theme_set(theme_interactive)
+  fig_width <- 5
+  } else {
+  ## Theme optimised for publication-ready figures. The preferred default. See: 
+  ## http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
+  theme_science <-
+    theme_cowplot(font_size = 7, line_size = 0.15) +
+    theme(
+      text = element_text(family = font_type),
+      legend.title = element_blank(),
+      legend.key.size = unit(0.4, "lines"),
+      legend.margin = margin(t=3, r=0, b=3, l=0, unit="pt"), ## Change last digit to -ve to reduce space between right legend and plot
+      legend.spacing = unit(0.2, "cm"),
+      legend.justification = "center", 
+      plot.margin = margin(t=3, r=3, b=3, l=3, unit="pt"),#unit(c(3, 3, 3, 3), "points"), 
+      strip.background = element_rect(fill = "white"), ## Facet strip
+      panel.spacing = unit(1, "lines"), ## Increase gap between facet panels
+      strip.text = element_text(size = 7)
+      )
+  theme_set(theme_science)
+  fig_width <- 2.3 ## Width of one column in Science (in inches)
+  ## Also adjust geoms (https://stackoverflow.com/a/21175042)
+  params <- ls(pattern = '^geom_', env = as.environment('package:ggplot2'))
+  params <- setdiff(params, paste0("geom_", c("bin2d", "count", "freqpoly", "histogram", "jitter", 
+                                              "qq", "qq_line")))
+  geoms <- gsub("geom_", "", params)
+  lapply(geoms, update_geom_defaults, list(size = 1.3, stroke = 0.225))
+  lapply(c("line", "vline", "hline", "segment", "density"), update_geom_defaults, list(size = 0.2))
+  rm(params, geoms)
+  }
+
+
+##########################################################################
+### Convenience function that specifies model run parameters and loads ###
+### appropriate version of the upsides data (Costello et al., 2016).   ###  
+##########################################################################
 
 choose_run <- 
   function(run){
     
     r_types <- 
       c("main","fcorrected","conservation","alpha=05","alpha=2",
-        "nonei","sensrange25","weights","2012only")
+        "nonei","weights","2012only","doubleuncert", "kitchen")
     
     is.wholenumber <-
       function(x, tol = .Machine$double.eps^0.5)  {
@@ -20,18 +75,25 @@ choose_run <-
     run <- tolower(run)
     
     ## 1. Main run (default)
-    upsides_type <<- "main" ## C.f. Runs 6 and 9
+    upsides_type <<- "main" ## C.f. Runs 6 and 8
     corr_factor <<- 1 ## C.f. Run 2
+    corr_factor_msg <- corr_factor
     scenario <<- "All stocks" ## C.f. Run 3
     alpha_exp <<- 1  ## C.f. Runs 4 and 5
-    sensrange25 <<- 0 ## C.f. Run 7
-    weights_sens <<- 0 ## C.f. Run 8
+    alpha_exp_msg <- alpha_exp
+    weights_sens <<- 0 ## C.f. Run 7
+    weights_sens_msg <- weights_sens
+    doubleuncert <<- 0 ## C.f. Run 9
+    kitchen <<- 0 ## C.f. Run 10
     
     
     ## 2. Correction factor for possible upward bias in catch-MSY projections
     ##    Here we assume that current F is twice as big as estimated by Costello 
     ##    et al. (2016).
-    if(run=="fcorrected") {corr_factor <<- 2}
+    if(run=="fcorrected") {
+      corr_factor <<- 2
+      corr_factor_msg <- corr_factor
+      }
     
     ## 3. Conservation concern scenario: Only stocks going to MEY/MSY are those currently 
     ##    with F > Fmsy or B < Bmsy.
@@ -39,38 +101,59 @@ choose_run <-
     
     ## 4. and 5. Different "alpha" exponents, i.e. elasticity of (changes in) bycatch to 
     ##           (changes in) target stocks. See eqn (S14) in the paper.
-    if(run=="alpha=05") {alpha_exp <<- 0.5}
-    if(run=="alpha=2") {alpha_exp <<- 2}
+    if(run=="alpha=05") {
+      alpha_exp <<- 0.5
+      alpha_exp_msg <- alpha_exp
+      }
+    if(run=="alpha=2") {
+      alpha_exp <<- 2
+      alpha_exp_msg <- alpha_exp
+      }
     
     ## 6. Remove "NEI" (not elsewhere included) stocks from the Costello et al. 2016
     if(run=="nonei") {upsides_type <<- "nonei"}
     
-    ## 7. Simulate over a (uniform) 25% uncertainty range in Fe and delta
-    if(run=="sensrange25") {sensrange25 <<- 1}
-    
-    ## 8. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
+    ## 7. Simulate over a (uniform) 25% uncertainty range in bycatch weights when doing
     ##    cost analysis.
-    if(run=="weights") {weights_sens <<- 1}
+    if(run=="weights") {
+      weights_sens <<- 1
+      weights_sens_msg <- "W[i] * U(0.75, 1.25)"
+      }
     
-    ## 9. Use F from 2012 only. 
+    ## 8. Use F from 2012 only. 
     if(run=="2012only") {upsides_type <<- "2012only"}
+    
+    ## 9. Double the uncertainty ranges on %T parameters (delta, deltaN and Fe) 
+    if(run=="doubleuncert") {doubleuncert <<- 1}
+    
+    ## 10. Kitchen sink run: Combine elements of Runs 2, 4, 5 and 7 
+    if(run=="kitchen") {
+      kitchen <<- 1
+      corr_factor_vector <<- 2^runif(n1, min = -1, max = 1)
+      alpha_exp_vector <<- 2^runif(n1, min = -1, max = 1)
+      corr_factor_msg <- "2 ^ U(-1, 1)" ## Just for the choose_run() user message. Will draw actual values during run analysis.
+      alpha_exp_msg <- "2 ^ U(-1, 1)" ## Ditto.
+      weights_sens <<- 1
+      weights_sens_msg <- "W[i] * U(0.75, 1.25)"
+      }
     
     ## Convenience strings for import/export, file-reading and naming conventions
     corr_str <- ""
     scenario_str <- ifelse(scenario=="All stocks", "", "_conservation")
     alpha_str <- ifelse(alpha_exp==1, "", gsub("\\.","",paste0("_alpha=",alpha_exp))) 
     upsides_str <- ifelse(upsides_type=="main", "", paste0("_", upsides_type))
-    sensrange_str <- ifelse(sensrange25==0, "", "_sensrange25")
-    weights_str <- ifelse(weights_sens==0, "", "_weights")
+    weights_str <- ifelse(weights_sens==1 & kitchen==0, "_weights", "")
+    doubleuncert_str <- ifelse(doubleuncert==0, "", "_doubleuncert")
+    kitchen_str <- ifelse(kitchen==0, "", "_kitchen")
     
     ## Read in the relevant target stock data, derived from the "upsides" model of 
     ## Costello et al. (PNAS, 2016).
     upsides <<- 
-      fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
+      fread(here("Data", paste0("upsides_", upsides_type, ".csv"))) %>% 
       as_data_frame()
-    # upsides <<- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
+    # upsides <<- read_csv(here("Data", paste0("upsides_", upsides_str, ".csv")), col_types = cols(regionfao = "c"))
     
-    ## Final adjustment to upsides data in case of the "fcorrected" run
+    ## Adjustment to upsides data in the case of the "fcorrected" run
     if(run=="fcorrected") {
       corr_str <- "_fcorrected"
       upsides <<-
@@ -80,16 +163,17 @@ choose_run <-
         mutate(
           fvfmsy = curr_f/g,
           eqfvfmey = curr_f/f_mey
-        ) %>%
+          ) %>%
         mutate(
           pctredfmsy = 100 * (1 - (1/fvfmsy)),
           pctredfmey = 100 * (1 - (1/eqfvfmey)),
           pctredfmsycon = 100 * (1-(fconmsy/curr_f))
-        )
+          )
     }
     
     ## Combined convenience variable for output file name suffix
-    suff_str <<- paste0(upsides_str, alpha_str, corr_str, scenario_str, sensrange_str, weights_str)
+    suff_str <<- 
+      paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str, doubleuncert_str, kitchen_str)
     
     ## Descriptive message for user
     if(match(run,r_types) == 1) {
@@ -102,15 +186,22 @@ choose_run <-
       paste0(
         "Parameters: \n",
         "   upsides_type = ", upsides_type, "\n",
-        "   corr_factor = ", corr_factor, "\n",
+        "   corr_factor = ", corr_factor_msg, "\n",
         "   scenario = ", scenario, "\n",
-        "   alpha_exp = ", alpha_exp, "\n",
-        "   sensrange25 = ", sensrange25, "\n",
-        "   weights_sens = ", sensrange25
+        "   alpha_exp = ", alpha_exp_msg, "\n",
+        "   weights_sens = ", weights_sens_msg, "\n",
+        "   doubleuncert = ", doubleuncert
         )
       )
   }
 
+
+
+######################################
+######################################
+####    * ANALYSIS FUNCTIONS *    ####
+######################################
+######################################
 
 ##################################################################
 ##################################################################
@@ -333,9 +424,9 @@ myb_calc <- function(df, pctredb) {
   
   # Create 'imy' function which calculates the marginal yield cost, given pctredb
   imyb <- inverse(function (myb) redncost_giv_myb(dt, myb)$pctred, 0, mxmyb)
+  # Check if the maximum marginal yield cost ('mxmy') corresponds 
+  # to a still-insufficient reduction in bycatch.
   ifelse(
-    # Check if the maximum marginal yield cost ('mxmy') corresponds 
-    # to a still-insufficient reduction in bycatch.
     redncost_giv_myb(dt, mxmyb)$pctred < pctredb,
     # If yes, then require the max marginal yield.
     output <- mxmyb,
@@ -400,10 +491,10 @@ cost_profit <- function(df, pctredb, meanpctredmey) {
     pcost <- 100,
     ifelse(
       # Check if there is a shortfall.
-      # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
       round(pctredb) < (meanpctredmey), 
+      # If not, cost = 0 (because MEY reduces bycatch enough to stop decline)
       pcost <- 0,
-      # There is a shortfall, and it is attainable through additional target species F reductions.
+      # Else, there is a shortfall, and it is attainable through additional target species F reductions.
       # Code below calculates costs. It is assumed that df includes weights of each target stock (which sum to 1)
       #1. Calculate marginal profit cost (with function 'mp_calc'), 
       #     given pct reduction needed for bycatch species.
@@ -447,7 +538,6 @@ extract_func <-
 upsides_subset_func <- 
   function(dt) {
     
-    ## GRM: NEW TESTING
     upsides <-
       upsides %>% 
       separate_rows(regionfao)
@@ -456,9 +546,7 @@ upsides_subset_func <-
       if(dt$type == 1){
         upsides %>%
           filter(regionfao %in% dt$faoreg) %>%
-          # filter(grepl(paste0("\\b",dt$faoreg,"\\b"), regionfao)) %>% ## GRM CHANGED: To handle cases with a multi-FAO region string
           filter(speciescat %in% dt$spcat)
-          # filter(grepl(paste0("\\b",dt$spcat,"\\b"), speciescat)) ## GRM CHANGED: To handle cases with a multi-species cat
       } else if (dt$type == 2) {
         upsides %>%
           filter(speciescat %in% dt$spcat) %>%
@@ -637,9 +725,13 @@ upsides_subset_func <-
 ## Step 3: Produce a data frame of the sample distributions and costs ##
 ########################################################################
 
-## Function for sampling within a particular target stock category (e.g. demersal).
-## Sampling is weighted according to the marginal costs of that stock (defined in 
-## 'stocks_df' above).
+###########################################################################
+### Step 3.1 Define input functions to be called in `disb_func()` below ###
+###########################################################################
+
+## Input function for sampling within a particular target stock category (e.g. 
+## demersal). Sampling is weighted according to the marginal costs of that stock
+## (defined in 'stocks_df' above).
 samp_func <- 
   function(dt, n2, reltdf) {
     smple <- reltdf %>%
@@ -648,8 +740,8 @@ samp_func <-
     return(smple)
   }
 
-## Function to randomly adjust bycatch weights within +/- 25% uniform range.
-## Only relevant to "weights" sensitivity run.
+## Input function to randomly adjust bycatch weights within +/- 25% uniform 
+## range. Only relevant to "weights" sensitivity run.
 wt_func <-
   function(wts) {
     prbs <- runif(length(wts), 0.75, 1.25)
@@ -658,9 +750,154 @@ wt_func <-
     return(new_wts_normalised)
   }
 
-## Input is a list of 'dt's' -> output from 'extract_func'
+## Input function for sampling %T, using the full distributions of its component 
+## parameters (delta, deltaN and Fe). 
+sensrange_func <-
+  function(bycsp, N) {
+    
+    ## Filter bycatch_df to the species of interest. We will then use this
+    ## (single row) DF to obtain the relevant parameters for determining the
+    ## distribution on %T.
+    rel_bycsp <- bycatch_df %>% filter(species == bycsp)
+    ## Descriptives
+    bycsp <- rel_bycsp$species
+    sensrange_type <- rel_bycsp$sensrange_type
+    ## Parameters: delta, deltaN and Fe
+    delta_mean <- rel_bycsp$delta_mean
+    delta_q025 <- rel_bycsp$delta_q025
+    delta_q975 <- rel_bycsp$delta_q975
+    deltaN_mean <- rel_bycsp$deltaN_mean
+    deltaN_q025 <- rel_bycsp$deltaN_q025
+    deltaN_q975 <- rel_bycsp$deltaN_q975
+    fe_mean <- rel_bycsp$fe_mean
+    fe_q025 <- rel_bycsp$fe_q025
+    fe_q975 <- rel_bycsp$fe_q975
+    ## Minor correction to deltaN_mean (only relevant for Type 4 cases)
+    if(is.na(deltaN_mean)) {
+      deltaN_mean <- delta_mean + fe_mean 
+    }
+    
+    ## Adjustment for "doubleuncert" scenario only: Double uncertainty range on
+    ## all parameters
+    if(doubleuncert==1) {
+      delta_q025 <- delta_mean - 2 * (delta_mean-delta_q025)
+      delta_q975 <- delta_mean + 2 * (delta_q975-delta_mean)
+      deltaN_q025 <- deltaN_mean - 2 * (deltaN_mean-deltaN_q025)
+      deltaN_q975 <- deltaN_mean + 2 * (deltaN_q975-deltaN_mean)
+      fe_q025 <- fe_mean - 2 * (fe_mean-fe_q025)
+      fe_q975 <- fe_mean + 2 * (fe_q975-fe_mean)
+    }
+    
+    ## Mean %T value for comparison 
+    pctT_mean <- 100 * ((fe_mean-deltaN_mean) / fe_mean)
+    ## Get standard deviation (for sampling from rnorm)
+    delta_sd <- abs((delta_mean - delta_q025)) / 1.96
+    deltaN_sd <- abs((deltaN_mean - deltaN_q025)) / 1.96
+    fe_sd <- abs((fe_mean - fe_q025)) / 1.96
+    
+    ## Next, we use these parameters to take random draws from their
+    ## distributions (as described in the literature; see SI of paper). Start by
+    ## assuming normal distributions for all parameters. We will override with 
+    ## uniform draws for sensrange_type(s) 1 and 5 below.
+    delta_draw <- suppressWarnings(rnorm(N, mean = delta_mean, sd = delta_sd))
+    deltaN_draw <- suppressWarnings(rnorm(N, mean = deltaN_mean, sd = deltaN_sd))
+    fe_draw <- suppressWarnings(rnorm(N, mean = fe_mean, sd = fe_sd))
+    ## Type 1: delta~N(.) & deltaN~U(.) 
+    if(sensrange_type==1) {
+      deltaN_draw <- runif(N, min = deltaN_q025, max = deltaN_q975)
+    }
+    ## Type 2: Fe~N(.) & deltaN~N(.)
+    if(sensrange_type==2) {
+      ## No adjustment needed
+    }
+    ## Type 3: delta~N(.) & deltaN~N(.)
+    if(sensrange_type==3) {
+      ## No adjustment needed
+    }
+    ## Type 4: delta~N(.) & Fe~N(.)
+    if(sensrange_type==4) {
+      ## No adjustment needed
+    }
+    ## Type 5: delta~U(.) & deltaN~U(.)
+    if(sensrange_type==5) {
+      delta_draw <- runif(N, min = delta_q025, max = delta_q975)
+      deltaN_draw <- runif(N, min = deltaN_q025, max = deltaN_q975)
+    }
+    ## Type 6: delta~U(.) & deltaN~N(.)
+    if(sensrange_type==5) {
+      delta_draw <- runif(N, min = delta_q025, max = delta_q975)
+    }
+    
+    ## Finally, put these draws (parameters) into a DF and use them to calcuate 
+    ## %T. Note that some adjustments are required for cases where the draw on 
+    ## deltaN is less than the draw on delta, since this implies a negative Fe.
+    pctT_df <-
+      data.frame(
+        delta_draw = delta_draw,
+        deltaN_draw = deltaN_draw,
+        fe_draw = fe_draw
+      ) %>%
+      as_data_frame() %>%
+      mutate(
+        species = bycsp,
+        sensrange_type = sensrange_type,
+        pctT_mean = pctT_mean,
+        delta_mean = delta_mean,
+        delta_sd = delta_sd,
+        delta_q025 = delta_q025,
+        delta_q975 = delta_q975,
+        deltaN_mean = deltaN_mean,
+        deltaN_sd = deltaN_sd,
+        deltaN_q025 = deltaN_q025,
+        deltaN_q975 = deltaN_q975,
+        fe_mean = fe_mean,
+        fe_sd = fe_sd,
+        fe_q025 = fe_q025,
+        fe_q975 = fe_q975
+      ) %>% 
+      ## Correct cases where deltaN_draw < delta_draw (implies negative Fe)
+      ### Types 1, 5 & 6 (DeltaN ~ U(.))
+      mutate(
+        deltaN_draw = ifelse(
+          deltaN_draw < (delta_draw+0.005) & sensrange_type %in% c(1, 5, 6),
+          suppressWarnings(runif(1, min = max(delta_draw+0.005, deltaN_q025, na.rm=T), max = deltaN_q975)),
+          deltaN_draw
+          )
+        ) %>%
+      ### Type 3 (DeltaN ~ N(.))
+      mutate(
+        deltaN_draw = ifelse(
+          deltaN_draw < (delta_draw+0.005) & sensrange_type == 3,
+          truncnorm::rtruncnorm(1, a = delta_draw+0.005, b = Inf, mean = deltaN_mean, sd = deltaN_sd),
+          deltaN_draw
+          )
+        ) %>%
+      ## Calculate pctTs 
+      ### Type 1
+      mutate(pctT = ifelse(sensrange_type==1, 100*(delta_draw/(delta_draw-deltaN_draw)), NA)) %>%
+      ### Type 2
+      mutate(pctT = ifelse(sensrange_type==2, 100*((fe_draw-deltaN_draw)/fe_draw), pctT)) %>%
+      ### Type 3
+      mutate(pctT = ifelse(sensrange_type==3, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
+      ### Type 4
+      mutate(pctT = ifelse(sensrange_type==4, 100*(-delta_draw/fe_draw), pctT)) %>%
+      ### Type 5
+      mutate(pctT = ifelse(sensrange_type==5, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
+      ### Type 6
+      mutate(pctT = ifelse(sensrange_type==6, 100*(delta_draw/(delta_draw-deltaN_draw)), pctT)) %>%
+      ## Manual correction if randomly ended up dividing by zero (v. low probability of occuring)
+      mutate(pctT = if_else(pctT==Inf, 0, pctT)) %>%
+      select(species, delta_draw, deltaN_draw, fe_draw, pctT, pctT_mean)
+    
+    return(pctT_df)
+  }
+
+## Input function for determing outcomes in a single state of the world, where 
+## all uncertainty is been resolved. Inputs to this function are a list of  
+## "dt's" (i.e. the output from `extract_func`), "n2", a data frame of relevant
+## target stocks, and the bycatch species of interest. 
 single_worldstate_outputs <- 
-  function(dt2, n2, pctredb, pctredbl, pctredbu, reltdf, sensrangept25) {
+  function(dt2, n2, reltdf, bycsp) { 
     
     ## Sample within each of the relevant target categories (demersal, shrimp, etc.) 
     ## and the combine into a common data frame.
@@ -702,60 +939,88 @@ single_worldstate_outputs <-
     }
     ## End conservation concern scenario adjustments
     
-    mpctmsy <- sum(samp$pctrmsywt, na.rm = T) ## GRM: Added na.rm = T
-    mpctmey <- sum(samp$pctrmeywt, na.rm = T) ## GRM: Added na.rm = T
+    mpctmsy <- sum(samp$pctrmsywt, na.rm = T) 
+    mpctmey <- sum(samp$pctrmeywt, na.rm = T) 
     
-    if (sensrangept25 == 1) {
-      pctb <- runif(1, min = pctredbl, max = pctredbu) # if 25% uncertainty in Fe and delta is on
-      } else {
-      pctb <- pctredb
-      }
+    ## Calculate "%T" by sampling from the underlying parameter distributions.
+    pctT <- sensrange_func(bycsp, 1)$pctT
+    ## Manual correction if randomly ended up dividing by zero (v. low 
+    ## probability of occuring)
+    if(pctT==Inf) {pctT <- 0}
+    
+    ## Summarise the key result parameters for this state of the world in a DF
     stwld <- 
       data_frame(
         pctredmsy = mpctmsy, 
         pctredmey = mpctmey,
-        ycostmsy = cost_yield(samp, pctb, mpctmsy),
-        pcostmey = cost_profit(samp, pctb, mpctmey)
-        ) # need pctredpt from somewhere
+        ycostmsy = cost_yield(samp, pctT, mpctmsy),
+        pcostmey = cost_profit(samp, pctT, mpctmey), 
+        pctT = pctT 
+        ) 
     return(stwld)
   }
 
-## Input is list of 'dt's' -> output from 'extract_func'
+
+####################################################################################################
+## Step 3.2: Repeatedly sample over SOTW to obtain a distribution of implied reductions and costs ##
+####################################################################################################
+
+## This function takes as inputs a list of "dt's" (i.e. the output from 
+## `extract_func`), n1, and n2. It will also call he various input functions
+## described in Step 3.0 above and implement them as required (i.e. depending on
+## the run).
 disb_func <-
   function(dt2, n1, n2){
     
-    ##########################################################
-    ## Step 3.1: Create dataframe of relevant target stocks ##
-    ##########################################################
+    ## Get relevant target stocks and the bycatch species of interest
     rel_targets <- 
       lapply(dt2, upsides_subset_func) %>%
       bind_rows()
+    bycsp <- rel_targets$bycsp[1]
     
-    ## Required reduction parameters (i.e. What is the rate of population decline for this bycatch species?)
-    pctredbt <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbpt[1] ## Point estimate
-    pctredbtl <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbl[1] ## Lower bound
-    pctredbtu <- (filter(bycatch_df, species==rel_targets$bycsp[1]))$pctredbu[1] ## Upper bound
-    
-    #########################################################################################################
-    ## Step 3.2: Repeatedly sample from stocks data frame to create distribution of both pctreds and costs ##
-    #########################################################################################################
-    
+    ## Loop over different states of the world n1 times
     dists <-
       pblapply(1:n1, 
                possibly(function(i) {
-                 evalWithTimeout(
-                   single_worldstate_outputs(dt2, n2, pctredbt, pctredbtl, pctredbtu, rel_targets, sensrange25), 
-                   timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
-                   TimeoutException = function(ex) "TimedOut"
-                   )
-                 }, 
-                 # otherwise = NULL
-                 otherwise = data_frame(pctredmsy=as.double(NA), pctredmey=as.double(NA), ycostmsy=as.double(NA), pcostmey=as.double(NA)) ## To catch failed uniroot cases
-                 ),
+                 
+                 if(kitchen==1) {
+                     alpha_exp <<- alpha_exp_vector[i]
+                     corr_factor_kitchen <- corr_factor_vector[i]
+                       rel_targets <-
+                         rel_targets %>%
+                         mutate(curr_f_orig = curr_f) %>%
+                         mutate(curr_f = ifelse(dbase=="FAO", curr_f_orig/corr_factor_kitchen, curr_f)) %>%
+                         ## Adjust additionally affected variables in sequence
+                         mutate(
+                           fvfmsy = curr_f/g,
+                           eqfvfmey = curr_f/f_mey
+                         ) %>%
+                         mutate(
+                           pctredfmsy = 100 * (1 - (1/fvfmsy)),
+                           pctredfmey = 100 * (1 - (1/eqfvfmey)),
+                           pctredfmsycon = 100 * (1-(fconmsy/curr_f))
+                         ) 
+                       }
+                 
+                 dist_df <-
+                   evalWithTimeout(
+                     single_worldstate_outputs(dt2, n2, rel_targets, bycsp), 
+                     timeout = 20, ## i.e. Time out after 20 seconds if can't resolve 
+                     TimeoutException = function(ex) "TimedOut"
+                     )
+                 
+                 ## Optional: Check that each alpha draw for the kitchen sink 
+                 ## run is unique despite use of multicore function and "<<-"...
+                 # if(kitchen==1) {dist_df <- dist_df %>% mutate(alpha_draw = alpha_exp)}
+                 
+                 return(dist_df)
+               }, 
+               otherwise = data_frame(pctredmsy=as.double(NA), pctredmey=as.double(NA), ycostmsy=as.double(NA), pcostmey=as.double(NA)) ## To catch failed uniroot cases
+               ),
                cl=num_cores
-               )
+      )
     return(dists)
-    }
+  }
 
 ###############################################################################
 ## Final step: Convenience wrapper to apply over all target stocks affecting ##
@@ -770,19 +1035,19 @@ bycatch_func <-
       mutate(species = z)
     }
 
-## E.g. bycatch_func("Loggerhead_turtle")
+## E.g. bycatch_func("Loggerhead_turtle (NW Atlantic)")
 
 
 
 
-######################
-######################
-### PLOT FUNCTIONS ###
-######################
-######################
+######################################
+######################################
+####    * PLOTTING FUNCTIONS *    ####
+######################################
+######################################
 
-
-### Function to extract legend (to serve as common legend at bottom of composite figures) 
+## Simple function to extract legend (to serve as common legend at bottom of 
+## composite figures) 
 g_legend <- 
   function(a_ggplot){ 
     tmp <- ggplot_gtable(ggplot_build(a_ggplot)) 
@@ -796,59 +1061,81 @@ g_legend <-
 ##################################################################
 
 bycatchdist_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE, truncate95=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-ycostmsy, -pcostmey) %>%
+      select(-ycostmsy, -pcostmey) %>% 
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
       df1 %>%
       rename(
-        MSY = pctredmsy,
-        MEY = pctredmey
+        "MSY" = "pctredmsy",
+        "MEY" = "pctredmey",
+        "%T" = "pctT"
         ) %>%
       select(MSY:species) %>%
       gather(key, pctred, -species) %>%
-      mutate(key = factor(key, levels = c("MSY", "MEY"))) 
+      mutate(key = factor(key, levels = c("%T", "MSY", "MEY"))) 
     
-    if(!is.null(series)) df2 <- filter(df2, key==series)
+    ## Truncate %T disb to 95% range to aid visual inspection (default)
+    if(truncate95) {
+      df2 <-
+      df2 %>%
+      group_by(key) %>%
+      mutate(
+        q025 = quantile(pctred, 0.025, na.rm=T),
+        q975 = quantile(pctred, 0.975, na.rm=T)
+        ) %>%
+      mutate(pctred = ifelse(key=="%T" & pctred<q025, NA, pctred)) %>%
+      mutate(pctred = ifelse(key=="%T" & pctred>q975, NA, pctred)) %>%
+      ungroup()
+      
+      message("Truncating distributions to 95% range")
+      }
+    
+    if(!is.null(series)) df2 <- filter(df2, key %in% c("%T", series))
+    
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+      }
     
     df2 %>% 
+      group_by(species, key) %>%
       ggplot() +
-      geom_rect(
-        data = filter(df1, row_number() == 1),
-        aes(ymin = -Inf, ymax = Inf, xmin = pctredbl, xmax = pctredbu),
-        alpha = .25
+      geom_density(
+        aes(x = pctred, y = ..scaled.., col = key, fill = key), 
+        alpha = .5, 
+        adjust = 1.5 ## Increase smoothing slightly to improve plot aesthetics
         ) +
-      # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctred, y = ..scaled.., col = key, fill = key), alpha = .5) +
       geom_vline(
-        data = filter(df1, row_number() == 1),
-        aes(xintercept = pctredbpt), lty = 2
+        data = df1 %>% group_by(species) %>% summarise(pctT_median = quantile(pctT, 0.5, na.rm=T)),
+        aes(xintercept = pctT_median), lty = 2
         ) +
       labs(x = "Reduction in mortality", y = "Density") + 
       scale_x_continuous(labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(name = "", values = c("%T"="#A9A9A9", "MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_fill_manual(name = "", values = c("%T"="#A9A9A9", "MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
       facet_wrap(~species) +
-      theme(legend.position = "bottom") 
+      theme(legend.position = "bottom")
   } 
 
 ##############################################################
 ### Plot that asks: How much will it cost to stop decline? ###
 ##############################################################
+
 cost_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      select(-pctredmsy, -pctredmey) %>%
+      select(-pctredmsy, -pctredmey, -pctT) %>% 
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
@@ -860,6 +1147,13 @@ cost_plot <-
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
     
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+    }
+    
     if(!is.null(series)){
       x_lab <-  paste0("Cost (percent of ", series,")")
     }else{
@@ -867,16 +1161,13 @@ cost_plot <-
     }
     
     df2 %>% 
-      ggplot() +
-      # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = pctcost, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      group_by(species, key) %>%
+      ggplot(aes(x = pctcost, y = ..scaled.., col = key, fill = key)) +
+      geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
-      # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -884,19 +1175,24 @@ cost_plot <-
 ###################################################################################
 ### Plot that asks: How much would targeting need to improve to stop decline? ###
 ###################################################################################
+
 targeting_plot <-
-  function(bdist, series=NULL){
+  function(bdist, series=NULL, combined_avg=FALSE){
     
     df1 <- 
       left_join(bdist, bycatch_df) %>% 
       group_by(species) %>%
-      mutate(delta_mey = delta + (fe * (pctredmey/100)),
-             delta_msy = delta + (fe * (pctredmsy/100))) %>% # calculate growth rate after rebuilding
-      mutate(targeting_pct_mey1 = if_else(delta_mey >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_mey)))),
-             targeting_pct_mey = if_else(targeting_pct_mey1 > 100, 100, targeting_pct_mey1),
-             targeting_pct_msy1 = if_else(delta_msy >= 0, 0, 100 * (1-((delta + fe)/(delta + fe - delta_msy)))),
-             targeting_pct_msy = if_else(targeting_pct_msy1 > 100, 100, targeting_pct_msy1)) %>% # calculate selectivity change needed (% reduction in Fe at MEY)
-      select(-pctredmsy, -pctredmey, -pcostmey, -ycostmsy, -delta_mey, -delta_msy, -targeting_pct_mey1, -targeting_pct_msy1) %>%
+      ## Calculate growth rate after rebuilding
+      mutate(
+        targimpmey = 100 * ((pctT - pctredmey)/(100 - pctredmey)),
+        targimpmsy = 100 * ((pctT - pctredmsy)/(100 - pctredmsy))) %>% 
+      ## Calculate selectivity change needed (% reduction in Fe at MEY or MSY)
+      mutate(
+        targeting_pct_mey1 = if_else(targimpmey<=0, 0, targimpmey),
+        targeting_pct_mey = if_else(targeting_pct_mey1>100, 100, targeting_pct_mey1),
+        targeting_pct_msy1 = if_else(targimpmsy<=0, 0, targimpmsy),
+        targeting_pct_msy = if_else(targeting_pct_msy1>100, 100, targeting_pct_msy1)) %>% 
+      select(species, targeting_pct_msy, targeting_pct_mey) %>%
       mutate_if(is.double, funs(. / 100)) 
     
     df2 <-
@@ -907,20 +1203,23 @@ targeting_plot <-
       mutate(key = factor(key, levels = c("MSY", "MEY"))) 
     
     if(!is.null(series)) df2 <- filter(df2, key==series)
+    if(combined_avg) {
+      df3a <- df1 %>% ungroup %>% mutate(species = "All species")
+      df1 <- bind_rows(df1, df3a)
+      df3b <- df2 %>% ungroup %>% mutate(species = "All species")
+      df2 <- bind_rows(df3b, df2)
+    }
     
-    x_lab <- "Req. targeting improvement"
+    x_lab <- "Required targeting improvement"
     
     df2 %>% 
-      ggplot() +
-      # geom_line(stat = "density") + ## lines only
-      geom_density(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key), alpha = .5, adjust = 0.01) +
+      group_by(species, key) %>%
+      ggplot(aes(x = targeting_pct, y = ..scaled.., col = key, fill = key)) +
+      geom_density(alpha = .5, adjust = 0.1) +
       labs(x = x_lab, y = "Density") + 
-      # xlim(0, 100) +
       scale_x_continuous(limits=c(0,1), oob = rescale_none, labels = percent) + 
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      # scale_fill_brewer(palette = "Set1") + ## Ditto
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
-      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
+      scale_fill_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       facet_wrap(~species) +
       theme(legend.position = "bottom") 
   } 
@@ -940,7 +1239,7 @@ stockselect_func <-
       rename(wt_Fe = wt) %>% 
       select(idorig, speciescat, speciescatname, pctredfmsy,pctredfmey,trgcat, 
              wt_Fe,wt_usd)
-  }
+    }
   
 ## Second, the function that actually plots the scatter figures
 samples_plot <- 
@@ -949,7 +1248,7 @@ samples_plot <-
     lbl_df <- 
       data_frame(
         trgcat=c("Shrimp", "Demersals", "Tuna"),
-        target_description=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
+        target_lab_top=c("Shrimp~trawls", "Other~demersal~fisheries", "Pelagic~longline~fisheries")
       )
     
     bd <- 
@@ -957,27 +1256,24 @@ samples_plot <-
       left_join(lbl_df) %>%
       rename(MSY = pctredfmsy, MEY = pctredfmey) %>%
       ## Special chars ('(', '%', etc) req. diff quotation marks and spacing tokens (~, *) for plotmath parsing to work
-      mutate(target_lab = paste0("atop(", target_description, paste0(",~'('*", wt_Fe*100,"*'%'~of~italic(F)[e]*')')"))) %>%
+      mutate(target_lab_bottom = paste0("'('*", wt_Fe*100, "*'%'~of~italic(F)[e]*')'")) %>%
       group_by(trgcat) %>%
       gather(key, pctred, c(MSY, MEY)) %>%
       mutate(key = factor(key, levels = c("MSY", "MEY"))) %>% 
       mutate(pctred = pctred/100)
     
     bd %>% 
-      filter(key=="MEY") %>% ## MEY filter added
+      filter(key=="MEY") %>% 
       ggplot(aes(x = pctred, y = wt_usd, col = key)) +
-      geom_point(alpha=0.5, size = 3) +
-      # scale_color_brewer(palette = "Set1") + ## Replaced with below to match MEY filter above
-      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + ## show_col(brewer_pal(palette = "Set1")(2))
+      geom_point(alpha=0.5) +
+      scale_color_manual(values = c("MSY"="#E41A1C", "MEY"="#377EB8")) + 
       scale_x_continuous(limits = c(-1, 1), labels = percent) +
       scale_y_log10(labels = trans_format("log10", math_format(10^.x))) +
       labs(x = "Reduction in mortality", y = "Effort (USD)") +
-      facet_grid( ~ forcats::fct_reorder(target_lab, wt_Fe, .desc = T), 
+      facet_grid( ~ fct_reorder(target_lab_top, wt_Fe, .desc = T) +
+                    fct_reorder(target_lab_bottom, wt_Fe, .desc = T), 
                   labeller = label_parsed) +
-      theme(
-        # strip.text = element_text(size=14),
-        legend.position = "none"
-      )
+      theme(legend.position = "none")
 }
 
 
@@ -985,16 +1281,12 @@ samples_plot <-
 ### Fig. 3 Trade-offs ###
 #########################
 
-#########################
-### Results summaries ###
-#########################
-
+## First, a generic function that summarises the results by species
 summ_func <-
   function(df) {
     df %>%
-      gather(key, value, -species) %>%
+      gather(key, value, -c(species, pctT)) %>%
       group_by(species, key) %>%
-      # do(q=(quantile(.$value))) %>%
       summarise(
         q025 = quantile(value, .025, na.rm = T),
         q50 = quantile(value, .5, na.rm = T),
@@ -1005,7 +1297,7 @@ summ_func <-
       ungroup()
   }
 
-
+## Second, the function that actually plots the trade-offs figure
 tradeoffs_plot <-
   function(summ_df, goal) {
     
@@ -1023,16 +1315,16 @@ tradeoffs_plot <-
       ## Get pctredmey/pctredmsy rows from results_summary
       filter(key == df1_filter) %>% 
       ## Calculate growth rate post rebuilding
-      mutate(delta_post = delta + (fe * (q50/100))) %>% 
+      mutate(delta_post = delta_mean + (fe_mean * (q50/100))) %>% 
       ## Calculate required selectivity change (% reduction in Fe at MEY or MSY)
       mutate(
-        targeting_req1 = if_else(delta_post>=0, 0, 1-((delta+fe)/(delta+fe-delta_post))),
+        targeting_req1 = if_else(delta_post>=0, 0, 1-((delta_mean+fe_mean)/(delta_mean+fe_mean-delta_post))), 
         targeting_req = if_else(targeting_req1>1, 1, targeting_req1)
         ) %>% 
       mutate(clade=paste0(stringr::str_to_title(clade), "s")) %>%
-      select(species, grp, clade, delta, delta_post, targeting_req, contains("sens")) 
+      select(species, grp, clade, delta_mean, delta_post, targeting_req, contains("sens")) 
     
-    # Add median cost estimate
+    # Add cost point estimate
     df2 <- 
       summ_df %>%
       filter(key == df2_filter) %>% 
@@ -1043,7 +1335,7 @@ tradeoffs_plot <-
       left_join(df1, df2) %>% 
       ungroup() %>%
       mutate(species = factor(species)) %>%
-      mutate(species = fct_reorder(species, delta, .desc=TRUE)) 
+      mutate(species = fct_reorder(species, delta_mean, .desc=TRUE)) 
     
     df %>%
       ggplot(aes(y=species)) +
@@ -1058,33 +1350,208 @@ tradeoffs_plot <-
         show.legend = F
         ) + 
       geom_point(
-        aes(x=delta), 
-        size=3, stroke=1, shape=21, col="red"
+        aes(x=delta_mean), 
+        size=1.5, stroke=0.5, shape=21, col="red"
         ) +
       geom_vline(xintercept = 0, lty=2) +
       geom_segment(
-        aes(yend=species, x=delta, xend=delta_post),
-        arrow = arrow(length = unit(.25, "lines"))
+        aes(yend=species, x=delta_mean, xend=delta_post),
+        arrow = arrow(length = unit(.15, "lines"))
         ) +
       scale_size_continuous(
         name=paste0("Cost (percent\nof ", toupper(goal), ")"),
-        labels=percent, range=c(2,9)
+        labels=percent
         ) +
       scale_color_viridis(
-        name=paste0("Req. targeting\nimprovement"),
+        name=paste0("Targeting\nrequirement"),
         trans="reverse", direction=-1, 
-        option="plasma", labels=percent
+        labels=percent
         ) +
       guides(
         size = guide_legend(order = 1),
         col = guide_colourbar(order = 2)
         ) +
-      # coord_fixed(ratio = .025) +
       labs(x = expression(Rate~of~population~change~(Delta))) +
       facet_grid(clade~., scales = "free", space = "free", switch = "both") +
       theme(
-        legend.title = element_text(),
-        axis.title.y=element_blank(), 
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 8),
+        strip.text = element_text(size = 8),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7),
+        legend.key.size = unit(0.6, "lines"),
+        axis.title.y=element_blank(),
         strip.placement = "outside" ## Alongside `switch="both"` in facet_grid() call above
-        ) 
+        )
   }
+
+
+#############################
+### Fig. 4 Recovery rates ###
+#############################
+
+## First define a generic recovery function that produces a DF of recovery
+## estimates (percentage of species saved) at various levels of cost MEY and
+## targeting improvement. We will also add an additional column describing the
+## cost estimate under a single species scenario as a reference point.
+recovery_func <-
+  function(bdist){
+    
+    ## Define a "single stock cost" function that we will use to define
+    ## the relative margins of pretty good profit.
+    ss_cost_func <- 
+      function(targ) {
+        ## Define theoretical cost relationship
+        ss_cost <- 
+          function(pctT,f_mey,price,marginalcost,g,k,phi,beta) {
+            pmey <- eqprofitf(f_mey,price,marginalcost,g,k,phi,beta)
+            fT <- f_mey * (1 - (pctT/100))
+            pT <- eqprofitf(fT,price,marginalcost,g,k,phi,beta)
+            out <- 100 * (1 - (pT/pmey))
+            return(out)
+          }
+        ## Note: Doesn't matter which stock we choose from the upsides DF so 
+        ## just sampling a random row.
+        # u_df <- upsides[sample(1:nrow(upsides), 1), ]
+        u_df <- upsides[7000, ]
+        stc <- 
+          ss_cost(
+            targ, u_df$f_mey, u_df$price, u_df$marginalcost, u_df$g, u_df$k,
+            u_df$phi, u_df$beta
+          )
+        return(stc)
+      }
+    
+    recovery_df <-
+      pblapply(0:100, function(x) {
+        bdist %>%
+          mutate(targimp = 100 * ((pctT - pctredmey)/(100 - pctredmey))) %>%
+          mutate(targimp = if_else(targimp<=0, 0, targimp)) %>%
+          mutate(targimp = if_else(targimp>100, 100, targimp)) %>%
+          mutate(singstcst = ss_cost_func(targimp)) %>%
+          gather(key, value, c(pcostmey, targimp, singstcst)) %>%
+          group_by(species, key) %>%
+          mutate(grp = row_number()) %>%
+          group_by(grp, key) %>%
+          mutate(saved = value <= x) %>%
+          count(saved) %>%
+          group_by(grp, key) %>%
+          mutate(saved_perc = n / sum(n)) %>%
+          filter(saved == T) %>%
+          mutate(perc = x) %>%
+          group_by(key, perc) %>%
+          summarise(
+            saved_mean = mean(saved_perc),
+            saved_q025 = quantile(saved_perc, 0.025),
+            saved_q975 = quantile(saved_perc, 0.975)
+            )
+        },
+        cl = num_cores
+        ) %>%
+      bind_rows() %>%
+      ungroup()
+    
+    ## Separate out the single stock cost variable into its own column
+    ss_df <- 
+      recovery_df %>% 
+      filter(key=="singstcst") %>% 
+      rename(singstcst = saved_mean) %>%
+      select(perc, singstcst)
+    ## Rejoin with main recovery DF
+    recovery_df <-
+      recovery_df %>%
+      filter(key!="singstcst") %>% 
+      left_join(ss_df) %>%
+      arrange(perc) %>%
+      select(perc, key, everything()) 
+    }
+
+## Now we define the plotting function, which takes as inputs the recovery DF
+## yielded by recovery_func() above and optional input describing which "goal"
+## ("cost" or "targeting") we wish to evaluate.
+recovery_plot <-
+  function(recovery_df, goal=NULL){
+    
+    if(!is.null(goal)) {
+      if(goal %in% tolower(c("pcostmey", "cost"))) {
+        recovery_df <- filter(recovery_df, key=="pcostmey")
+      }
+      if(goal %in% tolower(c("targimp", "targeting"))) {
+        recovery_df <- filter(recovery_df, key=="targimp")
+      }
+    }
+    
+    recovery_fig <-
+      recovery_df %>% 
+      mutate(key_lab = key) %>%
+      mutate(key_lab = ifelse(key_lab=="pcostmey", "Cost (percent of MEY)", key_lab)) %>%
+      mutate(key_lab = ifelse(key_lab=="targimp", "Targeting improvement", key_lab)) %>%
+      group_by(key) %>%
+      ggplot(aes(x=perc/100, y=saved_mean, ymin=saved_q025, ymax=saved_q975, fill=key)) + 
+      geom_ribbon(alpha = 0.4) +
+      geom_line(aes(col=key), size = 0.5) + 
+      scale_colour_brewer(palette = "Dark2") + 
+      scale_fill_brewer(palette = "Dark2") +
+      scale_x_continuous(
+        labels = percent
+        ) +
+      scale_y_continuous(
+        name = "Populations recovering",
+        labels = percent,
+        limits = c(0, 1)
+        ) +
+      theme(
+        panel.grid.major = element_line(colour = "grey85", size = 0.2),
+        axis.title.x = element_blank(),
+        legend.position = "none",
+        strip.placement = "outside"
+        ) +
+      facet_grid(~ key_lab, switch = "both") +
+      coord_fixed(ratio = 1)
+    
+    return(recovery_fig)
+  } 
+
+
+####################################
+### Fig. S5 "Pretty good" profit ###
+####################################
+
+## Similar to recovery_plot() above, this takes as input a data frame of 
+## summarised population recovery rates by cost and targeting level.
+pgp_plot <-
+  function(recovery_df){
+  
+      pgp_df <-
+        recovery_df %>%
+        mutate(
+          saved_q025 = ifelse(key=="pcostmey", singstcst, saved_mean),
+          saved_q975 = ifelse(key=="pcostmey", saved_mean, singstcst)
+          )
+    
+    pgp_fig <-
+      pgp_df %>% 
+      ggplot(aes(x=perc/100, y=saved_mean)) + 
+      geom_ribbon(aes(ymin=saved_q025, ymax=saved_q975, fill=key), alpha = 0.5) +
+      geom_line(aes(col=key)) + 
+      geom_line(aes(y=singstcst), col="black", lty = 2) + 
+      scale_color_brewer(palette = "Paired", direction=-1) +
+      scale_fill_brewer(palette = "Paired", direction=-1) +
+      scale_x_continuous(
+        name = "Profit cost or targeting improvement",
+        labels = percent
+        ) +
+      scale_y_continuous(
+        name = "Populations recovering",
+        labels = percent,
+        limits = c(0, 1)
+        ) +
+      theme(
+        panel.grid.major = element_line(colour = "grey85", size = 0.2),
+        legend.position = "none",
+        strip.placement = "outside"
+        ) +
+      coord_fixed(ratio = 1)
+    
+    return(pgp_fig)
+  } 
