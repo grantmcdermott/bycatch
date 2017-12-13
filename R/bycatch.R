@@ -32,8 +32,8 @@ set.seed(123)
 
 ### Assign global elements for figures. 
 
-## Assign font. Register to extrafont package DB first. If below font is not
-## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
+## Assign font. Register to extrafont package DB first. If the below font is not
+## available, then extrafont package will use the Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
 
 ## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
@@ -636,28 +636,28 @@ fig_s6 + ggsave("Figures/PDFs/fig-S6.pdf", width = fig_width, height = fig_width
 rm(fig_s6)
 dev.off()
 
-############################################################
-#### Figs. S7-S9 (Trade-off plots for sensitivity runs) ####
-############################################################
+#########################################################
+#### Figs. S7 (Trade-off plots for sensitivity runs) ####
+#########################################################
 
 s_runs <- c("fcorrected", "conservation", "alpha=05", "alpha=2", 
               "nonei", "weights", "2012only", "doubleuncert", "kitchen")
 
 s_runs_list <- lapply(paste0("Results/bycatch_summary_results_", s_runs,".csv"), read_csv)
 
-fig_s7_df <-
+fig_s7a_df <-
   bind_rows(
     s_runs_list[[1]] %>% mutate(sens = "A"),
     s_runs_list[[2]] %>% mutate(sens = "B"),
     s_runs_list[[3]] %>% mutate(sens = "C")
     )
-fig_s8_df <-
+fig_s7b_df <-
   bind_rows(
     s_runs_list[[4]] %>% mutate(sens = "D"),
     s_runs_list[[5]] %>% mutate(sens = "E"),
     s_runs_list[[6]] %>% mutate(sens = "F")
     )
-fig_s9_df <-
+fig_s7c_df <-
   bind_rows(
     s_runs_list[[7]] %>% mutate(sens = "G"),
     s_runs_list[[8]] %>% mutate(sens = "H"),
@@ -677,8 +677,8 @@ x_lim <-
   bind_rows() %>%
   summarise(low = min(low), high = max(high))
 
-## Plot the figures
-lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
+## Plot the figure(s)
+lapply(list(fig_s7a_df, fig_s7b_df, fig_s7c_df), function(df) {
   p <-
     df %>%
     tradeoffs_plot("MEY") +
@@ -690,17 +690,17 @@ lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
       panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
       panel.spacing = unit(0.5, "lines")
     )
-  fig_name <- ifelse(grepl(df$sens[1], "A"), "S7", ifelse(grepl(df$sens[1], "D"), "S8", "S9"))
-  p + ggsave(paste0("Figures/fig-", fig_name, ".png"), width=3*fig_width, height=2*fig_width)
-  p + ggsave(paste0("Figures/PDFs/fig-", fig_name, ".pdf"), width=3*fig_width, height=2*fig_width, device=cairo_pdf)
+  fig_name <- ifelse(grepl(df$sens[1], "A"), "a", ifelse(grepl(df$sens[1], "D"), "b", "c"))
+  p + ggsave(paste0("Figures/fig-S7", fig_name, ".png"), width=3*fig_width, height=2*fig_width)
+  p + ggsave(paste0("Figures/PDFs/fig-S7", fig_name, ".pdf"), width=3*fig_width, height=2*fig_width, device=cairo_pdf)
 })
 
-rm(s_runs, s_runs_list, x_lim, fig_s7_df, fig_s8_df, fig_s9_df)
+rm(s_runs, s_runs_list, x_lim, fig_s7a_df, fig_s7b_df, fig_s7c_df)
 dev.off()
 
 
 ###########################################################################
-#### Fig. S10 (Illustrating role of uncertainty with the Māui dolphin) ####
+#### Fig. S8 (Illustrating role of uncertainty with the Māui dolphin) ####
 ###########################################################################
 
 sp_type <- "Māui dolphin"
@@ -711,27 +711,27 @@ doubleuncert_results <- read_csv("Results/bycatch_results_doubleuncert.csv") %>%
 ## Run 10 (kitchen)
 kitchen_results <- read_csv("Results/bycatch_results_kitchen.csv") %>% filter(species==sp_type)
  
-#### Fig. 10 Bycatch distributions (panels A, D and G) ####
+#### Fig. S8 Bycatch distributions (panels A, D and G) ####
 ## Define common bounds on bycatch disb plots for comparison
 lim_x <- quantile(doubleuncert_results$pctT, c(0.025, 0.975), na.rm = T)/100
-## Fig 10.A (Bycatch distribution, Main run)
-fig_s10a <- 
+## Fig S8.A (Bycatch distribution, Main run)
+fig_s8a <- 
   bycatchdist_plot(main_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
     ) + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.D (Bycatch distribution, Double uncertainty run) 
-fig_s10d <- 
+## Fig S8.D (Bycatch distribution, Double uncertainty run) 
+fig_s8d <- 
   bycatchdist_plot(doubleuncert_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
     ) +
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.G (Bycatch distribution, Kitchen sink run) 
-fig_s10g <- 
+## Fig S8.G (Bycatch distribution, Kitchen sink run) 
+fig_s8g <- 
   bycatchdist_plot(kitchen_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
@@ -739,48 +739,48 @@ fig_s10g <-
     ) +
   theme(strip.text.x = element_blank(), legend.position = "none")
 
-#### Fig. 10 Cost distributions (panels B, E and H) ####
-## Fig 10.D (Costs distribution, Main run) 
-fig_s10b <- 
+#### Fig. S8 Cost distributions (panels B, E and H) ####
+## Fig S8.D (Costs distribution, Main run) 
+fig_s8b <- 
   cost_plot(main_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.E (Costs distribution, Double uncertainty run) 
-fig_s10e <- 
+## Fig S8.E (Costs distribution, Double uncertainty run) 
+fig_s8e <- 
   cost_plot(doubleuncert_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.H (Costs distribution, Kitchen sink run) 
-fig_s10h <- 
+## Fig S8.H (Costs distribution, Kitchen sink run) 
+fig_s8h <- 
   cost_plot(kitchen_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
 
-#### Fig. 10 Recovery plots (panels C, F and I) ####
+#### Fig. S8 Recovery plots (panels C, F and I) ####
 
 ## First get data frames of recovery rates by cost and targeting level
 recovery_main <- recovery_func(read_csv("Results/bycatch_results.csv"))
 recovery_doubleuncert <- recovery_func(read_csv("Results/bycatch_results_doubleuncert.csv"))
 recovery_kitchen <- recovery_func(read_csv("Results/bycatch_results_kitchen.csv"))
 
-## Fig 10.C (Recovery rate, Main run) 
-fig_s10c <- recovery_plot(recovery_main, goal = "cost") + coord_cartesian()
-## Fig 10.F (Recovery rate, Double uncertainty run) 
-fig_s10f <- recovery_plot(recovery_doubleuncert, goal = "cost") + coord_cartesian()
-## Fig 10.I (Recovery rate, Kitchen sink run) 
-fig_s10i <- recovery_plot(recovery_kitchen, goal = "cost") + coord_cartesian()
+## Fig S8.C (Recovery rate, Main run) 
+fig_s8c <- recovery_plot(recovery_main, goal = "cost") + coord_cartesian()
+## Fig S8.F (Recovery rate, Double uncertainty run) 
+fig_s8f <- recovery_plot(recovery_doubleuncert, goal = "cost") + coord_cartesian()
+## Fig S8.I (Recovery rate, Kitchen sink run) 
+fig_s8i <- recovery_plot(recovery_kitchen, goal = "cost") + coord_cartesian()
 
-#### Composite Fig. S 10 ####
+#### Composite Fig. S8 ####
 
-fig_s10 <-
+fig_s8 <-
   ggdraw() +
   # draw_plot(fig, xpos,  ypos, width, height) +
-  draw_plot(fig_s10a, 0,    0.66, 0.33, 0.33) +
-  draw_plot(fig_s10b, 0.33, 0.66, 0.33, 0.33) +
-  draw_plot(fig_s10c, 0.66, 0.66, 0.33, 0.33) +
-  draw_plot(fig_s10d, 0,    0.33, 0.33, 0.33) +
-  draw_plot(fig_s10e, 0.33, 0.33, 0.33, 0.33) +
-  draw_plot(fig_s10f, 0.66, 0.33, 0.33, 0.33) +
-  draw_plot(fig_s10g, 0,    0,    0.33, 0.33) +
-  draw_plot(fig_s10h, 0.33, 0,    0.33, 0.33) +
-  draw_plot(fig_s10i, 0.66, 0,    0.33, 0.33) +
+  draw_plot(fig_s8a, 0,    0.66, 0.33, 0.33) +
+  draw_plot(fig_s8b, 0.33, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s8c, 0.66, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s8d, 0,    0.33, 0.33, 0.33) +
+  draw_plot(fig_s8e, 0.33, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s8f, 0.66, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s8g, 0,    0,    0.33, 0.33) +
+  draw_plot(fig_s8h, 0.33, 0,    0.33, 0.33) +
+  draw_plot(fig_s8i, 0.66, 0,    0.33, 0.33) +
   draw_plot_label(
     c("A", "B", "C", "D", "E", "F", "G", "H", "I"), 
     c(0, 0.33, 0.66, 0, 0.33, 0.66, 0, 0.33, 0.66), 
@@ -789,21 +789,21 @@ fig_s10 <-
     size = 9
   )
 
-# fig_s10
+# fig_s8
 
 save_plot(
-  "Figures/fig-S10.png", fig_s10,
+  "Figures/fig-S8.png", fig_s8,
   base_width = 3 * fig_width,
   base_height = 3 * fig_width
   )
 save_plot(
-  "Figures/PDFs/fig-S10.pdf", fig_s10,
+  "Figures/PDFs/fig-S8.pdf", fig_s8,
   base_width = 3 * fig_width,
   base_height = 3 * fig_width, 
   device=cairo_pdf
   )
 
-rm(fig_s10, fig_s10a, fig_s10b, fig_s10c, fig_s10d, fig_s10e, fig_s10f, fig_s10g, fig_s10h, fig_s10i)
+rm(fig_s8, fig_s8a, fig_s8b, fig_s8c, fig_s8d, fig_s8e, fig_s8f, fig_s8g, fig_s8h, fig_s8i)
 dev.off()
 
 
