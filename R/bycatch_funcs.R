@@ -149,9 +149,9 @@ choose_run <-
     ## Read in the relevant target stock data, derived from the "upsides" model of 
     ## Costello et al. (PNAS, 2016).
     upsides <<- 
-      fread(paste0("Data/upsides_", upsides_type, ".csv")) %>% 
+      fread(here("Data", paste0("upsides_", upsides_type, ".csv"))) %>% 
       as_data_frame()
-    # upsides <<- read_csv(paste0("Data/upsides_", upsides_str, ".csv"), col_types = cols(regionfao = "c"))
+    # upsides <<- read_csv(here("Data", paste0("upsides_", upsides_str, ".csv")), col_types = cols(regionfao = "c"))
     
     ## Adjustment to upsides data in the case of the "fcorrected" run
     if(run=="fcorrected") {
