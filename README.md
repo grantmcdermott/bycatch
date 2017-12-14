@@ -26,3 +26,7 @@ The core analysis in this paper involves a series of computationally intensive M
 ## Problems
 
 If you have any trouble running the code, or find any errors, please file an issue on this repo and we'll look into it.
+
+## License
+
+The software code contained within this repository is made available under the [MIT license](http://opensource.org/licenses/mit-license.php). The data and figures are made available under the [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) license.
