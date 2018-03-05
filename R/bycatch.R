@@ -156,8 +156,8 @@ fig1a <-
     lwd = 0.6
     ) +
   labs(
-    x = expression(Rate~of~population~change~(Delta)),
-    y = expression(Bycatch~mortality~rate~(italic(F)[e]))
+    x = expression("Rate"~"of"~"population"~"change"~"("*Delta*")"),
+    y = expression("Bycatch"~"mortality"~"rate"~"("*italic(F)[e]*")")
     ) +
   theme(
     legend.title = element_text(),
@@ -183,7 +183,7 @@ overall_red <-
   upsides %>%
   group_by(idoriglumped, regionfao, speciescat, speciescatname) %>%
   summarise(
-    margc = mean(marginalcost, na.rm=T), 
+    margc = mean(marg_cost_lumped, na.rm=T), 
     bet = mean(beta, na.rm=T),
     g = mean(g, na.rm=T),
     fvfmey = mean(eqfvfmey, na.rm=T),
@@ -197,12 +197,7 @@ overall_red <-
     pctmey = ifelse(pctmey==-Inf, NA, pctmey),
     pctmsy = ifelse(pctmey==-Inf, NA, pctmsy)
     ) %>%
-  mutate(
-    wt = margc * ((g * fvfmsy)^bet),
-    cstcurr = wt,
-    cstmey = margc * (((g * fvfmsy)/fvfmey)^bet),
-    cstmsy = margc * ((g)^bet)
-    ) %>%
+  mutate(wt = margc * ((g * fvfmsy)^bet)) %>%
   ungroup() %>%
   mutate(wt = wt/sum(wt, na.rm = T)) %>%
   mutate(
@@ -218,8 +213,8 @@ fao_red <-
   summarise_all(funs(sum(., na.rm=T))) %>% 
   group_by(regionfao) %>%
   mutate(
-    avpctmey = 100 * (1 - (cstmey/cstcurr)),
-    avpctmsy = 100 * (1 - (cstmsy/cstcurr))
+    avpctmey = wtpctmey/wt,
+    avpctmsy = wtpctmsy/wt
     ) %>%
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
@@ -243,18 +238,18 @@ fig1b <-
   geom_sf(data = countries, fill = "white", col="white") +
   geom_sf(data = fao_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_gradientn(
-    name = "Reduction in fishing effort (MEY vs. 2010-2012)",
+    name = "Reduction in fishing pressure (MEY vs. 2010-2012)",
     colours = brewer_pal(palette = "YlOrRd")(9),
-    labels = percent, limits=c(min(fao_sf$avpctmey)/100, 1)
+    labels = percent, limits=c(0, 1)
     ) +
   guides(
-    fill=guide_colourbar(barwidth=10.5, label.position="bottom", title.position="top")
+    fill=guide_colourbar(barwidth=11.1, label.position="bottom", title.position="top")
     ) +
   theme(
     legend.title = element_text(), ## Turn legend text back on
     legend.position = "bottom",
     legend.justification = "center",
-    legend.margin = margin(l=-3, t=-5, unit="pt"),
+    legend.margin = margin(l=-4.25, t=-5, unit="pt"),
     axis.line=element_blank(),axis.text.x=element_blank(),
     axis.text.y=element_blank(), axis.ticks=element_blank(),
     axis.title.x=element_blank(),
@@ -268,7 +263,7 @@ fig1b <-
 fig1 <-
   ggdraw() +
   # draw_plot(figureName, xpos, ypos, width, height) +
-  draw_plot(fig1a, 0, 0.49, 1, 0.49) +
+  draw_plot(fig1a, 0, 0.48, 1, 0.49) +
   draw_plot(fig1b, 0, 0, 1, 0.49) +
   draw_plot_label(c("A", "B"), c(0, 0), c(1, 0.49), size = 9)
 # fig1
@@ -463,8 +458,8 @@ fao_tax_red <-
   summarise_all(funs(sum(., na.rm=T))) %>% 
   group_by(taxonomy, regionfao) %>%
   mutate(
-    avpctmey = 100 * (1 - (cstmey/cstcurr)),
-    avpctmsy = 100 * (1 - (cstmsy/cstcurr))
+    avpctmey = wtpctmey/wt,
+    avpctmsy = wtpctmsy/wt
   ) %>%
   mutate(
     fvfmey = ifelse(fvfmey==-Inf, NA, pctmey),
@@ -508,11 +503,11 @@ fig_s1 <-
   geom_sf(data = countries, fill = "white", col="white") +
   geom_sf(data = fao_tax_sf, mapping = aes(fill = avpctmey/100), lwd = 0.08) +
   scale_fill_viridis(
-    name = "Reduction in fishing effort (MEY vs. 2010-2012)",
+    name = "Reduction in fishing pressure (MEY vs. 2010-2012)",
     labels = percent, limits=c(min(fao_tax_sf$avpctmey)/100, 1)
     )  +
   guides(
-    fill=guide_colourbar(barwidth=10.5, label.position="bottom", title.position="top")
+    fill=guide_colourbar(barwidth=11.3, label.position="bottom", title.position="top")
     ) +
   facet_wrap(~taxonomy, ncol=2) +
   theme(
