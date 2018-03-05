@@ -407,15 +407,13 @@ dev.off()
 ### Fig. 3 (Tradeoff plots) ###
 ###############################
 
-fig_3mey <- tradeoffs_plot(results_summary, "MEY") + 
-  theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
+fig_3mey <- tradeoffs_plot(results_summary, "MEY") 
 fig_3mey + ggsave(here("Figures", "fig-3-mey.png"), width=2*fig_width, height=2*fig_width)
 fig_3mey + ggsave(here("Figures/PDFs", "fig-3-mey.pdf"), width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
-fig_3msy <- tradeoffs_plot(results_summary, "MSY") + 
-  theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
+fig_3msy <- tradeoffs_plot(results_summary, "MSY") 
 fig_3msy + ggsave(here("Figures", "fig-3-msy.png"), width=2*fig_width, height=2*fig_width)
 fig_3msy + ggsave(here("Figures/PDFs", "fig-3-msy.pdf"), width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3msy)
@@ -659,7 +657,6 @@ lapply(list(fig_s7a_df, fig_s7b_df, fig_s7c_df), function(df) {
     xlim(c(x_lim$low, x_lim$high)) +
     facet_grid(clade~sens, scales = "free_y", space = "free", switch = "y") +
     theme(
-      strip.text.y = element_text(angle = 90),  #https://github.com/tidyverse/ggplot2/issues/2356
       strip.text.x = element_text(face="bold", size = 9, hjust=0),
       panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
       panel.spacing = unit(0.5, "lines")
