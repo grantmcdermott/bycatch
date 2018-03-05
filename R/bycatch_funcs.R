@@ -171,6 +171,12 @@ choose_run <-
           )
     }
     
+    ## Finally, join the relevant upsides DF with the "lumped" marginal cost 
+    ## data (also taken from the upsides project, but calculated separately).
+    ## Only relevant for Figs. 1B and S1.
+    lumped_marg_costs <- suppressMessages(read_csv(here("Data", "lumped-marg-costs.csv")))
+    upsides <<- left_join(upsides, lumped_marg_costs, by = "idoriglumped")
+    
     ## Combined convenience variable for output file name suffix
     suff_str <<- 
       paste0(upsides_str, alpha_str, corr_str, scenario_str, weights_str, doubleuncert_str, kitchen_str)
