@@ -2,7 +2,11 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1188538.svg)](https://doi.org/10.5281/zenodo.1188538)
 
-This repo contains data and *R* code for reproducing Burgess *et al*. (2018), "[Protecting marine mammals, turtles, and birds by rebuilding global fisheries](http://science.sciencemag.org/content/359/6381/1255)". Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternately, click on the green "clone or download" button just below that to download the repo to your local computer.
+This repo contains data and *R* code for reproducing Burgess *et al*. (2018), "[Protecting marine mammals, turtles, and birds by rebuilding global fisheries](http://dx.doi.org/10.1126/science.aao4248)". 
+
+> **Abstract:** Reductions in global fishing pressure are needed to end overfishing of target species and maximize the value of fisheries. We ask whether such reductions would also be sufficient to protect non–target species threatened as bycatch. We compare changes in fishing pressure needed to maximize profits from 4713 target fish stocks—accounting for >75% of global catch—to changes in fishing pressure needed to reverse ongoing declines of 20 marine mammal, sea turtle, and seabird populations threatened as bycatch. We project that maximizing fishery profits would halt or reverse declines of approximately half of these threatened populations. Recovering the other populations would require substantially greater effort reductions or targeting improvements. Improving commercial fishery management could thus yield important collateral benefits for threatened bycatch species globally.
+
+Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternately, click on the green "clone or download" button just below that to download the repo to your local computer.
 
 The main file for conducting the analysis is `R/bycatch.R`. This file contains self-explanatory code for easily reproducing the results from the ten different model runs described in the paper, as well as all of the figures.
 
@@ -14,8 +18,7 @@ You will need to install a number of external *R* packages to run the code succe
 
 ```
 if (!require("pacman")) install.packages("pacman")
-pacman::p_install(data.table, pbapply, parallel, R.utils, truncnorm, scales, grid, rworldmap, sf, rgeos, tidyverse, forcats, cowplot, ggthemes, RColorBrewer, viridis, extrafont, here)
-devtools::install_github("tidyverse/ggplot2") ## Using dev. version of ggplot2 for geom_sf()
+pacman::p_install(c(data.table, pbapply, parallel, R.utils, truncnorm, scales, grid, rworldmap, sf, rgeos, tidyverse, forcats, cowplot, ggthemes, RColorBrewer, viridis, extrafont, here))
 pacman::p_update()
 ```
 
