@@ -6,23 +6,44 @@ This repo contains data and *R* code for reproducing Burgess *et al*. (2018), "[
 
 > **Abstract:** Reductions in global fishing pressure are needed to end overfishing of target species and maximize the value of fisheries. We ask whether such reductions would also be sufficient to protect non–target species threatened as bycatch. We compare changes in fishing pressure needed to maximize profits from 4713 target fish stocks—accounting for >75% of global catch—to changes in fishing pressure needed to reverse ongoing declines of 20 marine mammal, sea turtle, and seabird populations threatened as bycatch. We project that maximizing fishery profits would halt or reverse declines of approximately half of these threatened populations. Recovering the other populations would require substantially greater effort reductions or targeting improvements. Improving commercial fishery management could thus yield important collateral benefits for threatened bycatch species globally.
 
-Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternately, click on the green "clone or download" button just below that to download the repo to your local computer.
+## Reproducibility
 
-The main file for conducting the analysis is `R/bycatch.R`. This file contains self-explanatory code for easily reproducing the results from the ten different model runs described in the paper, as well as all of the figures.
+Assuming that you met the [requirements](#requirements), the entire analysis can executed by running the **`R/bycatch.R`** master script. For example:
+
+```
+## Run these commands in the shell
+git clone git@github.com:grantmcdermott/bycatch.git
+cd bycatch
+Rscript R/bycatch.R
+```
+
+Of course, you may run the analysis interactively in your R console too. The `R/bycatch.R` file contains self-explanatory code for easily reproducing the results from the ten different model runs described in the paper, as well as all of the figures.
 
 ## Requirements
 
-The entire analysis is conducted in the *R* programming environment. *R* is free, open-source and available for download [here](https://www.r-project.org/). We highly recommend running *R* in the RStudio IDE, which you can also download for free [here](https://www.rstudio.com/products/rstudio/download/).
+#### Step 1: Install R and R libaries
 
-You will need to install a number of external *R* packages to run the code successfully. These are listed at the top of the main `R/bycatch.R` file. An easy way to ensure that you have the correct versions of all the packages is to run the following code chunk in your *R* console:
+**Note:** The code was most recently tested and updated against *R* 3.4.2. *R* is free, open-source and available for download [here](https://www.r-project.org/).
 
+We use [**renv**](https://rstudio.github.io/renv/) to snapshot the project environment. Run the following command(s) from your *R* console to pull in all of the necessary libraries.
+
+```r
+# renv::init()   ## Only necessary if you didn't clone/open the repo as an RStudio project
+renv::restore()  ## Enter "y" when prompted
 ```
-if (!require("pacman")) install.packages("pacman")
-pacman::p_install(c(data.table, pbapply, parallel, R.utils, truncnorm, scales, grid, rworldmap, sf, rgeos, tidyverse, forcats, cowplot, ggthemes, RColorBrewer, viridis, extrafont, here))
-pacman::p_update()
+
+#### Step 2: Install system dependencies (only if applicable)
+
+While the `renv::restore()` command above should install [package binaries](https://packagemanager.rstudio.com/) on most operating systems (OS), it will not necessarily import *system* dependencies on some Linux builds. In our case, the most obvious system dependencies are related to the underlying geospatial libaries that power the [**sf**](https://r-spatial.github.io/sf/#installing) package. You can double check that you have met the requirements for your OS by clicking the previous link. As an alternative, you can also try running the [`remotes::system_requirements()`](https://remotes.r-lib.org/reference/system_requirements.html) command. For example, if we wanted to check what requirements were required for Ubuntu 16.04, we could run:
+
+```r
+remotes::system_requirements(os = 'ubuntu', os_release = '16.04', 
+                             path = 'renv/library/R-3.4/x86_64-pc-linux-gnu/sf/')
 ```
 
-Please note that the `extrafont` package requires some minor setup upon first use. The main analysis will still work without this initial setup, but it is perhaps useful for reproducing some of the figures in full. See [here](https://github.com/wch/extrafont/blob/master/README.md) for instructions.
+#### Optional: Fonts
+
+We use the `extrafont` package embed [Open Sans](https://fonts.google.com/specimen/Open+Sans) fonts in some of the figures. Please note that the Open Sans fonts would have to be installed separately on your system and thus requires some minor setup upon first use. See [here](https://github.com/wch/extrafont/blob/master/README.md) for instructions. Feel free to skip this step if that all sounds like too much work. The code will automatically use one *R*'s default Arial fonts if others are not available.
 
 ## Performance
 
