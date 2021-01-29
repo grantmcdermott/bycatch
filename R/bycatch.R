@@ -1,17 +1,16 @@
-## Clear environment
-rm(list = ls())
+# rm(list = ls())
 
 #####################################
-########### Load packages ###########
+########### LOAD PACKAGES ###########
 #####################################
-library(data.table) ## Mostly for super fast reading/writing of large csv files
+
+library(data.table) 
 library(pbapply)
 library(parallel)
 library(R.utils)
 library(truncnorm)
 library(scales)
 library(grid)
-# library(maps)
 library(rworldmap) ## Better shape files
 library(sf)
 library(rgeos)
@@ -22,6 +21,7 @@ library(ggthemes)
 library(RColorBrewer)
 library(viridis)
 library(extrafont) ## See https://github.com/wch/extrafont for first-time use instructions
+library(here)
 
 
 #######################################################
@@ -32,43 +32,23 @@ set.seed(123)
 
 ### Assign global elements for figures. 
 
-## Assign font. Register to extrafont package DB first. If below font is not
-## available, then extrafont package will use Arial default. Again, see: https://github.com/wch/extrafont
+## Assign font. Register to extrafont package DB first. If the below font is not
+## available, then extrafont package will use the Arial default. Again, see: https://github.com/wch/extrafont
 font_type <- choose_font(c("Open Sans", "sans")) ## Download here: https://fonts.google.com/specimen/Open+Sans
 
-## Make some adjustments to the (now default) cowplot ggplot2 theme for figures
-## to match publication requirements. See: 
-## http://www.sciencemag.org/site/feature/contribinfo/prep/prep_revfigs.xhtml
-theme_science <-
-  theme_cowplot(font_size = 7, line_size = 0.15) +
-  theme(
-    text = element_text(family = font_type),
-    legend.title = element_blank(),
-    legend.key.size = unit(0.4, "lines"),
-    legend.margin = margin(t=3, r=0, b=3, l=0, unit="pt"), ## Change last digit to -ve to reduce space between right legend and plot
-    legend.spacing = unit(0.2, "cm"),
-    legend.justification = "center", 
-    plot.margin = margin(t=3, r=3, b=3, l=3, unit="pt"),#unit(c(3, 3, 3, 3), "points"), 
-    strip.background = element_rect(fill = "white"), ## Facet strip
-    panel.spacing = unit(1, "lines"), ## Increase gap between facet panels
-    strip.text = element_text(size = 7)
-    )
-theme_set(theme_science)
-fig_width <- 2.3 ## Width of one column in Science (in inches)
-## Also adjust geoms (https://stackoverflow.com/a/21175042)
-params <- ls(pattern = '^geom_', env = as.environment('package:ggplot2'))
-params <- setdiff(params, paste0("geom_", c("bin2d", "count", "freqpoly", "histogram", "jitter", 
-                                            "qq", "qq_line")))
-geoms <- gsub("geom_", "", params)
-lapply(geoms, update_geom_defaults, list(size = 1.3, stroke = 0.225))
-lapply(c("line", "vline", "hline", "segment", "density"), update_geom_defaults, list(size = 0.2))
-rm(params, geoms)
+## Choose the plotting theme. The first (recommended) option will ensure 
+## publication-ready PNG and PDF export files consistent with Science's strict 
+## figure requirements (incl. dimensions and font size). However, the output may 
+## look small in your interactive session. The second option may thus be more 
+## visually appealing for a purely interactive session, but comes without 
+## guarantees. 
+theme_type <- c("Science", "Interactive")[1] ## Change as needed.
 
 ## Decide on number of cores for parallel computation
 num_cores <- detectCores() ## i.e. Use all available CPUs. Subtract 1 or 2 if you are running additional processes on your computer
 
 ## Load functions
-source("R/bycatch_funcs.R")
+source(here("R", "bycatch_funcs.R"))
 
 
 ##############################
@@ -76,8 +56,8 @@ source("R/bycatch_funcs.R")
 ##############################
 
 ### Load bycatch data
-bycatch_df <- read_csv("Data/bycatch_species.csv")
-target_df <- read_csv("Data/target_species.csv")
+bycatch_df <- read_csv(here("Data", "bycatch_species.csv"))
+target_df <- read_csv(here("Data", "target_species.csv"))
 
 ## Get a vector of bycatch species
 all_species <- bycatch_df$species 
@@ -88,7 +68,7 @@ all_species <- bycatch_df$species
 ################################
 
 #### WARNING: FULL ANALYSIS CAN TAKE A LONG TIME TO RUN (+/- 40 MIN ON A
-#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 130)    
+#### 24 CORE LINUX SERVER). SKIP DIRECTLY TO FIGURES SECTION (LINE 110)    
 #### TO PLOT PREVIOUSLY RUN (AND SAVED) RESULTS. 
 
 ### Monte Carlo (MC) sampling parameters
@@ -122,16 +102,16 @@ results <- lapply(all_species, bycatch_func) %>% bind_rows()
 results_summary <- summ_func(results)
 
 ## Write results to disk for convenient later use
-write_csv(results, paste0("Results/bycatch_results", suff_str, ".csv"))
-write_csv(results_summary, paste0("Results/bycatch_summary_results", suff_str, ".csv"))
+write_csv(results, here("Results", paste0("bycatch_results", suff_str, ".csv")))
+write_csv(results_summary, here("Results", paste0("bycatch_summary_results", suff_str, ".csv")))
 
 ####################################
 ########### MAIN FIGURES ########### 
 ####################################
 
 ## First, read the main results back in (no uncertainty, alpha = 1)
-results <- read_csv("Results/bycatch_results.csv")
-results_summary <- read_csv("Results/bycatch_summary_results.csv")
+results <- read_csv(here("Results", "bycatch_results.csv"))
+results_summary <- read_csv(here("Results", "bycatch_summary_results.csv"))
 
 ## Choose map projection (See http://spatialreference.org)
 proj_string <- 
@@ -178,7 +158,7 @@ fig1a <-
   labs(
     x = expression(Rate~of~population~change~(Delta)),
     y = expression(Bycatch~mortality~rate~(italic(F)[e]))
-  ) +
+    ) +
   theme(
     legend.title = element_text(),
     legend.margin = margin(l=-8, unit="pt")
@@ -250,7 +230,7 @@ fao_red <-
 
 ## Load (and filter) FAO spatial data, before joining with the fao_red DF above
 fao_sf <- 
-  st_read("Data/Shapefiles/FAO_AREAS/FAO_AREAS.shp") %>%
+  st_read(here("Data", "Shapefiles/FAO_AREAS/FAO_AREAS.shp")) %>%
   st_transform(proj_string) %>%
   filter(F_LEVEL=="MAJOR") %>%
   as_data_frame() %>%
@@ -282,7 +262,6 @@ fig1b <-
     panel.grid.major = element_line(colour = "white")
   )
 
-# fig1b
 
 #### Composite Fig. 1 ####
 
@@ -295,12 +274,12 @@ fig1 <-
 # fig1
 
 save_plot(
-  "Figures/fig-1.png", fig1,
+  here("Figures", "fig-1.png"), fig1,
   base_width = fig_width,
   base_height = fig_width*1.5
   )
 save_plot(
-  "Figures/PDFs/fig-1.pdf", fig1,
+  here("Figures/PDFs", "fig-1.pdf"), fig1,
   base_width = fig_width,
   base_height = fig_width*1.5,
   device=cairo_pdf
@@ -319,12 +298,12 @@ sp_type <- "Loggerhead turtle (NW Atlantic)"
 
 ## Load shape file of NWA LH Regional Mgmt Units (based on Wallace et. al, PLoSONE 2010)
 lh_rmus <- 
-  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp") %>%
+  read_sf(here("Data", "Shapefiles/NW_Atl_Loggerhead/NW_Atl_Loggerhead_RMUs.shp")) %>%
   st_transform(proj_string)
 
 ## Similarly for the the nesting sites
 lh_nesters <- 
-  read_sf("Data/Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp") %>%
+  read_sf(here("Data", "Shapefiles/NW_Atl_Loggerhead/NW_Loggerhead_nesters.shp")) %>%
   st_set_crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
   st_transform(proj_string)
 
@@ -414,12 +393,12 @@ fig2 <-
 # fig2
 
 save_plot(
-  "Figures/fig-2.png", fig2,
+  here("Figures", "fig-2.png"), fig2,
   base_width = 2 * fig_width,
   base_height = 2 * fig_width
   )
 save_plot(
-  "Figures/PDFs/fig-2.pdf", fig2,
+  here("Figures/PDFs", "fig-2.pdf"), fig2,
   base_width = 2 * fig_width,
   base_height = 2 * fig_width, 
   device=cairo_pdf
@@ -435,15 +414,15 @@ dev.off()
 
 fig_3mey <- tradeoffs_plot(results_summary, "MEY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-fig_3mey + ggsave("Figures/fig-3-mey.png", width=2*fig_width, height=2*fig_width)
-fig_3mey + ggsave("Figures/PDFs/fig-3-mey.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
+fig_3mey + ggsave(here("Figures", "fig-3-mey.png"), width=2*fig_width, height=2*fig_width)
+fig_3mey + ggsave(here("Figures/PDFs", "fig-3-mey.pdf"), width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3mey)
 dev.off()
 
 fig_3msy <- tradeoffs_plot(results_summary, "MSY") + 
   theme(strip.text.y = element_text(angle = 90))  #https://github.com/tidyverse/ggplot2/issues/2356
-fig_3msy + ggsave("Figures/fig-3-msy.png", width=2*fig_width, height=2*fig_width)
-fig_3msy + ggsave("Figures/PDFs/fig-3-msy.pdf", width=2*fig_width, height=2*fig_width, device=cairo_pdf)
+fig_3msy + ggsave(here("Figures", "fig-3-msy.png"), width=2*fig_width, height=2*fig_width)
+fig_3msy + ggsave(here("Figures/PDFs", "fig-3-msy.pdf"), width=2*fig_width, height=2*fig_width, device=cairo_pdf)
 rm(fig_3msy)
 dev.off()
 
@@ -456,8 +435,8 @@ dev.off()
 recovery_df <- recovery_func(results)
 
 fig4 <- recovery_plot(recovery_df)
-fig4 + ggsave("Figures/fig-4.png", width=2*fig_width, height=fig_width)
-fig4 + ggsave("Figures/PDFs/fig-4.pdf", width=2*fig_width, height=fig_width, device=cairo_pdf)
+fig4 + ggsave(here("Figures", "fig-4.png"), width=2*fig_width, height=fig_width)
+fig4 + ggsave(here("Figures/PDFs", "fig-4.pdf"), width=2*fig_width, height=fig_width, device=cairo_pdf)
 rm(fig4)
 dev.off()
 
@@ -471,7 +450,7 @@ dev.off()
 ############################################################
 
 ## Read in taxonomy CSV for faceting categories
-tax_df <- read_csv("Data/taxonomies.csv") 
+tax_df <- read_csv(here("Data", "taxonomies.csv")) 
 
 ## Start with `overall_red` DF created above (Fig. 1B)
 fao_tax_red <-
@@ -496,7 +475,7 @@ fao_tax_red <-
 
 ## Load (and filter) FAO spatial data, before joining with the `fao_tax_red` DF above
 fao_tax_sf <- 
-  st_read("Data/Shapefiles/FAO_AREAS/FAO_AREAS.shp") %>%
+  st_read(here("Data", "Shapefiles/FAO_AREAS/FAO_AREAS.shp")) %>%
   st_transform(proj_string) %>%
   filter(F_LEVEL=="MAJOR") %>%
   as_data_frame() %>%
@@ -548,8 +527,8 @@ fig_s1 <-
     panel.grid.major = element_line(colour = "white")
     )
 
-fig_s1 + ggsave("Figures/fig-S1.png", width = 2*fig_width, height = 2*fig_width)
-fig_s1 + ggsave("Figures/PDFs/fig-S1.pdf", width = 2*fig_width, height = 2*fig_width)
+fig_s1 + ggsave(here("Figures", "fig-S1.png"), width = 2*fig_width, height = 2*fig_width)
+fig_s1 + ggsave(here("Figures/PDFs", "fig-S1.pdf"), width = 2*fig_width, height = 2*fig_width)
 rm(fig_s1)
 dev.off()
 
@@ -561,8 +540,8 @@ fig_s2 <-
   bycatchdist_plot(results, combined_avg = T, truncate95 = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-fig_s2 + ggsave("Figures/fig-S2.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
-fig_s2 + ggsave("Figures/PDFs/fig-S2.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
+fig_s2 + ggsave(here("Figures", "fig-S2.png"), width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s2 + ggsave(here("Figures/PDFs", "fig-S2.pdf"), width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s2)
 dev.off()
 
@@ -573,8 +552,8 @@ fig_s3 <-
   cost_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-fig_s3 + ggsave("Figures/fig-S3.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
-fig_s3 + ggsave("Figures/PDFs/fig-S3.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
+fig_s3 + ggsave(here("Figures", "fig-S3.png"), width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s3 + ggsave(here("Figures/PDFs", "fig-S3.pdf"), width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 rm(fig_s3)
 dev.off()
 
@@ -585,8 +564,8 @@ fig_s4 <-
   targeting_plot(results, combined_avg = T) +
   facet_wrap(~species, ncol = 3, scales = "free_x") +
   theme(legend.text = element_text(size = 7))
-fig_s4 + ggsave("Figures/fig-S4.png", width=2.5*fig_width, height=2.5*fig_width*1.3)
-fig_s4 + ggsave("Figures/PDFs/fig-S4.pdf", width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
+fig_s4 + ggsave(here("Figures", "fig-S4.png"), width=2.5*fig_width, height=2.5*fig_width*1.3)
+fig_s4 + ggsave(here("Figures/PDFs", "fig-S4.pdf"), width=2.5*fig_width, height=2.5*fig_width*1.3, device=cairo_pdf)
 
 rm(fig_s4)
 dev.off()
@@ -600,8 +579,8 @@ dev.off()
 # recovery_df <- recovery_func(results)
 
 fig_s5 <- pgp_plot(recovery_df)
-fig_s5 + ggsave("Figures/fig-S5.png", width=fig_width, height=fig_width)
-fig_s5 + ggsave("Figures/PDFs/fig-S5.pdf", width=fig_width, height=fig_width, device=cairo_pdf)
+fig_s5 + ggsave(here("Figures", "fig-S5.png"), width=fig_width, height=fig_width)
+fig_s5 + ggsave(here("Figures/PDFs", "fig-S5.pdf"), width=fig_width, height=fig_width, device=cairo_pdf)
 rm(fig_s5)
 dev.off()
 
@@ -630,34 +609,34 @@ fig_s6 <-
     x = expression(alpha), 
     y = "Reduction in bycatch mortality"
   ) 
-fig_s6 + ggsave("Figures/fig-S6.png", width = fig_width, height = fig_width)
-fig_s6 + ggsave("Figures/PDFs/fig-S6.pdf", width = fig_width, height = fig_width)
+fig_s6 + ggsave(here("Figures", "fig-S6.png"), width = fig_width, height = fig_width)
+fig_s6 + ggsave(here("Figures/PDFs", "fig-S6.pdf"), width = fig_width, height = fig_width)
 
 rm(fig_s6)
 dev.off()
 
-############################################################
-#### Figs. S7-S9 (Trade-off plots for sensitivity runs) ####
-############################################################
+#########################################################
+#### Figs. S7 (Trade-off plots for sensitivity runs) ####
+#########################################################
 
 s_runs <- c("fcorrected", "conservation", "alpha=05", "alpha=2", 
               "nonei", "weights", "2012only", "doubleuncert", "kitchen")
 
-s_runs_list <- lapply(paste0("Results/bycatch_summary_results_", s_runs,".csv"), read_csv)
+s_runs_list <- lapply(here("Results", paste0("bycatch_summary_results_", s_runs,".csv")), read_csv)
 
-fig_s7_df <-
+fig_s7a_df <-
   bind_rows(
     s_runs_list[[1]] %>% mutate(sens = "A"),
     s_runs_list[[2]] %>% mutate(sens = "B"),
     s_runs_list[[3]] %>% mutate(sens = "C")
     )
-fig_s8_df <-
+fig_s7b_df <-
   bind_rows(
     s_runs_list[[4]] %>% mutate(sens = "D"),
     s_runs_list[[5]] %>% mutate(sens = "E"),
     s_runs_list[[6]] %>% mutate(sens = "F")
     )
-fig_s9_df <-
+fig_s7c_df <-
   bind_rows(
     s_runs_list[[7]] %>% mutate(sens = "G"),
     s_runs_list[[8]] %>% mutate(sens = "H"),
@@ -677,8 +656,8 @@ x_lim <-
   bind_rows() %>%
   summarise(low = min(low), high = max(high))
 
-## Plot the figures
-lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
+## Plot the figure(s)
+lapply(list(fig_s7a_df, fig_s7b_df, fig_s7c_df), function(df) {
   p <-
     df %>%
     tradeoffs_plot("MEY") +
@@ -690,48 +669,48 @@ lapply(list(fig_s7_df, fig_s8_df, fig_s9_df), function(df) {
       panel.background = element_rect(fill = "#F2F2F2FF", colour = "#F2F2F2FF"),
       panel.spacing = unit(0.5, "lines")
     )
-  fig_name <- ifelse(grepl(df$sens[1], "A"), "S7", ifelse(grepl(df$sens[1], "D"), "S8", "S9"))
-  p + ggsave(paste0("Figures/fig-", fig_name, ".png"), width=3*fig_width, height=2*fig_width)
-  p + ggsave(paste0("Figures/PDFs/fig-", fig_name, ".pdf"), width=3*fig_width, height=2*fig_width, device=cairo_pdf)
+  fig_name <- ifelse(grepl(df$sens[1], "A"), "a", ifelse(grepl(df$sens[1], "D"), "b", "c"))
+  p + ggsave(here("Figures", paste0("fig-S7", fig_name, ".png")), width=3*fig_width, height=2*fig_width)
+  p + ggsave(here("Figures/PDFs", paste0("fig-S7", fig_name, ".pdf")), width=3*fig_width, height=2*fig_width, device=cairo_pdf)
 })
 
-rm(s_runs, s_runs_list, x_lim, fig_s7_df, fig_s8_df, fig_s9_df)
+rm(s_runs, s_runs_list, x_lim, fig_s7a_df, fig_s7b_df, fig_s7c_df)
 dev.off()
 
 
 ###########################################################################
-#### Fig. S10 (Illustrating role of uncertainty with the Māui dolphin) ####
+#### Fig. S8 (Illustrating role of uncertainty with the Māui dolphin) ####
 ###########################################################################
 
 sp_type <- "Māui dolphin"
 ## Run 1 (main)
-main_results <- read_csv("Results/bycatch_results.csv") %>% filter(species==sp_type)
+main_results <- read_csv(here("Results", "bycatch_results.csv")) %>% filter(species==sp_type)
 ## Run 9 (doubleuncert)
-doubleuncert_results <- read_csv("Results/bycatch_results_doubleuncert.csv") %>% filter(species==sp_type)
+doubleuncert_results <- read_csv(here("Results", "bycatch_results_doubleuncert.csv")) %>% filter(species==sp_type)
 ## Run 10 (kitchen)
-kitchen_results <- read_csv("Results/bycatch_results_kitchen.csv") %>% filter(species==sp_type)
+kitchen_results <- read_csv(here("Results", "bycatch_results_kitchen.csv")) %>% filter(species==sp_type)
  
-#### Fig. 10 Bycatch distributions (panels A, D and G) ####
+#### Fig. S8 Bycatch distributions (panels A, D and G) ####
 ## Define common bounds on bycatch disb plots for comparison
 lim_x <- quantile(doubleuncert_results$pctT, c(0.025, 0.975), na.rm = T)/100
-## Fig 10.A (Bycatch distribution, Main run)
-fig_s10a <- 
+## Fig S8.A (Bycatch distribution, Main run)
+fig_s8a <- 
   bycatchdist_plot(main_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
     ) + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.D (Bycatch distribution, Double uncertainty run) 
-fig_s10d <- 
+## Fig S8.D (Bycatch distribution, Double uncertainty run) 
+fig_s8d <- 
   bycatchdist_plot(doubleuncert_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
     limits = lim_x, labels = percent
     ) +
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.G (Bycatch distribution, Kitchen sink run) 
-fig_s10g <- 
+## Fig S8.G (Bycatch distribution, Kitchen sink run) 
+fig_s8g <- 
   bycatchdist_plot(kitchen_results, series = "MEY", truncate95 = T) + 
   scale_x_continuous(
     name = "Reduction in mortality (MEY) vs. %T", 
@@ -739,48 +718,48 @@ fig_s10g <-
     ) +
   theme(strip.text.x = element_blank(), legend.position = "none")
 
-#### Fig. 10 Cost distributions (panels B, E and H) ####
-## Fig 10.D (Costs distribution, Main run) 
-fig_s10b <- 
+#### Fig. S8 Cost distributions (panels B, E and H) ####
+## Fig S8.D (Costs distribution, Main run) 
+fig_s8b <- 
   cost_plot(main_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.E (Costs distribution, Double uncertainty run) 
-fig_s10e <- 
+## Fig S8.E (Costs distribution, Double uncertainty run) 
+fig_s8e <- 
   cost_plot(doubleuncert_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
-## Fig 10.H (Costs distribution, Kitchen sink run) 
-fig_s10h <- 
+## Fig S8.H (Costs distribution, Kitchen sink run) 
+fig_s8h <- 
   cost_plot(kitchen_results, series = "MEY") + 
   theme(strip.text.x = element_blank(), legend.position = "none")
 
-#### Fig. 10 Recovery plots (panels C, F and I) ####
+#### Fig. S8 Recovery plots (panels C, F and I) ####
 
 ## First get data frames of recovery rates by cost and targeting level
-recovery_main <- recovery_func(read_csv("Results/bycatch_results.csv"))
-recovery_doubleuncert <- recovery_func(read_csv("Results/bycatch_results_doubleuncert.csv"))
-recovery_kitchen <- recovery_func(read_csv("Results/bycatch_results_kitchen.csv"))
+recovery_main <- recovery_func(read_csv(here("Results", "bycatch_results.csv")))
+recovery_doubleuncert <- recovery_func(read_csv(here("Results", "bycatch_results_doubleuncert.csv")))
+recovery_kitchen <- recovery_func(read_csv(here("Results", "bycatch_results_kitchen.csv")))
 
-## Fig 10.C (Recovery rate, Main run) 
-fig_s10c <- recovery_plot(recovery_main, goal = "cost") + coord_cartesian()
-## Fig 10.F (Recovery rate, Double uncertainty run) 
-fig_s10f <- recovery_plot(recovery_doubleuncert, goal = "cost") + coord_cartesian()
-## Fig 10.I (Recovery rate, Kitchen sink run) 
-fig_s10i <- recovery_plot(recovery_kitchen, goal = "cost") + coord_cartesian()
+## Fig S8.C (Recovery rate, Main run) 
+fig_s8c <- recovery_plot(recovery_main, goal = "cost") + coord_cartesian()
+## Fig S8.F (Recovery rate, Double uncertainty run) 
+fig_s8f <- recovery_plot(recovery_doubleuncert, goal = "cost") + coord_cartesian()
+## Fig S8.I (Recovery rate, Kitchen sink run) 
+fig_s8i <- recovery_plot(recovery_kitchen, goal = "cost") + coord_cartesian()
 
-#### Composite Fig. S 10 ####
+#### Composite Fig. S8 ####
 
-fig_s10 <-
+fig_s8 <-
   ggdraw() +
   # draw_plot(fig, xpos,  ypos, width, height) +
-  draw_plot(fig_s10a, 0,    0.66, 0.33, 0.33) +
-  draw_plot(fig_s10b, 0.33, 0.66, 0.33, 0.33) +
-  draw_plot(fig_s10c, 0.66, 0.66, 0.33, 0.33) +
-  draw_plot(fig_s10d, 0,    0.33, 0.33, 0.33) +
-  draw_plot(fig_s10e, 0.33, 0.33, 0.33, 0.33) +
-  draw_plot(fig_s10f, 0.66, 0.33, 0.33, 0.33) +
-  draw_plot(fig_s10g, 0,    0,    0.33, 0.33) +
-  draw_plot(fig_s10h, 0.33, 0,    0.33, 0.33) +
-  draw_plot(fig_s10i, 0.66, 0,    0.33, 0.33) +
+  draw_plot(fig_s8a, 0,    0.66, 0.33, 0.33) +
+  draw_plot(fig_s8b, 0.33, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s8c, 0.66, 0.66, 0.33, 0.33) +
+  draw_plot(fig_s8d, 0,    0.33, 0.33, 0.33) +
+  draw_plot(fig_s8e, 0.33, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s8f, 0.66, 0.33, 0.33, 0.33) +
+  draw_plot(fig_s8g, 0,    0,    0.33, 0.33) +
+  draw_plot(fig_s8h, 0.33, 0,    0.33, 0.33) +
+  draw_plot(fig_s8i, 0.66, 0,    0.33, 0.33) +
   draw_plot_label(
     c("A", "B", "C", "D", "E", "F", "G", "H", "I"), 
     c(0, 0.33, 0.66, 0, 0.33, 0.66, 0, 0.33, 0.66), 
@@ -789,21 +768,21 @@ fig_s10 <-
     size = 9
   )
 
-# fig_s10
+# fig_s8
 
 save_plot(
-  "Figures/fig-S10.png", fig_s10,
+  here("Figures", "fig-S8.png"), fig_s8,
   base_width = 3 * fig_width,
   base_height = 3 * fig_width
   )
 save_plot(
-  "Figures/PDFs/fig-S10.pdf", fig_s10,
+  here("Figures/PDFs", "fig-S8.pdf"), fig_s8,
   base_width = 3 * fig_width,
   base_height = 3 * fig_width, 
   device=cairo_pdf
   )
 
-rm(fig_s10, fig_s10a, fig_s10b, fig_s10c, fig_s10d, fig_s10e, fig_s10f, fig_s10g, fig_s10h, fig_s10i)
+rm(fig_s8, fig_s8a, fig_s8b, fig_s8c, fig_s8d, fig_s8e, fig_s8f, fig_s8g, fig_s8h, fig_s8i)
 dev.off()
 
 
@@ -821,15 +800,15 @@ dev.off()
 # ## Plot the figures over all sensitivity runs
 # lapply(
 #   sensitivity_runs, function(s){
-#     s_df <- read_csv(paste0("Results/bycatch_results_", s, ".csv"), col_types=c("ddddc"))
+#     s_df <- read_csv(here("Results", paste0("bycatch_results_", s, ".csv")), col_types=c("ddddc"))
 #     
 #     bycatchdist_plot(s_df, combined_avg = T, truncate95 = T) +
 #       facet_wrap(~species, ncol = 3, scales = "free_x") + 
-#       ggsave(paste0("Figures/SensitivityS2S3/fig-S2-", s, ".png"), width = 10, height = 13)
+#       ggsave(here("Figures", paste0("SensitivityS2S3/fig-S2-", s, ".png")), width=2.5*fig_width, height=2.5*fig_width*1.3)
 #     
 #     cost_plot(s_df) +
 #       facet_wrap(~species, ncol = 3, scales = "free_x") +
-#     ggsave(paste0("Figures/SensitivityS2S3/fig-S3-", s, ".png"), width = 10, height = 13)
+#     ggsave(here("Figures", paste0("SensitivityS2S3/fig-S3-", s, ".png")), width=2.5*fig_width, height=2.5*fig_width*1.3)
 #     
 #     Sys.sleep(4)
 #   }
